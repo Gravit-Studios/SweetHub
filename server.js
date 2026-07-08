@@ -1,9 +1,9 @@
 import { createServer } from 'node:http';
 import { readFile } from 'node:fs/promises';
-import { extname, join, normalize } from 'node:path';
+import { extname, isAbsolute, join, relative, resolve } from 'node:path';
 
 const port = Number(process.env.PORT || 4173);
-const root = process.cwd();
+const root = resolve(process.cwd());
 const contentTypes = new Map([
   ['.html', 'text/html; charset=utf-8'],
   ['.js', 'text/javascript; charset=utf-8'],
@@ -13,10 +13,11 @@ const contentTypes = new Map([
 
 const server = createServer(async (request, response) => {
   const url = new URL(request.url || '/', `http://${request.headers.host}`);
-  const pathname = url.pathname === '/' ? '/index.html' : url.pathname;
-  const filePath = normalize(join(root, pathname));
+  const pathname = url.pathname === '/' ? '/index.html' : decodeURIComponent(url.pathname);
+  const filePath = resolve(join(root, pathname));
+  const relativePath = relative(root, filePath);
 
-  if (!filePath.startsWith(root)) {
+  if (relativePath.startsWith('..') || isAbsolute(relativePath)) {
     response.writeHead(403);
     response.end('Forbidden');
     return;

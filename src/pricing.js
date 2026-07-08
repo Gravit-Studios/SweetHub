@@ -6,8 +6,28 @@ export const BRL_FORMATTER = new Intl.NumberFormat('pt-BR', {
 export function toNumber(value) {
   if (typeof value === 'number') return Number.isFinite(value) ? value : 0;
   if (!value) return 0;
-  const normalized = String(value).replace(/\./g, '').replace(',', '.');
+
+  const sanitized = String(value)
+    .trim()
+    .replace(/[^\d,.-]/g, '');
+
+  if (!sanitized) return 0;
+
+  const lastComma = sanitized.lastIndexOf(',');
+  const lastDot = sanitized.lastIndexOf('.');
+  const separatorIndex = Math.max(lastComma, lastDot);
+  const decimalSeparator = lastComma > lastDot ? ',' : '.';
+  const hasSingleSeparator = (lastComma === -1) !== (lastDot === -1);
+  const digitsAfterSeparator = separatorIndex >= 0 ? sanitized.length - separatorIndex - 1 : 0;
+  const shouldTreatAsThousands = hasSingleSeparator && digitsAfterSeparator === 3;
+
+  const normalized = shouldTreatAsThousands
+    ? sanitized.replace(/[,.]/g, '')
+    : sanitized
+      .replace(decimalSeparator === ',' ? /\./g : /,/g, '')
+      .replace(decimalSeparator, '.');
   const parsed = Number(normalized);
+
   return Number.isFinite(parsed) ? parsed : 0;
 }
 

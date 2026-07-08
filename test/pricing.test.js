@@ -6,6 +6,9 @@ describe('pricing helpers', () => {
   it('parses Brazilian decimal strings', () => {
     assert.equal(toNumber('1.234,56'), 1234.56);
     assert.equal(toNumber('7,50'), 7.5);
+    assert.equal(toNumber('1,234.56'), 1234.56);
+    assert.equal(toNumber('R$ 12,90'), 12.9);
+    assert.equal(toNumber('1.000'), 1000);
   });
 
   it('calculates proportional ingredient cost', () => {

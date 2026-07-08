@@ -23,6 +23,28 @@ function escapeHtml(value) {
   return String(value ?? '').replace(/[&<>"]/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[char]));
 }
 
+function updateText(selector, value) {
+  const element = app.querySelector(selector);
+  if (element) element.textContent = value;
+}
+
+function updatePricingSummary() {
+  const pricing = calculatePricing(state);
+
+  updateText('[data-result=hero-price]', formatCurrency(pricing.suggestedPrice));
+  updateText('[data-result=hero-unit-price]', `${formatCurrency(pricing.unitPrice)} por unidade`);
+  updateText('[data-result=ingredients-cost]', formatCurrency(pricing.ingredientsCost));
+  updateText('[data-result=fixed-costs]', formatCurrency(pricing.fixedCosts));
+  updateText('[data-result=total-cost]', formatCurrency(pricing.totalCost));
+  updateText('[data-result=unit-cost]', formatCurrency(pricing.unitCost));
+  updateText('[data-result=suggested-price]', formatCurrency(pricing.suggestedPrice));
+  updateText('[data-result=unit-price]', formatCurrency(pricing.unitPrice));
+}
+
+function updateProductTitle() {
+  updateText('[data-product-title]', `Ingredientes de ${state.productName || 'produto'}`);
+}
+
 function render() {
   const pricing = calculatePricing(state);
 
@@ -36,8 +58,8 @@ function render() {
         </div>
         <div class="hero-card">
           <span>Preço sugerido</span>
-          <strong>${formatCurrency(pricing.suggestedPrice)}</strong>
-          <small>${formatCurrency(pricing.unitPrice)} por unidade</small>
+          <strong data-result="hero-price">${formatCurrency(pricing.suggestedPrice)}</strong>
+          <small data-result="hero-unit-price">${formatCurrency(pricing.unitPrice)} por unidade</small>
         </div>
       </section>
 
@@ -49,7 +71,7 @@ function render() {
 
       <section class="panel">
         <div class="section-header">
-          <div><p class="eyebrow">Ficha técnica</p><h2>Ingredientes de ${escapeHtml(state.productName || 'produto')}</h2></div>
+          <div><p class="eyebrow">Ficha técnica</p><h2 data-product-title>Ingredientes de ${escapeHtml(state.productName || 'produto')}</h2></div>
           <button type="button" data-action="add-ingredient">Adicionar ingrediente</button>
         </div>
         <div class="ingredient-grid header-row" aria-hidden="true"><span>Ingrediente</span><span>Preço da compra</span><span>Qtd. comprada</span><span>Qtd. usada</span><span>Un.</span><span></span></div>
@@ -74,12 +96,12 @@ function render() {
         <aside class="panel summary-panel">
           <p class="eyebrow">Resumo</p><h2>Resultado da precificação</h2>
           <dl>
-            <div><dt>Ingredientes</dt><dd>${formatCurrency(pricing.ingredientsCost)}</dd></div>
-            <div><dt>Custos adicionais</dt><dd>${formatCurrency(pricing.fixedCosts)}</dd></div>
-            <div><dt>Custo total</dt><dd>${formatCurrency(pricing.totalCost)}</dd></div>
-            <div><dt>Custo unitário</dt><dd>${formatCurrency(pricing.unitCost)}</dd></div>
-            <div class="highlight"><dt>Preço de venda</dt><dd>${formatCurrency(pricing.suggestedPrice)}</dd></div>
-            <div class="highlight"><dt>Preço por unidade</dt><dd>${formatCurrency(pricing.unitPrice)}</dd></div>
+            <div><dt>Ingredientes</dt><dd data-result="ingredients-cost">${formatCurrency(pricing.ingredientsCost)}</dd></div>
+            <div><dt>Custos adicionais</dt><dd data-result="fixed-costs">${formatCurrency(pricing.fixedCosts)}</dd></div>
+            <div><dt>Custo total</dt><dd data-result="total-cost">${formatCurrency(pricing.totalCost)}</dd></div>
+            <div><dt>Custo unitário</dt><dd data-result="unit-cost">${formatCurrency(pricing.unitCost)}</dd></div>
+            <div class="highlight"><dt>Preço de venda</dt><dd data-result="suggested-price">${formatCurrency(pricing.suggestedPrice)}</dd></div>
+            <div class="highlight"><dt>Preço por unidade</dt><dd data-result="unit-price">${formatCurrency(pricing.unitPrice)}</dd></div>
           </dl>
         </aside>
       </section>
@@ -91,7 +113,8 @@ app.addEventListener('input', (event) => {
   const fieldName = target.dataset.field;
   if (fieldName) {
     state[fieldName] = target.value;
-    render();
+    if (fieldName === 'productName') updateProductTitle();
+    updatePricingSummary();
     return;
   }
 
@@ -99,7 +122,7 @@ app.addEventListener('input', (event) => {
   if (ingredientField) {
     const id = target.closest('[data-ingredient]').dataset.ingredient;
     state.ingredients = state.ingredients.map((ingredient) => ingredient.id === id ? { ...ingredient, [ingredientField]: target.value } : ingredient);
-    render();
+    updatePricingSummary();
   }
 });
 
