@@ -2,6 +2,7 @@ import { calculatePricing, formatCurrency } from './pricing.js';
 import { signUp, signIn, signOut, getSession, onAuthStateChange } from './auth.js';
 import { parseRoute, navigate, onRouteChange } from './router.js';
 import { headerArt } from './headerArt.js';
+import { authArt } from './authArt.js';
 import * as db from './db.js';
 
 // ---------------- Helpers de estado / formatação ----------------
@@ -215,8 +216,33 @@ onAuthStateChange((session) => {
 
 // ---------------- Fragmentos de UI reutilizáveis ----------------
 
+const ICON_PATHS = {
+  home: '<path d="M3 11.5 12 4l9 7.5"/><path d="M5 10v9h14v-9"/><path d="M9.5 19v-5h5v5"/>',
+  box: '<path d="M3 8l9-4 9 4-9 4-9-4Z"/><path d="M3 8v8l9 4 9-4V8"/><path d="M12 12v8"/>',
+  leaf: '<path d="M5 19c8 0 14-6 14-14 0 0-14-2-14 8 0 3 2 6 2 6Z"/><path d="M5 19c0-4 2-7 5-9"/>',
+  wallet: '<rect x="3" y="6" width="18" height="13" rx="3"/><path d="M3 10.5h18"/><circle cx="16.5" cy="14.5" r="1.1" fill="currentColor" stroke="none"/>',
+  trending: '<path d="M4 16l6-6 4 4 6-8"/><path d="M15 6h5v5"/>',
+  truck: '<rect x="2" y="8" width="12" height="8"/><path d="M14 11h4l3 3v2h-7z"/><circle cx="7" cy="18" r="1.6"/><circle cx="17.5" cy="18" r="1.6"/>',
+  clock: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/>',
+  plus: '<path d="M12 5v14M5 12h14"/>',
+  logout: '<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/>',
+  arrow: '<path d="M5 12h14M13 6l6 6-6 6"/>',
+  star: '<path d="M12 3l2.6 5.8 6.4.6-4.8 4.3 1.4 6.3L12 17l-5.6 3 1.4-6.3-4.8-4.3 6.4-.6Z"/>',
+};
+
+function icon(name, extraClass = '') {
+  return `<svg class="icon ${extraClass}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICON_PATHS[name] || ''}</svg>`;
+}
+
+const AVATAR_COLORS = ['#c8795b', '#e8586f', '#a8564c', '#8f3f37', '#d98a4f', '#b2603f'];
+
+function avatarColorFor(name) {
+  const sum = String(name).split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+  return AVATAR_COLORS[sum % AVATAR_COLORS.length];
+}
+
 function banner(title, subtitle) {
-  return `<div class="banner">${headerArt}<div class="banner-content"><p class="eyebrow">Delícias da Tai</p><h1>${escapeHtml(title)}</h1><p>${escapeHtml(subtitle)}</p></div></div>`;
+  return `<div class="banner">${headerArt}<div class="banner-overlay"></div><div class="banner-content"><p class="eyebrow">Delícias da Tai</p><h1>${escapeHtml(title)}</h1><p>${escapeHtml(subtitle)}</p></div></div>`;
 }
 
 function statusBox() {
@@ -302,8 +328,12 @@ function pricingResultBlock(editor) {
 function productCardGrid(list) {
   return `<div class="card-grid">${list.map((product) => `
     <div class="item-card" data-action="open-produto" data-id="${product.id}">
-      <strong>${escapeHtml(product.name)}</strong>
+      <div class="item-card-top">
+        <span class="item-avatar" style="background:${avatarColorFor(product.name)}">${escapeHtml(product.name.trim().charAt(0).toUpperCase() || '?')}</span>
+        <strong>${escapeHtml(product.name)}</strong>
+      </div>
       <span class="muted">Rendimento: ${product.yield_amount} un.</span>
+      <span class="item-card-link">Ver detalhes ${icon('arrow')}</span>
     </div>`).join('')}</div>`;
 }
 
@@ -319,22 +349,25 @@ function renderDashboard() {
     ${statusBox()}
     <div class="highlight-grid">
       <div class="highlight-card">
+        <div class="highlight-icon highlight-icon-box">${icon('box')}</div>
         <span class="eyebrow">Produtos cadastrados</span>
         <strong>${state.savedProducts.length}</strong>
-        <button type="button" class="ghost" data-action="goto" data-route="produtos">Ver produtos</button>
+        <button type="button" class="ghost" data-action="goto" data-route="produtos">Ver produtos ${icon('arrow')}</button>
       </div>
       <div class="highlight-card">
+        <div class="highlight-icon highlight-icon-star">${icon('star')}</div>
         <span class="eyebrow">Último produto cadastrado</span>
         ${ultimoProduto
           ? `<strong class="highlight-name">${escapeHtml(ultimoProduto.name)}</strong>
              <span class="muted">${ultimoMedia ? `Preço médio: ${formatCurrency(ultimoMedia.unitPrice)}` : `Rendimento: ${ultimoProduto.yield_amount} un.`}</span>
-             <button type="button" class="ghost" data-action="open-produto" data-id="${ultimoProduto.id}">Abrir produto</button>`
+             <button type="button" class="ghost" data-action="open-produto" data-id="${ultimoProduto.id}">Abrir produto ${icon('arrow')}</button>`
           : '<strong class="highlight-name">—</strong><span class="muted">Nenhum produto ainda.</span>'}
       </div>
       <div class="highlight-card highlight-card-cta">
+        <div class="highlight-icon highlight-icon-cta">${icon('plus')}</div>
         <span class="eyebrow">Novo produto</span>
         <strong>Monte uma nova ficha</strong>
-        <button type="button" data-action="start-wizard">+ Novo produto</button>
+        <button type="button" data-action="start-wizard">Começar ${icon('arrow')}</button>
       </div>
     </div>
     <div class="panel">
@@ -543,9 +576,9 @@ function renderPage() {
 
 // ---------------- Shell / autenticação ----------------
 
-function navItem(route, label) {
+function navItem(route, label, iconName) {
   const active = state.route.path === route;
-  return `<li><button type="button" class="nav-link ${active ? 'active' : ''}" data-action="goto" data-route="${route}">${label}</button></li>`;
+  return `<li><button type="button" class="nav-link ${active ? 'active' : ''}" data-action="goto" data-route="${route}">${icon(iconName)}<span>${label}</span></button></li>`;
 }
 
 function shellHtml() {
@@ -555,18 +588,18 @@ function shellHtml() {
         <div class="navbar-inner">
           <div class="brand"><span class="brand-mark"></span> Delícias da Tai</div>
           <ul class="nav-list">
-            ${navItem('inicio', 'Início')}
-            ${navItem('produtos', 'Produtos')}
-            ${navItem('ingredientes', 'Ingredientes')}
-            ${navItem('despesas', 'Despesas')}
-            ${navItem('lucro', 'Lucro')}
-            ${navItem('fornecedores', 'Fornecedores')}
-            ${navItem('historico', 'Histórico')}
+            ${navItem('inicio', 'Início', 'home')}
+            ${navItem('produtos', 'Produtos', 'box')}
+            ${navItem('ingredientes', 'Ingredientes', 'leaf')}
+            ${navItem('despesas', 'Despesas', 'wallet')}
+            ${navItem('lucro', 'Lucro', 'trending')}
+            ${navItem('fornecedores', 'Fornecedores', 'truck')}
+            ${navItem('historico', 'Histórico', 'clock')}
           </ul>
           <div class="navbar-user">
-            <button type="button" class="nav-cta" data-action="start-wizard">+ Novo produto</button>
+            <button type="button" class="nav-cta" data-action="start-wizard">${icon('plus')}<span>Novo produto</span></button>
             <span class="navbar-email">${escapeHtml(state.session.user.email)}</span>
-            <button type="button" class="ghost" data-action="logout">Sair</button>
+            <button type="button" class="ghost icon-btn" data-action="logout" title="Sair">${icon('logout')}</button>
           </div>
         </div>
       </header>
@@ -579,22 +612,34 @@ function shellHtml() {
 function authHtml() {
   const isSignUp = state.authMode === 'signup';
   return `
-    <div class="auth-wrap">
-      ${banner('Calculadora de precificação para confeitaria', 'Entre com sua conta para salvar produtos, ingredientes e o histórico dos seus cálculos.')}
-      <div class="panel auth-panel">
-        <div class="auth-tabs">
-          <button type="button" class="${!isSignUp ? 'active' : 'ghost'}" data-action="auth-tab" data-mode="signin">Entrar</button>
-          <button type="button" class="${isSignUp ? 'active' : 'ghost'}" data-action="auth-tab" data-mode="signup">Criar conta</button>
+    <div class="auth-page">
+      <div class="auth-shell">
+        <div class="auth-visual">
+          ${authArt}
+          <div class="auth-visual-overlay"></div>
+          <div class="auth-brand"><span class="brand-mark"></span> Delícias da Tai</div>
+          <blockquote class="auth-quote">
+            <p>&ldquo;Preço certo é doce garantido: cada receita com a margem que ela merece.&rdquo;</p>
+          </blockquote>
         </div>
-        <form data-form="auth">
-          ${isSignUp ? '<label>Nome<input name="fullName" type="text" required /></label>' : ''}
-          <label>E-mail<input name="email" type="email" required /></label>
-          <label>Senha<input name="password" type="password" minlength="6" required /></label>
-          ${state.authError ? `<p class="auth-error">${escapeHtml(state.authError)}</p>` : ''}
-          <button type="submit" ${state.authLoading ? 'disabled' : ''}>
-            ${state.authLoading ? 'Aguarde...' : isSignUp ? 'Criar conta' : 'Entrar'}
-          </button>
-        </form>
+        <div class="auth-form-side">
+          <p class="eyebrow">${isSignUp ? 'Comece agora' : 'Bem-vinda de volta'}</p>
+          <h1 class="auth-title">${isSignUp ? 'Crie sua conta' : 'Entre na sua conta'}</h1>
+          <p class="auth-subtitle">Calcule o preço ideal dos seus doces com base no custo real de ingredientes e despesas.</p>
+          <div class="auth-tabs">
+            <button type="button" class="${!isSignUp ? 'active' : 'ghost'}" data-action="auth-tab" data-mode="signin">Entrar</button>
+            <button type="button" class="${isSignUp ? 'active' : 'ghost'}" data-action="auth-tab" data-mode="signup">Criar conta</button>
+          </div>
+          <form data-form="auth">
+            ${isSignUp ? '<label>Nome<input name="fullName" type="text" required /></label>' : ''}
+            <label>E-mail<input name="email" type="email" required /></label>
+            <label>Senha<input name="password" type="password" minlength="6" required /></label>
+            ${state.authError ? `<p class="auth-error">${escapeHtml(state.authError)}</p>` : ''}
+            <button type="submit" ${state.authLoading ? 'disabled' : ''}>
+              ${state.authLoading ? 'Aguarde...' : isSignUp ? 'Criar conta' : 'Entrar'}
+            </button>
+          </form>
+        </div>
       </div>
     </div>`;
 }
