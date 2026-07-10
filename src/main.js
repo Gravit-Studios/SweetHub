@@ -170,6 +170,9 @@ async function loadUserData() {
     state.profile = { fullName: profile.full_name || '', role: profile.role || 'user' };
     state.expensesSnapshot = JSON.stringify(expenseCategories);
     state.tiersSnapshot = JSON.stringify(profitTiers);
+    if (state.profile.role === 'admin' && !state.admin.loading && state.admin.users.length === 0) {
+      loadAdminUsers();
+    }
   } catch (error) {
     state.statusMessage = `Erro ao carregar dados: ${error.message}`;
   } finally {
@@ -223,7 +226,7 @@ function handleRouteChange(route) {
     ensureDetailLoaded(route.param);
     return;
   }
-  if (route.path === 'admin' && state.profile.role === 'admin' && !state.admin.loading && state.admin.users.length === 0) {
+  if (state.profile.role === 'admin' && !state.admin.loading && state.admin.users.length === 0) {
     loadAdminUsers();
     return;
   }
@@ -242,12 +245,10 @@ async function loadAdminUsers() {
   render();
 }
 
+// Suspender/excluir já passam por um modal de confirmação antes de chegar
+// aqui (ver openConfirmAdminSuspend/openConfirmAdminDelete); reativar é uma
+// ação reversível e de baixo risco, não precisa de confirmação.
 async function handleAdminAction(action, userId) {
-  const confirmMessages = {
-    suspend: 'Suspender o acesso deste usuário?',
-    delete: 'Excluir permanentemente este usuário e todos os dados dele? Esta ação não pode ser desfeita.',
-  };
-  if (confirmMessages[action] && !window.confirm(confirmMessages[action])) return;
   try {
     if (action === 'suspend') await db.adminSuspendUser(userId);
     if (action === 'reactivate') await db.adminReactivateUser(userId);
@@ -795,14 +796,19 @@ function addRecipeIngredientModal(data) {
     </div>`;
 }
 
+// Modal de confirmação genérico para ações destrutivas/sensíveis (excluir
+// ingrediente/receita, suspender/excluir usuário no admin...). O rótulo do
+// botão de confirmação é configurável; por padrão é "Excluir".
 function confirmDeleteModal(data) {
+  const confirmLabel = data.confirmLabel || 'Excluir';
+  const confirmLoadingLabel = data.confirmLoadingLabel || 'Excluindo...';
   return `
     <div class="modal-box">
       <div class="modal-header"><h3>${escapeHtml(data.title)}</h3><button type="button" class="icon-btn ghost" data-action="close-modal">${icon('close')}</button></div>
       ${data.error ? `<p class="auth-error">${escapeHtml(data.error)}</p>` : ''}
       <p>${escapeHtml(data.message)}</p>
       <div class="save-actions">
-        <button type="button" class="danger" data-action="confirm-delete" ${data.loading ? 'disabled' : ''}>${data.loading ? 'Excluindo...' : 'Excluir'}</button>
+        <button type="button" class="danger" data-action="confirm-delete" ${data.loading ? 'disabled' : ''}>${data.loading ? confirmLoadingLabel : confirmLabel}</button>
         <button type="button" class="ghost" data-action="close-modal">Cancelar</button>
       </div>
     </div>`;
@@ -1154,8 +1160,8 @@ function renderAdminUsersList() {
       <span class="saved-list-actions">
         ${banned
           ? `<button type="button" class="ghost" data-action="admin-reactivate" data-id="${u.id}">Reativar</button>`
-          : `<button type="button" class="ghost" data-action="admin-suspend" data-id="${u.id}">Suspender</button>`}
-        ${u.role === 'admin' ? '' : `<button type="button" class="danger" data-action="admin-delete" data-id="${u.id}">Excluir</button>`}
+          : `<button type="button" class="ghost" data-action="admin-confirm-suspend" data-id="${u.id}">Suspender</button>`}
+        ${u.role === 'admin' ? '' : `<button type="button" class="danger" data-action="admin-confirm-delete" data-id="${u.id}">Excluir</button>`}
       </span>
     </li>`;
   }).join('')}</ul>`;
@@ -1175,6 +1181,11 @@ function renderAdminPage() {
 }
 
 function renderPage() {
+  // Conta admin só enxerga o painel de usuários (visão de uma página só) —
+  // exceto as páginas legais do footer, que continuam acessíveis a todos.
+  if (state.profile.role === 'admin' && state.route.path !== 'termos' && state.route.path !== 'privacidade') {
+    return renderAdminPage();
+  }
   switch (state.route.path) {
     case 'produtos': return renderProdutosPage();
     case 'produto': return renderProdutoDetalhe(state.route.param);
@@ -1199,6 +1210,7 @@ function navItem(route, label) {
 
 function shellHtml() {
   const displayName = state.profile.fullName || nameFromEmail(state.session.user.email);
+  const isAdmin = state.profile.role === 'admin';
   return `
     <div class="shell">
       <header class="navbar">
@@ -1206,14 +1218,14 @@ function shellHtml() {
           <button type="button" class="brand" data-action="goto" data-route="inicio">
             <span class="brand-mark"></span> Delícias da Tai
           </button>
+          ${isAdmin ? '' : `
           <ul class="nav-list ${state.mobileMenuOpen ? 'open' : ''}">
             ${navItem('produtos', 'Receitas')}
             ${navItem('ingredientes', 'Ingredientes')}
             ${navItem('despesas', 'Despesas')}
             ${navItem('lucro', 'Lucro')}
             ${navItem('fornecedores', 'Fornecedores')}
-            ${state.profile.role === 'admin' ? navItem('admin', 'Admin') : ''}
-          </ul>
+          </ul>`}
           <div class="navbar-user">
             <div class="profile-menu">
               <button type="button" class="profile-trigger" data-action="toggle-profile-menu">
@@ -1228,7 +1240,7 @@ function shellHtml() {
             <span class="navbar-divider" aria-hidden="true"></span>
             <button type="button" class="text-link" data-action="logout">Sair</button>
           </div>
-          <button type="button" class="navbar-menu-toggle" data-action="toggle-mobile-menu" aria-label="Abrir menu">${icon(state.mobileMenuOpen ? 'close' : 'menu')}</button>
+          ${isAdmin ? '' : `<button type="button" class="navbar-menu-toggle" data-action="toggle-mobile-menu" aria-label="Abrir menu">${icon(state.mobileMenuOpen ? 'close' : 'menu')}</button>`}
         </div>
       </header>
       <div class="main-area">
@@ -1708,12 +1720,34 @@ function openConfirmDeleteProduct(id, name) {
   });
 }
 
+function openConfirmAdminSuspend(user) {
+  openModal('confirm-delete', {
+    kind: 'admin-suspend',
+    id: user.id,
+    title: 'Suspender usuário',
+    message: `Suspender o acesso de "${user.fullName || user.email}"? O usuário fica bloqueado até ser reativado.`,
+    confirmLabel: 'Suspender',
+    confirmLoadingLabel: 'Suspendendo...',
+  });
+}
+
+function openConfirmAdminDelete(user) {
+  openModal('confirm-delete', {
+    kind: 'admin-delete',
+    id: user.id,
+    title: 'Excluir usuário',
+    message: `Excluir permanentemente a conta de "${user.fullName || user.email}" e todos os dados dele? Essa ação não pode ser desfeita.`,
+  });
+}
+
 async function handleConfirmDelete() {
   const modal = state.activeModal;
   if (!modal) return;
   closeModal();
   if (modal.kind === 'ingredient') await handleDeleteSavedIngredient(modal.id);
   if (modal.kind === 'product') await handleDeleteDetail(modal.id);
+  if (modal.kind === 'admin-suspend') await handleAdminAction('suspend', modal.id);
+  if (modal.kind === 'admin-delete') await handleAdminAction('delete', modal.id);
 }
 
 // Abre o modal de adicionar ingrediente (wizard ou edição de receita): cria
@@ -1999,15 +2033,19 @@ app.addEventListener('click', (event) => {
     case 'open-delete-account':
       openDeleteAccountModal();
       break;
-    case 'admin-suspend':
-      handleAdminAction('suspend', id);
+    case 'admin-confirm-suspend': {
+      const user = state.admin.users.find((u) => u.id === id);
+      if (user) openConfirmAdminSuspend(user);
       break;
+    }
     case 'admin-reactivate':
       handleAdminAction('reactivate', id);
       break;
-    case 'admin-delete':
-      handleAdminAction('delete', id);
+    case 'admin-confirm-delete': {
+      const user = state.admin.users.find((u) => u.id === id);
+      if (user) openConfirmAdminDelete(user);
       break;
+    }
     case 'select-ingredient-option': {
       const source = state.savedIngredients.find((si) => si.id === el.dataset.ingredientId);
       if (!source) break;
