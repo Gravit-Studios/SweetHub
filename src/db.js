@@ -1,5 +1,15 @@
 import { supabase, FUNCTIONS_URL } from './supabaseClient.js';
 
+// Os campos de ingrediente da receita são digitados no padrão brasileiro
+// (vírgula decimal, ex.: "5,7") e chegam aqui como string — colunas numeric
+// do Postgres não aceitam vírgula, então precisam ser convertidos antes de
+// salvar.
+function toNumber(value) {
+  const normalized = String(value ?? '').replace(',', '.');
+  const parsed = Number(normalized);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
 // ---------- Perfil ----------
 
 export async function getProfile(userId) {
@@ -220,9 +230,9 @@ export async function saveProduct(userId, productId, productData, ingredients) {
       product_id: savedProduct.id,
       ingredient_id: ingredient.ingredientId ?? null,
       name: ingredient.name,
-      package_price: ingredient.packagePrice,
-      package_amount: ingredient.packageAmount,
-      used_amount: ingredient.usedAmount,
+      package_price: toNumber(ingredient.packagePrice),
+      package_amount: toNumber(ingredient.packageAmount),
+      used_amount: toNumber(ingredient.usedAmount),
       unit: ingredient.unit,
       position: index,
     }));
