@@ -39,6 +39,11 @@ function toDecimalString(value) {
   return num ? String(num).replace('.', ',') : '';
 }
 
+function formatDate(value) {
+  if (!value) return '—';
+  return new Date(value).toLocaleDateString('pt-BR');
+}
+
 // Nome de exibição para contas sem "nome completo" salvo: deriva algo
 // apresentável do e-mail em vez de mostrar o endereço cru.
 function nameFromEmail(email) {
@@ -1490,22 +1495,36 @@ function renderEmpresaPage() {
 }
 
 function renderAdminUsersList(users = state.admin.users) {
-  if (!users.length) return emptyState('Nenhum usuário encontrado.', false);
-  return `<ul class="saved-list">${users.map((u) => {
-    const banned = u.bannedUntil && new Date(u.bannedUntil) > new Date();
-    const pending = u.approvalStatus === 'pending';
-    return `
-    <li>
-      <span>${escapeHtml(u.fullName || u.email)} <small class="muted">${escapeHtml(u.email)}${u.role === 'admin' ? ' · admin' : ''}${pending ? ' · aguardando aprovação' : ''}${banned ? ' · suspenso' : ''}</small></span>
-      <span class="saved-list-actions">
-        ${pending ? `<button type="button" class="primary" data-action="admin-approve" data-id="${u.id}">Aprovar</button>` : ''}
-        ${pending ? '' : banned
-          ? `<button type="button" class="ghost" data-action="admin-reactivate" data-id="${u.id}">Reativar</button>`
-          : `<button type="button" class="ghost" data-action="admin-confirm-suspend" data-id="${u.id}">Suspender</button>`}
-        ${u.role === 'admin' ? '' : `<button type="button" class="danger" data-action="admin-confirm-delete" data-id="${u.id}">Excluir</button>`}
-      </span>
-    </li>`;
-  }).join('')}</ul>`;
+  const visible = users.filter((u) => u.role !== 'admin');
+  if (!visible.length) return emptyState('Nenhum usuário encontrado.', false);
+  return `<div class="table-scroll">
+  <table class="data-table data-table-cards-mobile">
+    <thead><tr><th>Empresa</th><th>Nome</th><th>CNPJ</th><th>Status</th><th>Data de criação</th><th></th></tr></thead>
+    <tbody>
+      ${visible.map((u) => {
+        const banned = u.bannedUntil && new Date(u.bannedUntil) > new Date();
+        const pending = u.approvalStatus === 'pending';
+        const statusClass = pending ? 'status-pill-pending' : banned ? 'status-pill-danger' : 'status-pill-active';
+        const statusLabel = pending ? 'Aguardando aprovação' : banned ? 'Suspenso' : 'Ativo';
+        return `
+        <tr>
+          <td>${escapeHtml(u.companyName || '—')}</td>
+          <td data-label="Nome">${escapeHtml(u.fullName || u.email)}</td>
+          <td data-label="CNPJ">${escapeHtml(u.cnpj || '—')}</td>
+          <td data-label="Status"><span class="status-pill ${statusClass}">${statusLabel}</span></td>
+          <td data-label="Data de criação">${formatDate(u.createdAt)}</td>
+          <td class="data-table-actions">
+            ${pending ? `<button type="button" class="primary" data-action="admin-approve" data-id="${u.id}">Aprovar</button>` : ''}
+            ${pending ? '' : banned
+              ? `<button type="button" class="ghost" data-action="admin-reactivate" data-id="${u.id}">Reativar</button>`
+              : `<button type="button" class="ghost" data-action="admin-confirm-suspend" data-id="${u.id}">Suspender</button>`}
+            <button type="button" class="danger" data-action="admin-confirm-delete" data-id="${u.id}">Excluir</button>
+          </td>
+        </tr>`;
+      }).join('')}
+    </tbody>
+  </table>
+  </div>`;
 }
 
 function renderAdminPage() {
