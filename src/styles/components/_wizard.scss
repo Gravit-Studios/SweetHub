@@ -1,25 +1,72 @@
 @use '../abstracts' as *;
 
-.wizard-steps {
+// Passo a passo em formato de linha do tempo: pontos ligados por uma linha
+// que vai preenchendo de cor conforme os passos são concluídos.
+.stepper {
   display: flex;
-  gap: 8px;
-  margin-bottom: 24px;
+  margin-bottom: 28px;
 }
 
-.wizard-step {
+.stepper-item {
+  position: relative;
   flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
   text-align: center;
-  padding: 10px 6px;
-  border-radius: $radius-sm;
-  background: $surface-tint;
-  color: $primary-500;
-  font-weight: $fw-bold;
-  font-size: $fs-xs;
 
-  &.active {
-    background: $primary-500;
-    color: #fff;
+  &:not(:last-child)::after {
+    content: '';
+    position: absolute;
+    top: 15px;
+    left: 50%;
+    width: 100%;
+    height: 2px;
+    background: $secondary-200;
+    z-index: 0;
   }
+
+  &.done:not(:last-child)::after {
+    background: $primary-500;
+  }
+}
+
+.stepper-dot {
+  position: relative;
+  z-index: 1;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: $surface-tint;
+  color: $secondary-600;
+  font-weight: $fw-black;
+  font-size: 0.85rem;
+
+  .icon {
+    width: 16px;
+    height: 16px;
+  }
+}
+
+.stepper-label {
+  font-size: $fs-xs;
+  font-weight: $fw-bold;
+  color: $ink-400;
+}
+
+.stepper-item.active .stepper-dot,
+.stepper-item.done .stepper-dot {
+  background: $primary-500;
+  color: #fff;
+}
+
+.stepper-item.active .stepper-label,
+.stepper-item.done .stepper-label {
+  color: $ink-900;
 }
 
 .wizard-actions {

@@ -73,6 +73,8 @@ const state = {
   suppliers: [],
   dataLoading: false,
   statusMessage: '',
+  expensesSnapshot: '[]',
+  tiersSnapshot: '[]',
 
   profile: { fullName: '', role: 'user' },
   profileMenuOpen: false,
@@ -157,6 +159,8 @@ async function loadUserData() {
     state.profitTiers = profitTiers;
     state.suppliers = suppliers;
     state.profile = { fullName: profile.full_name || '', role: profile.role || 'user' };
+    state.expensesSnapshot = JSON.stringify(expenseCategories);
+    state.tiersSnapshot = JSON.stringify(profitTiers);
   } catch (error) {
     state.statusMessage = `Erro ao carregar dados: ${error.message}`;
   } finally {
@@ -343,6 +347,33 @@ function emptyState(message, showCta) {
   return `<div class="empty-state"><p>${escapeHtml(message)}</p>${showCta ? '<button type="button" data-action="start-wizard">Criar receita</button>' : ''}</div>`;
 }
 
+// Ação de "adicionar mais uma linha" (ingrediente, despesa...): um link
+// discreto com ícone de + em vez de um botão cheio, usado em qualquer lista
+// editável do projeto.
+function addRowLink(label, action, editorKey = '') {
+  return `<button type="button" class="add-row-link" data-action="${action}"${editorKey ? ` data-editor="${editorKey}"` : ''}>${icon('plus')}<span>${label}</span></button>`;
+}
+
+// Cabeçalho padrão de página de base (Despesas, Lucro...): botão "Salvar
+// alterações" à direita, desabilitado até o formulário ficar "sujo".
+function pageHeaderWithSave(eyebrow, title, saveAction, isDirty) {
+  return `<div class="section-header">
+    <div><p class="eyebrow">${escapeHtml(eyebrow)}</p><h2>${escapeHtml(title)}</h2></div>
+    <button type="button" data-action="${saveAction}" ${isDirty ? '' : 'disabled'}>Salvar alterações</button>
+  </div>`;
+}
+
+// Agrupa uma lista por categoria (usado na tabela de ingredientes).
+function groupByCategory(items) {
+  const groups = new Map();
+  for (const item of items) {
+    const key = item.category?.trim() || 'Sem categoria';
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(item);
+  }
+  return groups;
+}
+
 // Padrão de campo do projeto: label acima do input, erro (se houver) abaixo.
 function fieldFor(editorKey, key, label, value, mode = 'text', error = '') {
   return `<label>${label}<input class="${error ? 'is-invalid' : ''}" data-editor="${editorKey}" data-field="${key}" inputmode="${mode}" value="${escapeHtml(value)}" />${error ? `<p class="form-error">${escapeHtml(error)}</p>` : ''}</label>`;
@@ -400,7 +431,7 @@ function ingredientRows(editorKey, ingredients, invalidIds = new Set()) {
     </div>`;
   }).join('')}
   <div class="ingredient-rows-actions">
-    <button type="button" data-action="add-ingredient" data-editor="${editorKey}">Adicionar ingrediente</button>
+    ${addRowLink('Adicionar ingrediente', 'add-ingredient', editorKey)}
   </div>`;
 }
 
@@ -649,8 +680,15 @@ function renderWizard() {
       <button type="button" class="ghost" data-action="goto" data-route="produtos">Cancelar</button>
     </div>
     ${statusBox()}
-    <div class="wizard-steps">
-      ${stepLabels.map((label, i) => `<div class="wizard-step ${editor.step === i + 1 ? 'active' : ''}">${i + 1}. ${label}</div>`).join('')}
+    <div class="stepper">
+      ${stepLabels.map((label, i) => {
+        const stepNum = i + 1;
+        const status = stepNum < editor.step ? 'done' : stepNum === editor.step ? 'active' : 'upcoming';
+        return `<div class="stepper-item ${status}">
+          <span class="stepper-dot">${status === 'done' ? icon('check') : stepNum}</span>
+          <span class="stepper-label">${label}</span>
+        </div>`;
+      }).join('')}
     </div>
     <div class="panel">
       ${editor.step === 1 ? `<div class="field-grid">${fieldFor('wizard', 'productName', 'Nome da receita', editor.productName, 'text', editor.errors.productName)}</div>` : ''}
@@ -685,15 +723,27 @@ function renderWizardReview(editor) {
 }
 
 function renderIngredientesPage() {
+  const groups = groupByCategory(state.savedIngredients);
   const list = state.savedIngredients.length > 0
-    ? `<ul class="saved-list">${state.savedIngredients.map((i) => `
-        <li>
-          <span>${escapeHtml(i.name)} <small class="muted">(${formatCurrency(i.package_price)} / ${i.package_amount}${escapeHtml(i.unit)}${i.category ? ` · ${escapeHtml(i.category)}` : ''}${i.brand ? ` · ${escapeHtml(i.brand)}` : ''})</small></span>
-          <span class="saved-list-actions">
-            <button type="button" class="ghost" data-action="open-edit-ingredient" data-id="${i.id}">Editar</button>
-            <button type="button" class="ghost" data-action="delete-saved-ingredient" data-id="${i.id}">Excluir</button>
-          </span>
-        </li>`).join('')}</ul>`
+    ? `<div class="table-scroll"><table class="data-table">
+        <thead><tr><th>Nome</th><th>Preço</th><th>Qtd.</th><th>Marca</th><th></th></tr></thead>
+        <tbody>
+          ${[...groups.entries()].map(([category, items]) => `
+            <tr class="data-table-group"><td colspan="5">${escapeHtml(category)}</td></tr>
+            ${items.map((i) => `
+              <tr>
+                <td>${escapeHtml(i.name)}</td>
+                <td>${formatCurrency(i.package_price)}</td>
+                <td>${escapeHtml(String(i.package_amount))}${escapeHtml(i.unit)}</td>
+                <td>${i.brand ? escapeHtml(i.brand) : '—'}</td>
+                <td class="data-table-actions">
+                  <button type="button" class="ghost" data-action="open-edit-ingredient" data-id="${i.id}">Editar</button>
+                  <button type="button" class="ghost" data-action="delete-saved-ingredient" data-id="${i.id}">Excluir</button>
+                </td>
+              </tr>`).join('')}
+          `).join('')}
+        </tbody>
+      </table></div>`
     : emptyState('Nenhum ingrediente cadastrado ainda.', false);
 
   return `
@@ -715,8 +765,9 @@ function renderIngredientesPage() {
 
 function renderDespesasPage() {
   const total = state.expenseCategories.reduce((sum, e) => sum + toNumberSafe(e.monthly_value) * (toNumberSafe(e.percentage) / 100), 0);
+  const isDirty = JSON.stringify(state.expenseCategories) !== state.expensesSnapshot;
   return `
-    <div class="section-header"><div><p class="eyebrow">Base de despesas</p><h2>Custos fixos mensais</h2></div></div>
+    ${pageHeaderWithSave('Base de despesas', 'Custos fixos mensais', 'save-expenses', isDirty)}
     <p>Cada despesa é alocada por receita usando o percentual informado (ex.: R$250 de energia × 1% = R$2,50 por receita).</p>
     ${statusBox()}
     <div class="panel">
@@ -731,10 +782,7 @@ function renderDespesasPage() {
           <button type="button" class="ghost" data-action="delete-expense" data-id="${expense.id}">Excluir</button>
         </div>`;
       }).join('')}
-      <div class="save-actions">
-        <button type="button" data-action="add-expense">Adicionar despesa</button>
-        <button type="button" data-action="save-expenses">Salvar despesas</button>
-      </div>
+      ${addRowLink('Adicionar despesa', 'add-expense')}
       <p class="status-message" style="margin-top:16px;">Total alocado por receita: <strong>${formatCurrency(total)}</strong></p>
     </div>`;
 }
@@ -745,8 +793,9 @@ function percentFromMultiplier(multiplier) {
 }
 
 function renderLucroPage() {
+  const isDirty = JSON.stringify(state.profitTiers) !== state.tiersSnapshot;
   return `
-    <div class="section-header"><div><p class="eyebrow">Base de lucro</p><h2>Níveis de margem</h2></div></div>
+    ${pageHeaderWithSave('Base de lucro', 'Níveis de margem', 'save-tiers', isDirty)}
     <p>Cada nível multiplica o custo por unidade para sugerir o preço de venda (ex.: margem de 250% = custo × 2,5 no nível Mínimo).</p>
     ${statusBox()}
     <div class="panel">
@@ -759,17 +808,24 @@ function renderLucroPage() {
             <span class="suffix">%</span>
           </div>
         </div>`).join('')}
-      <div class="save-actions"><button type="button" data-action="save-tiers">Salvar níveis de lucro</button></div>
     </div>`;
 }
 
 function renderFornecedoresPage() {
   const list = state.suppliers.length > 0
-    ? `<ul class="saved-list">${state.suppliers.map((s) => `
-        <li>
-          <span>${escapeHtml(s.name)} <small class="muted">${escapeHtml(s.phone || '')}${s.contact_name ? ` · ${escapeHtml(s.contact_name)}` : ''}${s.email ? ` · ${escapeHtml(s.email)}` : ''}</small></span>
-          <span class="saved-list-actions"><button type="button" class="ghost" data-action="delete-supplier" data-id="${s.id}">Excluir</button></span>
-        </li>`).join('')}</ul>`
+    ? `<div class="table-scroll"><table class="data-table">
+        <thead><tr><th>Nome</th><th>Telefone</th><th>Contato</th><th>E-mail</th><th></th></tr></thead>
+        <tbody>
+          ${state.suppliers.map((s) => `
+            <tr>
+              <td>${escapeHtml(s.name)}</td>
+              <td>${s.phone ? escapeHtml(s.phone) : '—'}</td>
+              <td>${s.contact_name ? escapeHtml(s.contact_name) : '—'}</td>
+              <td>${s.email ? escapeHtml(s.email) : '—'}</td>
+              <td class="data-table-actions"><button type="button" class="ghost" data-action="delete-supplier" data-id="${s.id}">Excluir</button></td>
+            </tr>`).join('')}
+        </tbody>
+      </table></div>`
     : emptyState('Nenhum fornecedor cadastrado ainda.', false);
 
   return `
@@ -1336,6 +1392,10 @@ app.addEventListener('input', (event) => {
           updated.unit = match.unit;
         }
       }
+      if (field === 'usedAmount') {
+        const max = maxUsedAmount(updated);
+        if (max && toNumberSafe(updated.usedAmount) > max) updated.usedAmount = String(max);
+      }
       return updated;
     });
     if (field === 'name') state.openCombobox = rowId;
@@ -1363,22 +1423,6 @@ app.addEventListener('input', (event) => {
     render();
   }
 });
-
-// Ao sair do campo "quantidade usada", trava no máximo comprado (blur não
-// dispara a cada tecla, então não atrapalha a digitação).
-app.addEventListener('blur', (event) => {
-  const target = event.target;
-  if (!target.dataset || target.dataset.ingredientField !== 'usedAmount') return;
-  const ed = getEditor(target.dataset.editor);
-  const rowId = target.closest('[data-ingredient]')?.dataset.ingredient;
-  const row = ed.ingredients.find((i) => i.id === rowId);
-  if (!row) return;
-  const max = maxUsedAmount(row);
-  if (max && toNumberSafe(row.usedAmount) > max) {
-    ed.ingredients = ed.ingredients.map((i) => (i.id === rowId ? { ...i, usedAmount: String(max) } : i));
-    render();
-  }
-}, true);
 
 // Abre o combobox de ingrediente ao focar no campo de nome.
 app.addEventListener('focus', (event) => {

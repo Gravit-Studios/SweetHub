@@ -31,6 +31,38 @@
   margin-top: 4px;
 }
 
+// Ação discreta de "adicionar mais uma linha" (ingrediente, despesa...):
+// uma linha divisória com um texto + ícone de + abaixo, no lugar de um
+// botão cheio — usada em qualquer lista editável do projeto.
+.add-row-link {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 14px 0 4px;
+  margin-top: 8px;
+  border: 0;
+  border-top: 1px dashed $secondary-200;
+  border-radius: 0;
+  background: none;
+  color: $secondary-600;
+  font-weight: $fw-bold;
+  font-size: 0.9rem;
+
+  .icon {
+    width: 16px;
+    height: 16px;
+  }
+
+  &:hover {
+    background: none;
+    color: $primary-500;
+    box-shadow: none;
+    transform: none;
+  }
+}
+
 .combobox {
   position: relative;
 }
@@ -42,7 +74,7 @@
   right: 0;
   background: $surface;
   border: 1px solid $border;
-  border-radius: $radius-sm;
+  border-radius: $radius-input;
   box-shadow: $shadow-lift;
   padding: 6px;
   max-height: 220px;
@@ -61,7 +93,7 @@
   font-weight: $fw-medium;
   font-size: 0.92rem;
   padding: 9px 10px;
-  border-radius: $radius-sm;
+  border-radius: $radius-input;
 
   &:hover {
     background: $surface-tint;
@@ -70,7 +102,7 @@
   }
 }
 
-// -------- Listas salvas (ingredientes, fornecedores) --------
+// -------- Listas salvas (usuários no painel admin) --------
 
 .saved-list {
   margin: 0;
@@ -98,6 +130,59 @@
   button {
     padding: 0.5rem 0.8rem;
     font-size: 0.85rem;
+  }
+}
+
+// -------- Tabelas das bases (ingredientes, fornecedores) --------
+
+.table-scroll {
+  overflow-x: auto;
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+
+  th {
+    text-align: left;
+    padding: 8px 12px;
+    font-size: $fs-xs;
+    font-weight: $fw-black;
+    color: $secondary-700;
+    border-bottom: 1px solid $secondary-200;
+    white-space: nowrap;
+  }
+
+  td {
+    padding: 12px;
+    border-bottom: 1px solid $secondary-100;
+    color: $ink-900;
+    white-space: nowrap;
+  }
+
+  tbody tr:last-child td {
+    border-bottom: 0;
+  }
+}
+
+.data-table-group td {
+  padding: 18px 12px 6px;
+  font-size: $fs-xs;
+  font-weight: $fw-black;
+  color: $secondary-600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  border-bottom: 0;
+}
+
+.data-table-actions {
+  display: flex;
+  gap: 6px;
+  justify-content: flex-end;
+
+  button {
+    padding: 0.45rem 0.8rem;
+    font-size: 0.82rem;
   }
 }
 
