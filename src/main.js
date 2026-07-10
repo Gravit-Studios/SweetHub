@@ -79,8 +79,6 @@ const state = {
   suppliers: [],
   dataLoading: false,
   statusMessage: '',
-  expensesSnapshot: '[]',
-  tiersSnapshot: '[]',
   detailSnapshot: '{}',
   settingsSnapshot: '{}',
   companySnapshot: '{}',
@@ -201,8 +199,6 @@ async function loadUserData() {
       link99Url: profile.link_99_url || '',
       keetaUrl: profile.keeta_url || '',
     };
-    state.expensesSnapshot = JSON.stringify(expenseCategories);
-    state.tiersSnapshot = JSON.stringify(profitTiers);
     state.settingsSnapshot = JSON.stringify(state.settings);
     state.companySnapshot = JSON.stringify(state.company);
     if (state.profile.role === 'admin' && !state.admin.loading && state.admin.users.length === 0) {
@@ -388,10 +384,9 @@ function detailSnapshotOf(editor) {
 }
 
 // Só as páginas com um "Salvar alterações" persistente entram na checagem:
-// despesas, lucro e edição de receita.
+// edição de receita, configurações e empresa. Despesas, lucro, ingredientes
+// e fornecedores salvam na hora (modal), sem estado "não salvo" para checar.
 function hasUnsavedChanges() {
-  if (state.route.path === 'despesas') return JSON.stringify(state.expenseCategories) !== state.expensesSnapshot;
-  if (state.route.path === 'lucro') return JSON.stringify(state.profitTiers) !== state.tiersSnapshot;
   if (state.route.path === 'produto') return detailSnapshotOf(state.detail) !== state.detailSnapshot;
   if (state.route.path === 'configuracoes') return JSON.stringify(state.settings) !== state.settingsSnapshot;
   if (state.route.path === 'empresa') return JSON.stringify(state.company) !== state.companySnapshot;
@@ -751,6 +746,25 @@ function addExpenseModal(data) {
     </div>`;
 }
 
+function editExpenseModal(data) {
+  return `
+    <div class="modal-box">
+      <div class="modal-header"><h3>Editar despesa</h3><button type="button" class="icon-btn ghost" data-action="close-modal">${icon('close')}</button></div>
+      ${data.error ? `<p class="auth-error">${escapeHtml(data.error)}</p>` : ''}
+      <form data-form="edit-expense" class="modal-form">
+        <label>Nome da despesa<input name="name" value="${escapeHtml(data.name)}" required /></label>
+        <div class="field-grid">
+          <label>Valor mensal<div class="input-prefix"><span class="prefix">R$</span><input name="monthlyValue" inputmode="decimal" placeholder="0,00" value="${escapeHtml(data.monthlyValue)}" /></div></label>
+          <label>% por receita<input name="percentage" inputmode="decimal" value="${escapeHtml(data.percentage)}" required /></label>
+        </div>
+        <div class="save-actions">
+          <button type="submit" ${data.loading ? 'disabled' : ''}>${data.loading ? 'Salvando...' : 'Salvar alterações'}</button>
+          <button type="button" class="ghost" data-action="close-modal">Cancelar</button>
+        </div>
+      </form>
+    </div>`;
+}
+
 function addIngredientModal(data) {
   return `
     <div class="modal-box">
@@ -793,6 +807,62 @@ function addSupplierModal(data) {
         </div>
         <div class="save-actions">
           <button type="submit" ${data.loading ? 'disabled' : ''}>${data.loading ? 'Adicionando...' : 'Adicionar'}</button>
+          <button type="button" class="ghost" data-action="close-modal">Cancelar</button>
+        </div>
+      </form>
+    </div>`;
+}
+
+function editSupplierModal(data) {
+  return `
+    <div class="modal-box">
+      <div class="modal-header"><h3>Editar fornecedor</h3><button type="button" class="icon-btn ghost" data-action="close-modal">${icon('close')}</button></div>
+      ${data.error ? `<p class="auth-error">${escapeHtml(data.error)}</p>` : ''}
+      <form data-form="edit-supplier" class="modal-form">
+        <label>Nome<input name="name" value="${escapeHtml(data.name)}" required /></label>
+        <div class="field-grid">
+          <label>Telefone<input name="phone" value="${escapeHtml(data.phone)}" /></label>
+          <label>E-mail<input name="email" type="email" value="${escapeHtml(data.email)}" /></label>
+        </div>
+        <label>Endereço<input name="address" value="${escapeHtml(data.address)}" /></label>
+        <div class="field-grid">
+          <label>Site<input name="site" value="${escapeHtml(data.site)}" /></label>
+          <label>Contato<input name="contact_name" value="${escapeHtml(data.contact_name)}" /></label>
+        </div>
+        <div class="save-actions">
+          <button type="submit" ${data.loading ? 'disabled' : ''}>${data.loading ? 'Salvando...' : 'Salvar alterações'}</button>
+          <button type="button" class="ghost" data-action="close-modal">Cancelar</button>
+        </div>
+      </form>
+    </div>`;
+}
+
+function addTierModal(data) {
+  return `
+    <div class="modal-box">
+      <div class="modal-header"><h3>Adicionar nível de lucro</h3><button type="button" class="icon-btn ghost" data-action="close-modal">${icon('close')}</button></div>
+      ${data.error ? `<p class="auth-error">${escapeHtml(data.error)}</p>` : ''}
+      <form data-form="add-tier" class="modal-form">
+        <label>Nome do nível<input name="name" placeholder="Ex.: Promoção" required /></label>
+        <label>Margem<div class="input-suffix"><input name="multiplierPercent" inputmode="decimal" placeholder="0" required /><span class="suffix">%</span></div></label>
+        <div class="save-actions">
+          <button type="submit" ${data.loading ? 'disabled' : ''}>${data.loading ? 'Adicionando...' : 'Adicionar'}</button>
+          <button type="button" class="ghost" data-action="close-modal">Cancelar</button>
+        </div>
+      </form>
+    </div>`;
+}
+
+function editTierModal(data) {
+  return `
+    <div class="modal-box">
+      <div class="modal-header"><h3>Editar nível de lucro</h3><button type="button" class="icon-btn ghost" data-action="close-modal">${icon('close')}</button></div>
+      ${data.error ? `<p class="auth-error">${escapeHtml(data.error)}</p>` : ''}
+      <form data-form="edit-tier" class="modal-form">
+        <label>Nome do nível<input name="name" value="${escapeHtml(data.name)}" required /></label>
+        <label>Margem<div class="input-suffix"><input name="multiplierPercent" inputmode="decimal" value="${escapeHtml(data.multiplierPercent)}" required /><span class="suffix">%</span></div></label>
+        <div class="save-actions">
+          <button type="submit" ${data.loading ? 'disabled' : ''}>${data.loading ? 'Salvando...' : 'Salvar alterações'}</button>
           <button type="button" class="ghost" data-action="close-modal">Cancelar</button>
         </div>
       </form>
@@ -884,9 +954,13 @@ function modalOverlay() {
     'change-password': changePasswordModal,
     'delete-account': deleteAccountModal,
     'add-expense': addExpenseModal,
+    'edit-expense': editExpenseModal,
     'confirm-delete': confirmDeleteModal,
     'add-ingredient': addIngredientModal,
     'add-supplier': addSupplierModal,
+    'edit-supplier': editSupplierModal,
+    'add-tier': addTierModal,
+    'edit-tier': editTierModal,
     'confirm-leave': confirmLeaveModal,
     'add-recipe-ingredient': addRecipeIngredientModal,
   }[data.type];
@@ -1160,25 +1234,38 @@ function renderIngredientesPage() {
 
 function renderDespesasPage() {
   const total = state.expenseCategories.reduce((sum, e) => sum + toNumberSafe(e.monthly_value) * (toNumberSafe(e.percentage) / 100), 0);
-  const isDirty = JSON.stringify(state.expenseCategories) !== state.expensesSnapshot;
+  const list = state.expenseCategories.length > 0
+    ? `<div class="table-scroll"><table class="data-table">
+        <thead><tr><th>Despesa</th><th>Valor mensal</th><th>% por receita</th><th>Alocado</th><th></th></tr></thead>
+        <tbody>
+          ${state.expenseCategories.map((expense) => {
+            const allocated = toNumberSafe(expense.monthly_value) * (toNumberSafe(expense.percentage) / 100);
+            return `
+            <tr>
+              <td>${escapeHtml(expense.name)}</td>
+              <td>${formatCurrency(expense.monthly_value)}</td>
+              <td>${escapeHtml(String(expense.percentage))}%</td>
+              <td>${formatCurrency(allocated)}</td>
+              <td class="data-table-actions">
+                <button type="button" class="ghost" data-action="open-edit-expense" data-id="${expense.id}">Editar</button>
+                <button type="button" class="ghost" data-action="delete-expense" data-id="${expense.id}">Excluir</button>
+              </td>
+            </tr>`;
+          }).join('')}
+        </tbody>
+      </table></div>`
+    : emptyState('Nenhuma despesa cadastrada ainda.', false);
+
   return `
-    ${pageHeaderWithSave('Base de despesas', 'Custos fixos mensais', 'save-expenses', isDirty)}
+    <div class="section-header">
+      <div><p class="eyebrow">Base de despesas</p><h2>Custos fixos mensais</h2></div>
+      <button type="button" data-action="add-expense">Adicionar novo</button>
+    </div>
     <p>Cada despesa é alocada por receita usando o percentual informado (ex.: R$250 de energia × 1% = R$2,50 por receita).</p>
     ${statusBox()}
     <div class="panel">
-      <div class="ingredient-grid header-row" aria-hidden="true" style="grid-template-columns: 1.4fr 1fr 1fr 1fr 80px;"><span>Despesa</span><span>Valor mensal (R$)</span><span>% por receita</span><span>Alocado</span><span></span></div>
-      ${state.expenseCategories.map((expense) => {
-        const allocated = toNumberSafe(expense.monthly_value) * (toNumberSafe(expense.percentage) / 100);
-        return `<div class="ingredient-grid" style="grid-template-columns: 1.4fr 1fr 1fr 1fr 80px;" data-expense-id="${expense.id}">
-          <input aria-label="Despesa" data-expense-id="${expense.id}" data-expense-field="name" value="${escapeHtml(expense.name)}" />
-          <div class="input-prefix"><span class="prefix">R$</span><input aria-label="Valor mensal" inputmode="decimal" placeholder="0,00" data-expense-id="${expense.id}" data-expense-field="monthly_value" value="${toNumberSafe(expense.monthly_value) ? escapeHtml(expense.monthly_value) : ''}" /></div>
-          <input aria-label="Percentual" inputmode="decimal" data-expense-id="${expense.id}" data-expense-field="percentage" value="${escapeHtml(expense.percentage)}" />
-          <span class="muted" style="align-self:center;">${formatCurrency(allocated)}</span>
-          <button type="button" class="ghost" data-action="delete-expense" data-id="${expense.id}">Excluir</button>
-        </div>`;
-      }).join('')}
-      ${addRowLink('Adicionar despesa', 'add-expense')}
-      <p class="status-message" style="margin-top:16px;">Total alocado por receita: <strong>${formatCurrency(total)}</strong></p>
+      ${state.dataLoading ? loadingMsg() : list}
+      ${state.expenseCategories.length > 0 ? `<p class="status-message" style="margin-top:16px;">Total alocado por receita: <strong>${formatCurrency(total)}</strong></p>` : ''}
     </div>`;
 }
 
@@ -1188,21 +1275,32 @@ function percentFromMultiplier(multiplier) {
 }
 
 function renderLucroPage() {
-  const isDirty = JSON.stringify(state.profitTiers) !== state.tiersSnapshot;
+  const list = state.profitTiers.length > 0
+    ? `<div class="table-scroll"><table class="data-table">
+        <thead><tr><th>Nível</th><th>Margem</th><th></th></tr></thead>
+        <tbody>
+          ${state.profitTiers.map((tier) => `
+            <tr>
+              <td>${escapeHtml(tier.name)}</td>
+              <td>${escapeHtml(percentFromMultiplier(tier.multiplier))}%</td>
+              <td class="data-table-actions">
+                <button type="button" class="ghost" data-action="open-edit-tier" data-id="${tier.id}">Editar</button>
+                <button type="button" class="ghost" data-action="delete-tier" data-id="${tier.id}">Excluir</button>
+              </td>
+            </tr>`).join('')}
+        </tbody>
+      </table></div>`
+    : emptyState('Nenhum nível de lucro cadastrado ainda.', false);
+
   return `
-    ${pageHeaderWithSave('Base de lucro', 'Níveis de margem', 'save-tiers', isDirty)}
+    <div class="section-header">
+      <div><p class="eyebrow">Base de lucro</p><h2>Níveis de margem</h2></div>
+      <button type="button" data-action="add-tier">Adicionar novo</button>
+    </div>
     <p>Cada nível multiplica o custo por unidade para sugerir o preço de venda (ex.: margem de 250% = custo × 2,5 no nível Mínimo).</p>
     ${statusBox()}
     <div class="panel">
-      <div class="ingredient-grid header-row" aria-hidden="true" style="grid-template-columns: 1fr 1fr;"><span>Nível</span><span>Margem (%)</span></div>
-      ${state.profitTiers.map((tier) => `
-        <div class="ingredient-grid" style="grid-template-columns: 1fr 1fr;" data-tier-id="${tier.id}">
-          <input aria-label="Nome do nível" data-tier-id="${tier.id}" data-tier-field="name" value="${escapeHtml(tier.name)}" />
-          <div class="input-suffix">
-            <input aria-label="Margem em porcentagem" inputmode="decimal" data-tier-id="${tier.id}" data-tier-field="multiplierPercent" value="${escapeHtml(percentFromMultiplier(tier.multiplier))}" />
-            <span class="suffix">%</span>
-          </div>
-        </div>`).join('')}
+      ${state.dataLoading ? loadingMsg() : list}
     </div>`;
 }
 
@@ -1223,7 +1321,10 @@ function renderFornecedoresPage() {
               <td>${s.phone ? escapeHtml(s.phone) : '—'}</td>
               <td>${s.contact_name ? escapeHtml(s.contact_name) : '—'}</td>
               <td>${s.email ? escapeHtml(s.email) : '—'}</td>
-              <td class="data-table-actions"><button type="button" class="ghost" data-action="delete-supplier" data-id="${s.id}">Excluir</button></td>
+              <td class="data-table-actions">
+                <button type="button" class="ghost" data-action="open-edit-supplier" data-id="${s.id}">Editar</button>
+                <button type="button" class="ghost" data-action="delete-supplier" data-id="${s.id}">Excluir</button>
+              </td>
             </tr>`).join('')}
         </tbody>
       </table></div>`
@@ -1369,6 +1470,37 @@ function navItem(route, label) {
   return `<li><button type="button" class="nav-link ${active ? 'active' : ''}" data-action="goto" data-route="${route}">${label}</button></li>`;
 }
 
+// Menu mobile: um drawer deslizando da lateral, ocupando a tela toda (nav +
+// conta em um único painel), em vez do dropdown embaixo da navbar + o menu de
+// conta separado — os dois viviam soltos e duplicados no mobile.
+function mobileDrawer(displayName) {
+  return `
+    <div class="mobile-drawer-overlay ${state.mobileMenuOpen ? 'open' : ''}">
+      <nav class="mobile-drawer">
+        <div class="mobile-drawer-header">
+          <span class="brand"><span class="brand-mark"></span> Sweet Price</span>
+          <button type="button" class="icon-btn ghost" data-action="toggle-mobile-menu" aria-label="Fechar menu">${icon('close')}</button>
+        </div>
+        <ul class="mobile-drawer-nav">
+          ${navItem('produtos', 'Receitas')}
+          ${navItem('ingredientes', 'Ingredientes')}
+          ${navItem('despesas', 'Despesas')}
+          ${navItem('lucro', 'Lucro')}
+          ${navItem('fornecedores', 'Fornecedores')}
+          ${navItem('empresa', 'Empresa')}
+        </ul>
+        <div class="mobile-drawer-footer">
+          <div class="mobile-drawer-user">
+            <strong>${escapeHtml(displayName)}</strong>
+          </div>
+          <button type="button" class="profile-dropdown-item" data-action="goto" data-route="configuracoes">${icon('settings')}Configurações</button>
+          <button type="button" class="profile-dropdown-item" data-action="open-change-password">${icon('key')}Trocar senha</button>
+          <button type="button" class="profile-dropdown-item" data-action="logout">${icon('logout')}Sair</button>
+        </div>
+      </nav>
+    </div>`;
+}
+
 function shellHtml() {
   const displayName = state.profile.fullName || nameFromEmail(state.session.user.email);
   const isAdmin = state.profile.role === 'admin';
@@ -1380,7 +1512,7 @@ function shellHtml() {
             <span class="brand-mark"></span> Sweet Price
           </button>
           ${isAdmin ? '' : `
-          <ul class="nav-list ${state.mobileMenuOpen ? 'open' : ''}">
+          <ul class="nav-list">
             ${navItem('produtos', 'Receitas')}
             ${navItem('ingredientes', 'Ingredientes')}
             ${navItem('despesas', 'Despesas')}
@@ -1402,9 +1534,10 @@ function shellHtml() {
             <span class="navbar-divider" aria-hidden="true"></span>
             <button type="button" class="text-link" data-action="logout">Sair</button>
           </div>
-          ${isAdmin ? '' : `<button type="button" class="navbar-menu-toggle" data-action="toggle-mobile-menu" aria-label="Abrir menu">${icon(state.mobileMenuOpen ? 'close' : 'menu')}</button>`}
+          ${isAdmin ? '' : `<button type="button" class="navbar-menu-toggle" data-action="toggle-mobile-menu" aria-label="Abrir menu">${icon('menu')}</button>`}
         </div>
       </header>
+      ${isAdmin ? '' : mobileDrawer(displayName)}
       <div class="main-area">
         <div class="page">${renderPage()}</div>
       </div>
@@ -1695,19 +1828,45 @@ async function handleDeleteSavedIngredient(id) {
   }
 }
 
-async function handleSaveExpenses() {
+function openEditExpenseModal(id) {
+  const source = state.expenseCategories.find((e) => e.id === id);
+  if (!source) return;
+  openModal('edit-expense', {
+    expenseId: source.id,
+    name: source.name,
+    monthlyValue: toNumberSafe(source.monthly_value) ? String(source.monthly_value) : '',
+    percentage: String(source.percentage),
+  });
+}
+
+async function handleEditExpenseSubmit(form) {
+  const formData = new FormData(form);
+  state.activeModal.loading = true;
+  state.activeModal.error = '';
+  render();
   try {
-    await Promise.all(state.expenseCategories.map((expense) => db.updateExpenseCategory(expense.id, {
-      name: expense.name,
-      monthly_value: toNumberSafe(expense.monthly_value),
-      percentage: toNumberSafe(expense.percentage),
-    })));
-    showSuccess('Despesas salvas.');
+    await db.updateExpenseCategory(state.activeModal.expenseId, {
+      name: formData.get('name'),
+      monthly_value: toNumberSafe(formData.get('monthlyValue')),
+      percentage: toNumberSafe(formData.get('percentage')) || 1,
+    });
     await loadUserData();
+    closeModal();
+    showSuccess('Despesa atualizada!');
   } catch (error) {
-    state.statusMessage = `Erro ao salvar despesas: ${error.message}`;
+    state.activeModal.loading = false;
+    state.activeModal.error = error.message;
     render();
   }
+}
+
+function openConfirmDeleteExpense(id, name) {
+  openModal('confirm-delete', {
+    kind: 'expense',
+    id,
+    title: 'Excluir despesa',
+    message: `Tem certeza que deseja excluir "${name || 'esta despesa'}"? Essa ação não pode ser desfeita.`,
+  });
 }
 
 async function handleAddExpenseSubmit(form) {
@@ -1742,16 +1901,72 @@ async function handleDeleteExpense(id) {
   }
 }
 
-async function handleSaveTiers() {
+async function handleAddTierSubmit(form) {
+  const formData = new FormData(form);
+  state.activeModal.loading = true;
+  state.activeModal.error = '';
+  render();
   try {
-    await Promise.all(state.profitTiers.map((tier) => db.updateProfitTier(tier.id, {
-      name: tier.name,
-      multiplier: toNumberSafe(tier.multiplier),
-    })));
-    showSuccess('Níveis de lucro salvos.');
+    await db.createProfitTier(state.session.user.id, {
+      name: formData.get('name'),
+      multiplier: toNumberSafe(formData.get('multiplierPercent')) / 100,
+      position: state.profitTiers.length,
+    });
+    await loadUserData();
+    closeModal();
+    showSuccess('Nível de lucro adicionado!');
+  } catch (error) {
+    state.activeModal.loading = false;
+    state.activeModal.error = error.message;
+    render();
+  }
+}
+
+function openEditTierModal(id) {
+  const source = state.profitTiers.find((t) => t.id === id);
+  if (!source) return;
+  openModal('edit-tier', {
+    tierId: source.id,
+    name: source.name,
+    multiplierPercent: percentFromMultiplier(source.multiplier),
+  });
+}
+
+async function handleEditTierSubmit(form) {
+  const formData = new FormData(form);
+  state.activeModal.loading = true;
+  state.activeModal.error = '';
+  render();
+  try {
+    await db.updateProfitTier(state.activeModal.tierId, {
+      name: formData.get('name'),
+      multiplier: toNumberSafe(formData.get('multiplierPercent')) / 100,
+    });
+    await loadUserData();
+    closeModal();
+    showSuccess('Nível de lucro atualizado!');
+  } catch (error) {
+    state.activeModal.loading = false;
+    state.activeModal.error = error.message;
+    render();
+  }
+}
+
+function openConfirmDeleteTier(id, name) {
+  openModal('confirm-delete', {
+    kind: 'tier',
+    id,
+    title: 'Excluir nível de lucro',
+    message: `Tem certeza que deseja excluir "${name || 'este nível'}"? Essa ação não pode ser desfeita.`,
+  });
+}
+
+async function handleDeleteTier(id) {
+  try {
+    await db.deleteProfitTier(id);
     await loadUserData();
   } catch (error) {
-    state.statusMessage = `Erro ao salvar níveis de lucro: ${error.message}`;
+    state.statusMessage = `Erro ao excluir: ${error.message}`;
     render();
   }
 }
@@ -1968,6 +2183,9 @@ async function handleConfirmDelete() {
   if (modal.kind === 'ingredient') await handleDeleteSavedIngredient(modal.id);
   if (modal.kind === 'product') await handleDeleteDetail(modal.id);
   if (modal.kind === 'bulk-products') await handleBulkDeleteProducts();
+  if (modal.kind === 'expense') await handleDeleteExpense(modal.id);
+  if (modal.kind === 'tier') await handleDeleteTier(modal.id);
+  if (modal.kind === 'supplier') await handleDeleteSupplier(modal.id);
   if (modal.kind === 'admin-suspend') await handleAdminAction('suspend', modal.id);
   if (modal.kind === 'admin-delete') await handleAdminAction('delete', modal.id);
 }
@@ -2031,6 +2249,53 @@ async function handleDeleteSupplier(id) {
     state.statusMessage = `Erro ao excluir fornecedor: ${error.message}`;
     render();
   }
+}
+
+function openEditSupplierModal(id) {
+  const source = state.suppliers.find((s) => s.id === id);
+  if (!source) return;
+  openModal('edit-supplier', {
+    supplierId: source.id,
+    name: source.name,
+    phone: source.phone || '',
+    address: source.address || '',
+    site: source.site || '',
+    contact_name: source.contact_name || '',
+    email: source.email || '',
+  });
+}
+
+async function handleEditSupplierSubmit(form) {
+  const formData = new FormData(form);
+  state.activeModal.loading = true;
+  state.activeModal.error = '';
+  render();
+  try {
+    await db.updateSupplier(state.activeModal.supplierId, {
+      name: formData.get('name'),
+      phone: formData.get('phone') || '',
+      address: formData.get('address') || '',
+      site: formData.get('site') || '',
+      contact_name: formData.get('contact_name') || '',
+      email: formData.get('email') || '',
+    });
+    await loadUserData();
+    closeModal();
+    showSuccess('Fornecedor atualizado!');
+  } catch (error) {
+    state.activeModal.loading = false;
+    state.activeModal.error = error.message;
+    render();
+  }
+}
+
+function openConfirmDeleteSupplier(id, name) {
+  openModal('confirm-delete', {
+    kind: 'supplier',
+    id,
+    title: 'Excluir fornecedor',
+    message: `Tem certeza que deseja excluir "${name || 'este fornecedor'}"? Essa ação não pode ser desfeita.`,
+  });
 }
 
 // ---------------- Listeners globais ----------------
@@ -2106,22 +2371,6 @@ app.addEventListener('input', (event) => {
     render();
     return;
   }
-  if (target.dataset.expenseField) {
-    state.expenseCategories = state.expenseCategories.map((e) => (e.id === target.dataset.expenseId ? { ...e, [target.dataset.expenseField]: target.value } : e));
-    render();
-    return;
-  }
-  if (target.dataset.tierField === 'multiplierPercent') {
-    const decimal = toNumberSafe(target.value) / 100;
-    state.profitTiers = state.profitTiers.map((t) => (t.id === target.dataset.tierId ? { ...t, multiplier: decimal } : t));
-    render();
-    return;
-  }
-  if (target.dataset.tierField) {
-    state.profitTiers = state.profitTiers.map((t) => (t.id === target.dataset.tierId ? { ...t, [target.dataset.tierField]: target.value } : t));
-    render();
-    return;
-  }
   if (target.dataset.search === 'ingredients') {
     state.ingredientSearch = target.value;
     render();
@@ -2170,6 +2419,10 @@ app.addEventListener('submit', (event) => {
   if (formType === 'change-password') handleChangePasswordSubmit(event.target);
   if (formType === 'delete-account') handleDeleteAccountSubmit(event.target);
   if (formType === 'add-expense') handleAddExpenseSubmit(event.target);
+  if (formType === 'edit-expense') handleEditExpenseSubmit(event.target);
+  if (formType === 'add-tier') handleAddTierSubmit(event.target);
+  if (formType === 'edit-tier') handleEditTierSubmit(event.target);
+  if (formType === 'edit-supplier') handleEditSupplierSubmit(event.target);
 });
 
 app.addEventListener('click', (event) => {
@@ -2256,9 +2509,6 @@ app.addEventListener('click', (event) => {
     case 'confirm-delete':
       handleConfirmDelete();
       break;
-    case 'save-expenses':
-      handleSaveExpenses();
-      break;
     case 'add-expense':
       openModal('add-expense');
       break;
@@ -2276,20 +2526,38 @@ app.addEventListener('click', (event) => {
     case 'add-supplier-modal':
       openModal('add-supplier');
       break;
-    case 'delete-expense':
-      handleDeleteExpense(id);
+    case 'delete-expense': {
+      const expense = state.expenseCategories.find((e) => e.id === id);
+      openConfirmDeleteExpense(id, expense?.name);
       break;
-    case 'save-tiers':
-      handleSaveTiers();
+    }
+    case 'open-edit-expense':
+      openEditExpenseModal(id);
       break;
+    case 'add-tier':
+      openModal('add-tier');
+      break;
+    case 'open-edit-tier':
+      openEditTierModal(id);
+      break;
+    case 'delete-tier': {
+      const tier = state.profitTiers.find((t) => t.id === id);
+      openConfirmDeleteTier(id, tier?.name);
+      break;
+    }
     case 'save-settings':
       handleSaveSettings();
       break;
     case 'save-company':
       handleSaveCompany();
       break;
-    case 'delete-supplier':
-      handleDeleteSupplier(id);
+    case 'delete-supplier': {
+      const supplier = state.suppliers.find((s) => s.id === id);
+      openConfirmDeleteSupplier(id, supplier?.name);
+      break;
+    }
+    case 'open-edit-supplier':
+      openEditSupplierModal(id);
       break;
     case 'open-edit-ingredient':
       openEditIngredientModal(id);
@@ -2362,7 +2630,7 @@ app.addEventListener('click', (event) => {
     state.openIngredientFilterColumn = null;
     render();
   }
-  if (state.mobileMenuOpen && !event.target.closest('.nav-list') && !event.target.closest('.navbar-menu-toggle')) {
+  if (state.mobileMenuOpen && !event.target.closest('.mobile-drawer') && !event.target.closest('.navbar-menu-toggle')) {
     state.mobileMenuOpen = false;
     render();
   }

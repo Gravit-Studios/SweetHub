@@ -313,6 +313,21 @@ export async function updateProfitTier(id, fields) {
   return data;
 }
 
+export async function createProfitTier(userId, fields) {
+  const { data, error } = await supabase
+    .from('profit_tiers')
+    .insert({ user_id: userId, ...fields })
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
+}
+
+export async function deleteProfitTier(id) {
+  const { error } = await supabase.from('profit_tiers').delete().eq('id', id);
+  if (error) throw error;
+}
+
 // ---------- Fornecedores ----------
 
 export async function listSuppliers(userId) {
@@ -331,6 +346,12 @@ export async function createSupplier(userId, supplier) {
     .insert({ user_id: userId, ...supplier })
     .select()
     .single();
+  if (error) throw error;
+  return data;
+}
+
+export async function updateSupplier(id, fields) {
+  const { data, error } = await supabase.from('suppliers').update(fields).eq('id', id).select().single();
   if (error) throw error;
   return data;
 }

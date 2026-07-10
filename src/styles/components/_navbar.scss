@@ -60,22 +60,10 @@
   flex-wrap: nowrap;
   min-width: 0;
 
+  // Abaixo do tablet, a navegação some daqui e vira o drawer lateral
+  // (.mobile-drawer) — evita duplicar/soltar dois menus diferentes no mobile.
   @include respond-down($bp-tablet) {
     display: none;
-    position: absolute;
-    top: 100%;
-    left: 0;
-    right: 0;
-    flex-direction: column;
-    gap: 2px;
-    background: $surface;
-    border-bottom: 1px solid $border;
-    box-shadow: $shadow-md;
-    padding: 8px 16px 12px;
-
-    &.open {
-      display: flex;
-    }
   }
 }
 
@@ -157,6 +145,12 @@
   gap: 10px;
   flex-shrink: 0;
   margin-left: auto;
+
+  // Some daqui no mobile — os mesmos dados/ações (Configurações, Trocar
+  // senha, Sair) ficam dentro do drawer lateral (.mobile-drawer-footer).
+  @include respond-down($bp-tablet) {
+    display: none;
+  }
 }
 
 .navbar-divider {
@@ -263,4 +257,101 @@
     box-shadow: none;
     transform: none;
   }
+}
+
+// Menu mobile: painel deslizando da lateral direita, ocupando a altura toda
+// da tela — navegação e dados da conta (Configurações/Trocar senha/Sair)
+// juntos no mesmo painel, em vez de dois menus soltos.
+.mobile-drawer-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba($ink-900, 0.45);
+  z-index: 40;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+
+  @include respond-down($bp-tablet) {
+    display: block;
+  }
+
+  &.open {
+    opacity: 1;
+    pointer-events: auto;
+
+    .mobile-drawer {
+      transform: translateX(0);
+    }
+  }
+}
+
+.mobile-drawer {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: min(320px, 85vw);
+  background: $surface;
+  box-shadow: $shadow-lift;
+  display: flex;
+  flex-direction: column;
+  padding: 18px 16px;
+  overflow-y: auto;
+  transform: translateX(100%);
+  transition: transform 0.25s ease;
+}
+
+.mobile-drawer-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid $border;
+
+  .brand {
+    font-size: 1rem;
+  }
+}
+
+.mobile-drawer-nav {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+
+  .nav-link {
+    display: block;
+    width: 100%;
+    text-align: left;
+    padding: 12px 10px;
+    font-size: 0.95rem;
+    border-radius: $radius-sm;
+
+    &::after {
+      display: none;
+    }
+
+    &.active {
+      background: $surface-tint;
+    }
+  }
+}
+
+.mobile-drawer-footer {
+  margin-top: auto;
+  padding-top: 16px;
+  border-top: 1px solid $border;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.mobile-drawer-user {
+  padding: 6px 10px 14px;
+  color: $ink-700;
 }
