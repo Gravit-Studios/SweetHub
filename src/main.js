@@ -1,4 +1,4 @@
-import { calculatePricing, formatCurrency } from './pricing.js';
+import { calculatePricing, calculateIngredientCost, formatCurrency } from './pricing.js';
 import { signUp, signIn, signOut, getSession, onAuthStateChange, changePassword, updateEmail } from './auth.js';
 import { parseRoute, navigate, onRouteChange } from './router.js';
 import { compressImageToWebp } from './imageCompression.js';
@@ -518,14 +518,10 @@ function maxUsedAmount(ingredient) {
 // Combobox de busca: input de texto + lista filtrada da base de ingredientes,
 // clicável (não é só um <input list> de HTML, é o mesmo padrão reutilizado
 // em qualquer lugar que precise buscar um ingrediente salvo).
+// Usado só no wizard (receita ainda sendo montada) — a receita já salva
+// mostra a tabela somente leitura (readOnlyIngredientsTable), sem esse combobox.
 function ingredientNameCell(editorKey, ingredient) {
   const rowId = ingredient.id;
-  // Na receita já salva (editorKey "detail"), o nome só é exibido — trocar
-  // de ingrediente por busca aqui poderia dessincronizar o vínculo salvo.
-  // A busca só faz sentido enquanto a receita ainda está sendo montada.
-  if (editorKey !== 'wizard') {
-    return `<input aria-label="Ingrediente" value="${escapeHtml(ingredient.name)}" readonly />`;
-  }
   const isOpen = state.openCombobox === rowId;
   const query = ingredient.name.trim().toLowerCase();
   const options = query
@@ -545,12 +541,43 @@ function ingredientNameCell(editorKey, ingredient) {
 // receita já salva, onde a lista tende a ser revisada com mais calma).
 // Linhas rascunho (ainda sendo preenchidas no modal de adicionar) ficam de
 // fora até serem confirmadas.
+// Receita já salva (editorKey "detail"): a tabela vira só leitura, com o
+// custo proporcional já usado (preço x qtd. usada/qtd. comprada) por linha.
+// Preço/qtd./unidade do ingrediente são dados da base — editar aqui criaria
+// um valor "congelado" divergente da base, que é a fonte única desses dados.
+// Só dá pra excluir a linha; qualquer ajuste de preço/embalagem é feito na
+// base de Ingredientes e reflete em todas as receitas que o usam.
+function readOnlyIngredientsTable(editorKey, visible) {
+  const addLink = addRowLink('Adicionar ingrediente', 'add-ingredient', editorKey);
+  return `
+  <table class="data-table">
+    <thead><tr><th>Ingrediente</th><th>Preço da compra</th><th>Qtd. comprada</th><th>Qtd. usada</th><th>Un.</th><th>Preço utilizado</th><th></th></tr></thead>
+    <tbody>
+      ${visible.map((ingredient) => {
+        const usedCost = calculateIngredientCost(ingredient);
+        return `
+        <tr data-ingredient="${ingredient.id}">
+          <td>${escapeHtml(ingredient.name)}</td>
+          <td>${formatCurrency(toNumberSafe(ingredient.packagePrice))}</td>
+          <td>${escapeHtml(ingredient.packageAmount)}</td>
+          <td>${escapeHtml(ingredient.usedAmount)}</td>
+          <td>${escapeHtml(ingredient.unit)}</td>
+          <td>${formatCurrency(usedCost)}</td>
+          <td class="data-table-actions"><button class="ghost" type="button" data-action="remove-ingredient" data-editor="${editorKey}" data-id="${ingredient.id}">Excluir</button></td>
+        </tr>`;
+      }).join('')}
+    </tbody>
+  </table>
+  ${addLink}`;
+}
+
 function ingredientsTable(editorKey, ingredients, invalidIds = new Set()) {
   const visible = ingredients.filter((i) => !i.draft);
   const addLink = addRowLink('Adicionar ingrediente', 'add-ingredient', editorKey);
   if (visible.length === 0) {
     return `${emptyState('Nenhum ingrediente adicionado ainda.', false)}${addLink}`;
   }
+  if (editorKey === 'detail') return readOnlyIngredientsTable(editorKey, visible);
   return `
   <table class="data-table data-table-editable">
     <thead><tr><th>Ingrediente</th><th>Preço da compra</th><th>Qtd. comprada</th><th>Qtd. usada</th><th>Un.</th><th></th></tr></thead>
