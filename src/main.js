@@ -80,13 +80,15 @@ const state = {
   expensesSnapshot: '[]',
   tiersSnapshot: '[]',
   detailSnapshot: '{}',
+  settingsSnapshot: '{}',
   pendingAction: null,
   ingredientSearch: '',
   supplierSearch: '',
   ingredientColumnFilters: {},
   openIngredientFilterColumn: null,
 
-  profile: { fullName: '', role: 'user' },
+  profile: { fullName: '', companyName: '', role: 'user' },
+  settings: { fullName: '', companyName: '', email: '' },
   profileMenuOpen: false,
   mobileMenuOpen: false,
   successModal: '',
@@ -167,9 +169,11 @@ async function loadUserData() {
     state.expenseCategories = expenseCategories;
     state.profitTiers = profitTiers;
     state.suppliers = suppliers;
-    state.profile = { fullName: profile.full_name || '', role: profile.role || 'user' };
+    state.profile = { fullName: profile.full_name || '', companyName: profile.company_name || '', role: profile.role || 'user' };
+    state.settings = { fullName: state.profile.fullName, companyName: state.profile.companyName, email: state.session.user.email };
     state.expensesSnapshot = JSON.stringify(expenseCategories);
     state.tiersSnapshot = JSON.stringify(profitTiers);
+    state.settingsSnapshot = JSON.stringify(state.settings);
     if (state.profile.role === 'admin' && !state.admin.loading && state.admin.users.length === 0) {
       loadAdminUsers();
     }
@@ -285,7 +289,9 @@ onAuthStateChange((session) => {
     state.supplierSearch = '';
     state.ingredientColumnFilters = {};
     state.openIngredientFilterColumn = null;
-    state.profile = { fullName: '', role: 'user' };
+    state.profile = { fullName: '', companyName: '', role: 'user' };
+    state.settings = { fullName: '', companyName: '', email: '' };
+    state.settingsSnapshot = '{}';
     state.profileMenuOpen = false;
     state.mobileMenuOpen = false;
   }
@@ -340,6 +346,7 @@ function hasUnsavedChanges() {
   if (state.route.path === 'despesas') return JSON.stringify(state.expenseCategories) !== state.expensesSnapshot;
   if (state.route.path === 'lucro') return JSON.stringify(state.profitTiers) !== state.tiersSnapshot;
   if (state.route.path === 'produto') return detailSnapshotOf(state.detail) !== state.detailSnapshot;
+  if (state.route.path === 'configuracoes') return JSON.stringify(state.settings) !== state.settingsSnapshot;
   return false;
 }
 
@@ -385,6 +392,7 @@ const ICON_PATHS = {
   cupcake: '<path d="M5 11h14l-1.4 8.6A2 2 0 0 1 15.6 21H8.4a2 2 0 0 1-2-1.4L5 11Z"/><path d="M8 11c0-2.8 1.2-4.5 4-4.5S16 8.2 16 11"/><circle cx="12" cy="4.8" r="1.3"/>',
   camera: '<rect x="3" y="7" width="18" height="12.5" rx="2.2"/><path d="M8.5 7l1.3-2.4h4.4L15.5 7"/><circle cx="12" cy="13.2" r="3.4"/>',
   clipboardList: '<rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4V3a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v1"/><path d="M8.5 11h7M8.5 15h7M8.5 8h4"/>',
+  settings: '<circle cx="12" cy="12" r="3"/><path d="M19.4 13a7.6 7.6 0 0 0 0-2l2-1.5-2-3.5-2.4 1a7.4 7.4 0 0 0-1.7-1L15 3h-6l-.3 2.5a7.4 7.4 0 0 0-1.7 1l-2.4-1-2 3.5L4.6 11a7.6 7.6 0 0 0 0 2l-2 1.5 2 3.5 2.4-1a7.4 7.4 0 0 0 1.7 1L9 21h6l.3-2.5a7.4 7.4 0 0 0 1.7-1l2.4 1 2-3.5Z"/>',
 };
 
 function icon(name, extraClass = '') {
@@ -631,27 +639,6 @@ function editIngredientModal(data) {
     </div>`;
 }
 
-function editProfileModal(data) {
-  return `
-    <div class="modal-box">
-      <div class="modal-header"><h3>Informações pessoais</h3><button type="button" class="icon-btn ghost" data-action="close-modal">${icon('close')}</button></div>
-      ${data.error ? `<p class="auth-error">${escapeHtml(data.error)}</p>` : ''}
-      <form data-form="edit-profile" class="modal-form">
-        <label>Nome completo<input name="fullName" value="${escapeHtml(data.fullName)}" required /></label>
-        <label>E-mail<input name="email" type="email" value="${escapeHtml(data.email)}" required /></label>
-        <p class="form-hint">Alterar o e-mail exige confirmação por um link enviado ao novo endereço.</p>
-        <div class="save-actions">
-          <button type="submit" ${data.loading ? 'disabled' : ''}>${data.loading ? 'Salvando...' : 'Salvar alterações'}</button>
-          <button type="button" class="ghost" data-action="close-modal">Cancelar</button>
-        </div>
-      </form>
-      <div class="modal-danger-zone">
-        <p class="form-hint">Excluir sua conta remove permanentemente seus dados (receitas, ingredientes, histórico) conforme a LGPD. Esta ação não pode ser desfeita.</p>
-        <button type="button" class="danger" data-action="open-delete-account">Excluir minha conta</button>
-      </div>
-    </div>`;
-}
-
 function changePasswordModal(data) {
   return `
     <div class="modal-box">
@@ -831,7 +818,6 @@ function modalOverlay() {
   const data = state.activeModal;
   const content = {
     'edit-ingredient': editIngredientModal,
-    'edit-profile': editProfileModal,
     'change-password': changePasswordModal,
     'delete-account': deleteAccountModal,
     'add-expense': addExpenseModal,
@@ -1150,6 +1136,31 @@ function renderFornecedoresPage() {
     </div>`;
 }
 
+function renderConfiguracoesPage() {
+  const isDirty = JSON.stringify(state.settings) !== state.settingsSnapshot;
+  return `
+    ${pageHeaderWithSave('Configurações', 'Perfil e empresa', 'save-settings', isDirty)}
+    ${statusBox()}
+    <div class="panel">
+      <div class="field-grid">
+        <label>Nome completo<input name="fullName" data-settings-field="fullName" value="${escapeHtml(state.settings.fullName)}" required /></label>
+        <label>Nome da empresa<input name="companyName" data-settings-field="companyName" value="${escapeHtml(state.settings.companyName)}" /></label>
+        <label>E-mail<input name="email" type="email" data-settings-field="email" value="${escapeHtml(state.settings.email)}" required /></label>
+      </div>
+      <p class="form-hint">Alterar o e-mail exige confirmação por um link enviado ao novo endereço.</p>
+    </div>
+    <div class="panel">
+      <h3>Segurança</h3>
+      <p class="muted">Troque sua senha periodicamente para manter sua conta segura.</p>
+      <button type="button" class="ghost" data-action="open-change-password">Trocar senha</button>
+    </div>
+    <div class="panel">
+      <h3>Zona de risco</h3>
+      <p class="form-hint">Excluir sua conta remove permanentemente seus dados (receitas, ingredientes, despesas) conforme a LGPD. Esta ação não pode ser desfeita.</p>
+      <button type="button" class="danger" data-action="open-delete-account">Excluir minha conta</button>
+    </div>`;
+}
+
 function renderAdminUsersList() {
   if (!state.admin.users.length) return emptyState('Nenhum usuário encontrado.', false);
   return `<ul class="saved-list">${state.admin.users.map((u) => {
@@ -1195,6 +1206,7 @@ function renderPage() {
     case 'lucro': return renderLucroPage();
     case 'fornecedores': return renderFornecedoresPage();
     case 'admin': return renderAdminPage();
+    case 'configuracoes': return renderConfiguracoesPage();
     case 'termos': return renderTermosPage();
     case 'privacidade': return renderPrivacidadePage();
     default: return renderDashboard();
@@ -1233,7 +1245,7 @@ function shellHtml() {
               </button>
               ${state.profileMenuOpen ? `
                 <div class="profile-dropdown">
-                  <button type="button" class="profile-dropdown-item" data-action="open-edit-profile">${icon('pencil')}Atualizar informações pessoais</button>
+                  ${isAdmin ? '' : `<button type="button" class="profile-dropdown-item" data-action="goto" data-route="configuracoes">${icon('settings')}Configurações</button>`}
                   <button type="button" class="profile-dropdown-item" data-action="open-change-password">${icon('key')}Trocar senha</button>
                 </div>` : ''}
             </div>
@@ -1306,7 +1318,7 @@ function authHtml() {
           <h1 class="auth-title">${isSignUp ? 'Crie sua conta' : 'Entre na sua conta'}</h1>
           <p class="auth-subtitle">Calcule o preço ideal dos seus doces com base no custo real de ingredientes e despesas.</p>
           <form data-form="auth">
-            ${isSignUp ? '<label>Nome<input name="fullName" type="text" required /></label>' : ''}
+            ${isSignUp ? '<label>Nome<input name="fullName" type="text" required /></label><label>Nome da empresa<input name="companyName" type="text" /></label>' : ''}
             <label>E-mail<input name="email" type="email" required /></label>
             <label>Senha<input name="password" type="password" minlength="6" required /></label>
             ${isSignUp ? `
@@ -1349,6 +1361,7 @@ async function handleAuthSubmit(form) {
   const email = formData.get('email');
   const password = formData.get('password');
   const fullName = formData.get('fullName');
+  const companyName = formData.get('companyName');
 
   state.authLoading = true;
   state.authError = '';
@@ -1356,7 +1369,7 @@ async function handleAuthSubmit(form) {
 
   try {
     if (state.authMode === 'signup') {
-      await signUp(email, password, fullName);
+      await signUp(email, password, fullName, companyName);
       form.reset();
       state.authMode = 'signin';
       state.authLoading = false;
@@ -1645,30 +1658,23 @@ async function handleEditIngredientSubmit(form) {
   }
 }
 
-function openEditProfileModal() {
-  openModal('edit-profile', { fullName: state.profile.fullName, email: state.session.user.email });
-}
-
-async function handleEditProfileSubmit(form) {
-  const formData = new FormData(form);
-  const fullName = formData.get('fullName');
-  const email = formData.get('email');
-  state.activeModal.loading = true;
-  state.activeModal.error = '';
-  render();
+async function handleSaveSettings() {
+  const draft = state.settings;
   try {
-    await db.updateProfile(state.session.user.id, { full_name: fullName });
-    if (email !== state.session.user.email) {
-      await updateEmail(email);
+    await db.updateProfile(state.session.user.id, { full_name: draft.fullName, company_name: draft.companyName });
+    const emailChanged = draft.email !== state.session.user.email;
+    if (emailChanged) {
+      await updateEmail(draft.email);
     }
-    state.profile.fullName = fullName;
-    closeModal();
-    showSuccess(email !== state.session.user.email
+    state.profile.fullName = draft.fullName;
+    state.profile.companyName = draft.companyName;
+    state.settingsSnapshot = JSON.stringify(draft);
+    showSuccess(emailChanged
       ? 'Dados salvos! Confirme o novo e-mail pelo link que enviamos.'
-      : 'Dados pessoais atualizados!');
+      : 'Configurações salvas!');
+    render();
   } catch (error) {
-    state.activeModal.loading = false;
-    state.activeModal.error = error.message;
+    state.statusMessage = `Erro ao salvar: ${error.message}`;
     render();
   }
 }
@@ -1888,6 +1894,11 @@ app.addEventListener('input', (event) => {
   if (target.dataset.search === 'suppliers') {
     state.supplierSearch = target.value;
     render();
+    return;
+  }
+  if (target.dataset.settingsField) {
+    state.settings[target.dataset.settingsField] = target.value;
+    render();
   }
 });
 
@@ -1909,7 +1920,6 @@ app.addEventListener('submit', (event) => {
   if (formType === 'new-ingredient') handleNewSavedIngredient(event.target);
   if (formType === 'new-supplier') handleNewSupplier(event.target);
   if (formType === 'edit-ingredient') handleEditIngredientSubmit(event.target);
-  if (formType === 'edit-profile') handleEditProfileSubmit(event.target);
   if (formType === 'change-password') handleChangePasswordSubmit(event.target);
   if (formType === 'delete-account') handleDeleteAccountSubmit(event.target);
   if (formType === 'add-expense') handleAddExpenseSubmit(event.target);
@@ -2005,6 +2015,9 @@ app.addEventListener('click', (event) => {
     case 'save-tiers':
       handleSaveTiers();
       break;
+    case 'save-settings':
+      handleSaveSettings();
+      break;
     case 'delete-supplier':
       handleDeleteSupplier(id);
       break;
@@ -2021,10 +2034,6 @@ app.addEventListener('click', (event) => {
     case 'toggle-mobile-menu':
       state.mobileMenuOpen = !state.mobileMenuOpen;
       render();
-      break;
-    case 'open-edit-profile':
-      state.profileMenuOpen = false;
-      openEditProfileModal();
       break;
     case 'open-change-password':
       state.profileMenuOpen = false;

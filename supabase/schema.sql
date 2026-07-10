@@ -10,6 +10,7 @@ create extension if not exists "pgcrypto";
 create table if not exists public.profiles (
   id uuid primary key references auth.users (id) on delete cascade,
   full_name text,
+  company_name text,
   created_at timestamptz not null default now(),
   role text not null default 'user' constraint profiles_role_check check (role in ('user', 'admin'))
 );
@@ -40,7 +41,8 @@ create policy "Admin vê todos os perfis" on public.profiles for select using (p
 create or replace function public.handle_new_user()
 returns trigger language plpgsql security definer set search_path = public as $$
 begin
-  insert into public.profiles (id, full_name) values (new.id, new.raw_user_meta_data ->> 'full_name');
+  insert into public.profiles (id, full_name, company_name)
+  values (new.id, new.raw_user_meta_data ->> 'full_name', new.raw_user_meta_data ->> 'company_name');
   return new;
 end;
 $$;
