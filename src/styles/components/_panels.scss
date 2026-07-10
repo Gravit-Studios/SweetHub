@@ -16,6 +16,17 @@
   align-items: center;
   margin-bottom: 20px;
   flex-wrap: wrap;
+
+  // No mobile, o botão do header vai pra baixo do título ocupando toda a
+  // largura em vez de espremer ao lado.
+  @include respond-down($bp-tablet) {
+    flex-direction: column;
+    align-items: stretch;
+
+    > button {
+      width: 100%;
+    }
+  }
 }
 
 // Grupo de botões de ação no header padrão (usado quando há mais de um botão,
@@ -24,6 +35,14 @@
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
+
+  @include respond-down($bp-tablet) {
+    flex-direction: column;
+
+    button {
+      width: 100%;
+    }
+  }
 }
 
 .status-message {

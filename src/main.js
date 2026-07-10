@@ -679,10 +679,10 @@ function pricingForProduct(product) {
 
 function productsTable(list) {
   const allSelected = list.length > 0 && list.every((p) => state.selectedProducts.has(p.id));
-  return `<div class="table-scroll"><table class="data-table data-table-clickable">
+  return `<div class="table-scroll"><table class="data-table data-table-clickable data-table-cards-mobile">
     <thead><tr>
-      <th class="data-table-checkbox"><input type="checkbox" aria-label="Selecionar todas" data-action="toggle-select-all-products" ${allSelected ? 'checked' : ''} /></th>
-      <th>Receita</th><th>Qnt. por forma</th><th>Preço un.</th><th></th>
+      <th><input type="checkbox" aria-label="Selecionar todas" data-action="toggle-select-all-products" ${allSelected ? 'checked' : ''} /> Receita</th>
+      <th>Qnt. por forma</th><th>Preço un.</th><th></th>
     </tr></thead>
     <tbody>
       ${list.map((product) => {
@@ -692,17 +692,17 @@ function productsTable(list) {
         const checked = state.selectedProducts.has(product.id);
         return `
         <tr data-action="open-produto" data-id="${product.id}">
-          <td class="data-table-checkbox"><input type="checkbox" aria-label="Selecionar receita" data-action="toggle-select-product" data-id="${product.id}" ${checked ? 'checked' : ''} /></td>
           <td>
             <div class="table-row-title">
+              <input type="checkbox" aria-label="Selecionar receita" data-action="toggle-select-product" data-id="${product.id}" ${checked ? 'checked' : ''} />
               ${product.photo_url
                 ? `<img class="item-avatar item-avatar-photo" src="${escapeHtml(product.photo_url)}" alt="" />`
                 : `<span class="item-avatar" style="background:${avatarColorFor(product.name)}">${escapeHtml(product.name.trim().charAt(0).toUpperCase() || '?')}</span>`}
               <strong>${escapeHtml(product.name)}</strong>
             </div>
           </td>
-          <td>${product.yield_amount} un.</td>
-          <td>${priceUn}</td>
+          <td data-label="Qnt. por forma">${product.yield_amount} un.</td>
+          <td data-label="Preço un.">${priceUn}</td>
           <td class="data-table-actions"><span class="item-card-link">Ver detalhes ${icon('arrow')}</span></td>
         </tr>`;
       }).join('')}
@@ -1297,7 +1297,7 @@ function renderIngredientesPage() {
 function renderDespesasPage() {
   const total = state.expenseCategories.reduce((sum, e) => sum + toNumberSafe(e.monthly_value) * (toNumberSafe(e.percentage) / 100), 0);
   const list = state.expenseCategories.length > 0
-    ? `<div class="table-scroll"><table class="data-table">
+    ? `<div class="table-scroll"><table class="data-table data-table-cards-mobile">
         <thead><tr><th>Despesa</th><th>Valor mensal</th><th>% por receita</th><th>Alocado</th><th></th></tr></thead>
         <tbody>
           ${state.expenseCategories.map((expense) => {
@@ -1305,9 +1305,9 @@ function renderDespesasPage() {
             return `
             <tr>
               <td>${escapeHtml(expense.name)}</td>
-              <td>${formatCurrency(expense.monthly_value)}</td>
-              <td>${escapeHtml(String(expense.percentage))}%</td>
-              <td>${formatCurrency(allocated)}</td>
+              <td data-label="Valor mensal">${formatCurrency(expense.monthly_value)}</td>
+              <td data-label="% por receita">${escapeHtml(String(expense.percentage))}%</td>
+              <td data-label="Alocado">${formatCurrency(allocated)}</td>
               <td class="data-table-actions">
                 <button type="button" class="ghost" data-action="open-edit-expense" data-id="${expense.id}">Editar</button>
                 <button type="button" class="ghost" data-action="delete-expense" data-id="${expense.id}">Excluir</button>
