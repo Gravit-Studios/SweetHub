@@ -424,6 +424,7 @@ const ICON_PATHS = {
   camera: '<rect x="3" y="7" width="18" height="12.5" rx="2.2"/><path d="M8.5 7l1.3-2.4h4.4L15.5 7"/><circle cx="12" cy="13.2" r="3.4"/>',
   clipboardList: '<rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4V3a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v1"/><path d="M8.5 11h7M8.5 15h7M8.5 8h4"/>',
   settings: '<circle cx="12" cy="12" r="3"/><path d="M19.4 13a7.6 7.6 0 0 0 0-2l2-1.5-2-3.5-2.4 1a7.4 7.4 0 0 0-1.7-1L15 3h-6l-.3 2.5a7.4 7.4 0 0 0-1.7 1l-2.4-1-2 3.5L4.6 11a7.6 7.6 0 0 0 0 2l-2 1.5 2 3.5 2.4-1a7.4 7.4 0 0 0 1.7 1L9 21h6l.3-2.5a7.4 7.4 0 0 0 1.7-1l2.4 1 2-3.5Z"/>',
+  whisk: '<path d="M12 2v6"/><path d="M8 8c0 6 1.5 10 4 10s4-4 4-10"/><path d="M9.5 8c0 5 1 9 2.5 9s2.5-4 2.5-9"/><path d="M12 18v4"/>',
 };
 
 function icon(name, extraClass = '') {
@@ -446,7 +447,11 @@ function statusBox() {
 }
 
 function loadingMsg() {
-  return '<p class="muted">Carregando...</p>';
+  return `
+    <div class="loading-state" role="status" aria-label="Carregando">
+      <span class="loading-whisk">${icon('whisk')}</span>
+      <span class="muted">Carregando...</span>
+    </div>`;
 }
 
 function emptyState(message, showCta) {
