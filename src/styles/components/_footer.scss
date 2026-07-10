@@ -1,0 +1,51 @@
+@use '../abstracts' as *;
+
+.site-footer {
+  border-top: 1px solid $border;
+  margin-top: 24px;
+}
+
+.site-footer-inner {
+  width: min(1200px, 100%);
+  margin: 0 auto;
+  padding: 20px 32px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px 24px;
+  color: $ink-400;
+  font-size: $fs-xs;
+
+  @include respond-down($bp-tablet) {
+    padding: 20px 16px;
+    justify-content: center;
+    text-align: center;
+  }
+}
+
+.site-footer-links {
+  display: flex;
+  gap: 18px;
+
+  button {
+    background: none;
+    padding: 0;
+    color: $ink-400;
+    font-weight: $fw-medium;
+    font-size: $fs-xs;
+
+    &:hover {
+      box-shadow: none;
+      transform: none;
+      color: $ink-700;
+    }
+  }
+}
+
+.site-footer-badge {
+  strong {
+    color: $ink-700;
+    font-weight: $fw-black;
+  }
+}

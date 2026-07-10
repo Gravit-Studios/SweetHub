@@ -533,18 +533,25 @@ function pricingResultBlock(editor) {
   </aside>`;
 }
 
-function productCardGrid(list) {
-  return `<div class="card-grid">${list.map((product) => `
-    <div class="item-card" data-action="open-produto" data-id="${product.id}">
-      <div class="item-card-top">
-        ${product.photo_url
-          ? `<img class="item-avatar item-avatar-photo" src="${escapeHtml(product.photo_url)}" alt="" />`
-          : `<span class="item-avatar" style="background:${avatarColorFor(product.name)}">${escapeHtml(product.name.trim().charAt(0).toUpperCase() || '?')}</span>`}
-        <strong>${escapeHtml(product.name)}</strong>
-      </div>
-      <span class="muted">Rendimento: ${product.yield_amount} un.</span>
-      <span class="item-card-link">Ver detalhes ${icon('arrow')}</span>
-    </div>`).join('')}</div>`;
+function productsTable(list) {
+  return `<div class="table-scroll"><table class="data-table data-table-clickable">
+    <thead><tr><th>Receita</th><th>Rendimento</th><th></th></tr></thead>
+    <tbody>
+      ${list.map((product) => `
+        <tr data-action="open-produto" data-id="${product.id}">
+          <td>
+            <div class="table-row-title">
+              ${product.photo_url
+                ? `<img class="item-avatar item-avatar-photo" src="${escapeHtml(product.photo_url)}" alt="" />`
+                : `<span class="item-avatar" style="background:${avatarColorFor(product.name)}">${escapeHtml(product.name.trim().charAt(0).toUpperCase() || '?')}</span>`}
+              <strong>${escapeHtml(product.name)}</strong>
+            </div>
+          </td>
+          <td>${product.yield_amount} un.</td>
+          <td class="data-table-actions"><span class="item-card-link">Ver detalhes ${icon('arrow')}</span></td>
+        </tr>`).join('')}
+    </tbody>
+  </table></div>`;
 }
 
 // Upload de foto de receita: usado tanto no wizard quanto no detalhe. O
@@ -828,7 +835,7 @@ function renderDashboard() {
     </div>
     <div class="panel">
       <div class="section-header"><h2>Receitas cadastradas</h2></div>
-      ${state.dataLoading ? loadingMsg() : (state.savedProducts.length ? productCardGrid(state.savedProducts) : emptyState('Nenhuma receita salva ainda.', true))}
+      ${state.dataLoading ? loadingMsg() : (state.savedProducts.length ? productsTable(state.savedProducts) : emptyState('Nenhuma receita salva ainda.', true))}
     </div>`;
 }
 
@@ -839,7 +846,9 @@ function renderProdutosPage() {
       <button type="button" data-action="start-wizard">+ Nova receita</button>
     </div>
     ${statusBox()}
-    ${state.dataLoading ? loadingMsg() : (state.savedProducts.length ? productCardGrid(state.savedProducts) : `<div class="panel">${emptyState('Você ainda não salvou nenhuma receita.', true)}</div>`)}
+    <div class="panel">
+      ${state.dataLoading ? loadingMsg() : (state.savedProducts.length ? productsTable(state.savedProducts) : emptyState('Você ainda não salvou nenhuma receita.', true))}
+    </div>
   `;
 }
 
@@ -1092,6 +1101,8 @@ function renderPage() {
     case 'lucro': return renderLucroPage();
     case 'fornecedores': return renderFornecedoresPage();
     case 'admin': return renderAdminPage();
+    case 'termos': return renderTermosPage();
+    case 'privacidade': return renderPrivacidadePage();
     default: return renderDashboard();
   }
 }
@@ -1138,8 +1149,53 @@ function shellHtml() {
       <div class="main-area">
         <div class="page">${renderPage()}</div>
       </div>
+      ${siteFooter()}
     </div>
     ${modalOverlay()}`;
+}
+
+function siteFooter() {
+  const year = new Date().getFullYear();
+  return `
+    <footer class="site-footer">
+      <div class="site-footer-inner">
+        <span>&copy; ${year} Delícias da Tai. Todos os direitos reservados.</span>
+        <nav class="site-footer-links">
+          <button type="button" data-action="goto" data-route="termos">Termos de uso</button>
+          <button type="button" data-action="goto" data-route="privacidade">Privacidade</button>
+        </nav>
+        <span class="site-footer-badge">Powered by: <strong>Gravit</strong></span>
+      </div>
+    </footer>`;
+}
+
+function renderLegalPage(title, paragraphs) {
+  return `
+    <div class="section-header">
+      <div><p class="eyebrow">Delícias da Tai</p><h2>${escapeHtml(title)}</h2></div>
+      <button type="button" class="ghost" data-action="goto" data-route="inicio">Voltar</button>
+    </div>
+    <div class="panel">
+      ${paragraphs.map((p) => `<p>${escapeHtml(p)}</p>`).join('')}
+    </div>`;
+}
+
+function renderTermosPage() {
+  return renderLegalPage('Termos de uso', [
+    'Ao usar o Delícias da Tai Calc, você concorda em utilizar a ferramenta para calcular preços e organizar receitas, ingredientes e despesas do seu próprio negócio.',
+    'Os cálculos apresentados são estimativas baseadas nos dados informados por você; a conferência dos valores antes de aplicá-los é de responsabilidade do usuário.',
+    'Não é permitido usar a plataforma para armazenar dados de terceiros sem autorização, nem tentar acessar contas ou dados de outros usuários.',
+    'Podemos atualizar estes termos periodicamente; o uso contínuo do app após uma atualização representa a aceitação dos novos termos.',
+  ]);
+}
+
+function renderPrivacidadePage() {
+  return renderLegalPage('Política de privacidade', [
+    'Coletamos apenas os dados necessários para o funcionamento do app: nome, e-mail e as informações que você cadastra (receitas, ingredientes, despesas e fornecedores).',
+    'Seus dados não são vendidos nem compartilhados com terceiros para fins de marketing.',
+    'Você pode atualizar suas informações pessoais, trocar sua senha ou excluir permanentemente sua conta e todos os seus dados a qualquer momento, pelo menu de perfil.',
+    'Em conformidade com a LGPD, você tem direito a solicitar acesso, correção ou exclusão dos seus dados pessoais.',
+  ]);
 }
 
 function authHtml() {
