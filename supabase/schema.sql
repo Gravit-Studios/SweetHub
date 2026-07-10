@@ -11,6 +11,11 @@ create table if not exists public.profiles (
   id uuid primary key references auth.users (id) on delete cascade,
   full_name text,
   company_name text,
+  cnpj text,
+  address text,
+  ifood_url text,
+  link_99_url text,
+  keeta_url text,
   created_at timestamptz not null default now(),
   role text not null default 'user' constraint profiles_role_check check (role in ('user', 'admin'))
 );

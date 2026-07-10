@@ -55,7 +55,7 @@
   padding: 0;
   display: flex;
   justify-content: center;
-  gap: 4px;
+  gap: 20px;
   flex: 1;
   flex-wrap: nowrap;
   min-width: 0;
@@ -84,7 +84,7 @@
 .nav-link {
   padding: 9px 6px;
   color: $ink-700;
-  font-weight: $fw-medium;
+  font-weight: $fw-regular;
   font-size: 0.88rem;
   text-decoration: none;
   cursor: pointer;
@@ -121,7 +121,7 @@
   &.active {
     color: $primary-500;
     background: none;
-    font-weight: $fw-bold;
+    font-weight: $fw-regular;
 
     &::after {
       transform: scaleX(1);

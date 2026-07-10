@@ -81,14 +81,16 @@ const state = {
   tiersSnapshot: '[]',
   detailSnapshot: '{}',
   settingsSnapshot: '{}',
+  companySnapshot: '{}',
   pendingAction: null,
   ingredientSearch: '',
   supplierSearch: '',
   ingredientColumnFilters: {},
   openIngredientFilterColumn: null,
 
-  profile: { fullName: '', companyName: '', role: 'user' },
-  settings: { fullName: '', companyName: '', email: '' },
+  profile: { fullName: '', role: 'user' },
+  settings: { fullName: '', email: '' },
+  company: { name: '', cnpj: '', address: '', ifoodUrl: '', link99Url: '', keetaUrl: '' },
   profileMenuOpen: false,
   mobileMenuOpen: false,
   successModal: '',
@@ -169,11 +171,20 @@ async function loadUserData() {
     state.expenseCategories = expenseCategories;
     state.profitTiers = profitTiers;
     state.suppliers = suppliers;
-    state.profile = { fullName: profile.full_name || '', companyName: profile.company_name || '', role: profile.role || 'user' };
-    state.settings = { fullName: state.profile.fullName, companyName: state.profile.companyName, email: state.session.user.email };
+    state.profile = { fullName: profile.full_name || '', role: profile.role || 'user' };
+    state.settings = { fullName: state.profile.fullName, email: state.session.user.email };
+    state.company = {
+      name: profile.company_name || '',
+      cnpj: profile.cnpj || '',
+      address: profile.address || '',
+      ifoodUrl: profile.ifood_url || '',
+      link99Url: profile.link_99_url || '',
+      keetaUrl: profile.keeta_url || '',
+    };
     state.expensesSnapshot = JSON.stringify(expenseCategories);
     state.tiersSnapshot = JSON.stringify(profitTiers);
     state.settingsSnapshot = JSON.stringify(state.settings);
+    state.companySnapshot = JSON.stringify(state.company);
     if (state.profile.role === 'admin' && !state.admin.loading && state.admin.users.length === 0) {
       loadAdminUsers();
     }
@@ -289,9 +300,11 @@ onAuthStateChange((session) => {
     state.supplierSearch = '';
     state.ingredientColumnFilters = {};
     state.openIngredientFilterColumn = null;
-    state.profile = { fullName: '', companyName: '', role: 'user' };
-    state.settings = { fullName: '', companyName: '', email: '' };
+    state.profile = { fullName: '', role: 'user' };
+    state.settings = { fullName: '', email: '' };
     state.settingsSnapshot = '{}';
+    state.company = { name: '', cnpj: '', address: '', ifoodUrl: '', link99Url: '', keetaUrl: '' };
+    state.companySnapshot = '{}';
     state.profileMenuOpen = false;
     state.mobileMenuOpen = false;
   }
@@ -347,6 +360,7 @@ function hasUnsavedChanges() {
   if (state.route.path === 'lucro') return JSON.stringify(state.profitTiers) !== state.tiersSnapshot;
   if (state.route.path === 'produto') return detailSnapshotOf(state.detail) !== state.detailSnapshot;
   if (state.route.path === 'configuracoes') return JSON.stringify(state.settings) !== state.settingsSnapshot;
+  if (state.route.path === 'empresa') return JSON.stringify(state.company) !== state.companySnapshot;
   return false;
 }
 
@@ -833,11 +847,30 @@ function modalOverlay() {
 
 // ---------------- Páginas ----------------
 
+// Só considera http(s) — evita esquemas como javascript: em links salvos
+// pelo próprio usuário no formulário da página Empresa.
+function isHttpUrl(value) {
+  return /^https?:\/\//i.test(value || '');
+}
+
+function deliveryShortcuts() {
+  const links = [
+    { label: 'iFood', url: state.company.ifoodUrl },
+    { label: '99', url: state.company.link99Url },
+    { label: 'Keeta', url: state.company.keetaUrl },
+  ].filter((l) => isHttpUrl(l.url));
+  if (!links.length) return '';
+  return `<div class="delivery-shortcuts">
+    ${links.map((l) => `<a class="delivery-shortcut" href="${escapeHtml(l.url)}" target="_blank" rel="noopener noreferrer">${icon('truck')}<span>${escapeHtml(l.label)}</span></a>`).join('')}
+  </div>`;
+}
+
 function renderDashboard() {
   const ultimoProduto = state.savedProducts[0];
 
   return `
     ${banner('Calculadora de precificação para confeitaria', 'Acompanhe suas receitas, ingredientes e o histórico de preços em um só lugar.')}
+    ${deliveryShortcuts()}
     ${statusBox()}
     <div class="highlight-grid">
       <div class="highlight-card">
@@ -1139,12 +1172,11 @@ function renderFornecedoresPage() {
 function renderConfiguracoesPage() {
   const isDirty = JSON.stringify(state.settings) !== state.settingsSnapshot;
   return `
-    ${pageHeaderWithSave('Configurações', 'Perfil e empresa', 'save-settings', isDirty)}
+    ${pageHeaderWithSave('Configurações', 'Perfil', 'save-settings', isDirty)}
     ${statusBox()}
     <div class="panel">
       <div class="field-grid">
         <label>Nome completo<input name="fullName" data-settings-field="fullName" value="${escapeHtml(state.settings.fullName)}" required /></label>
-        <label>Nome da empresa<input name="companyName" data-settings-field="companyName" value="${escapeHtml(state.settings.companyName)}" /></label>
         <label>E-mail<input name="email" type="email" data-settings-field="email" value="${escapeHtml(state.settings.email)}" required /></label>
       </div>
       <p class="form-hint">Alterar o e-mail exige confirmação por um link enviado ao novo endereço.</p>
@@ -1158,6 +1190,31 @@ function renderConfiguracoesPage() {
       <h3>Zona de risco</h3>
       <p class="form-hint">Excluir sua conta remove permanentemente seus dados (receitas, ingredientes, despesas) conforme a LGPD. Esta ação não pode ser desfeita.</p>
       <button type="button" class="danger" data-action="open-delete-account">Excluir minha conta</button>
+    </div>`;
+}
+
+function renderEmpresaPage() {
+  const isDirty = JSON.stringify(state.company) !== state.companySnapshot;
+  return `
+    ${pageHeaderWithSave('Empresa', 'Dados da empresa', 'save-company', isDirty)}
+    ${statusBox()}
+    <div class="panel">
+      <div class="field-grid">
+        <label>Nome<input name="companyName" data-company-field="name" value="${escapeHtml(state.company.name)}" /></label>
+        <label>CNPJ<input name="cnpj" data-company-field="cnpj" value="${escapeHtml(state.company.cnpj)}" placeholder="00.000.000/0000-00" /></label>
+      </div>
+      <div class="field-grid" style="margin-top:16px;">
+        <label>Endereço<input name="address" data-company-field="address" value="${escapeHtml(state.company.address)}" /></label>
+      </div>
+    </div>
+    <div class="panel">
+      <h3>Links de delivery</h3>
+      <p class="muted">Adicione os links da sua loja nos apps de entrega para exibir atalhos na página inicial.</p>
+      <div class="field-grid">
+        <label>iFood<input name="ifoodUrl" type="url" data-company-field="ifoodUrl" value="${escapeHtml(state.company.ifoodUrl)}" placeholder="https://..." /></label>
+        <label>99<input name="link99Url" type="url" data-company-field="link99Url" value="${escapeHtml(state.company.link99Url)}" placeholder="https://..." /></label>
+        <label>Keeta<input name="keetaUrl" type="url" data-company-field="keetaUrl" value="${escapeHtml(state.company.keetaUrl)}" placeholder="https://..." /></label>
+      </div>
     </div>`;
 }
 
@@ -1207,6 +1264,7 @@ function renderPage() {
     case 'fornecedores': return renderFornecedoresPage();
     case 'admin': return renderAdminPage();
     case 'configuracoes': return renderConfiguracoesPage();
+    case 'empresa': return renderEmpresaPage();
     case 'termos': return renderTermosPage();
     case 'privacidade': return renderPrivacidadePage();
     default: return renderDashboard();
@@ -1237,6 +1295,7 @@ function shellHtml() {
             ${navItem('despesas', 'Despesas')}
             ${navItem('lucro', 'Lucro')}
             ${navItem('fornecedores', 'Fornecedores')}
+            ${navItem('empresa', 'Empresa')}
           </ul>`}
           <div class="navbar-user">
             <div class="profile-menu">
@@ -1661,17 +1720,36 @@ async function handleEditIngredientSubmit(form) {
 async function handleSaveSettings() {
   const draft = state.settings;
   try {
-    await db.updateProfile(state.session.user.id, { full_name: draft.fullName, company_name: draft.companyName });
+    await db.updateProfile(state.session.user.id, { full_name: draft.fullName });
     const emailChanged = draft.email !== state.session.user.email;
     if (emailChanged) {
       await updateEmail(draft.email);
     }
     state.profile.fullName = draft.fullName;
-    state.profile.companyName = draft.companyName;
     state.settingsSnapshot = JSON.stringify(draft);
     showSuccess(emailChanged
       ? 'Dados salvos! Confirme o novo e-mail pelo link que enviamos.'
       : 'Configurações salvas!');
+    render();
+  } catch (error) {
+    state.statusMessage = `Erro ao salvar: ${error.message}`;
+    render();
+  }
+}
+
+async function handleSaveCompany() {
+  const draft = state.company;
+  try {
+    await db.updateProfile(state.session.user.id, {
+      company_name: draft.name,
+      cnpj: draft.cnpj,
+      address: draft.address,
+      ifood_url: draft.ifoodUrl,
+      link_99_url: draft.link99Url,
+      keeta_url: draft.keetaUrl,
+    });
+    state.companySnapshot = JSON.stringify(draft);
+    showSuccess('Dados da empresa salvos!');
     render();
   } catch (error) {
     state.statusMessage = `Erro ao salvar: ${error.message}`;
@@ -1899,6 +1977,11 @@ app.addEventListener('input', (event) => {
   if (target.dataset.settingsField) {
     state.settings[target.dataset.settingsField] = target.value;
     render();
+    return;
+  }
+  if (target.dataset.companyField) {
+    state.company[target.dataset.companyField] = target.value;
+    render();
   }
 });
 
@@ -2017,6 +2100,9 @@ app.addEventListener('click', (event) => {
       break;
     case 'save-settings':
       handleSaveSettings();
+      break;
+    case 'save-company':
+      handleSaveCompany();
       break;
     case 'delete-supplier':
       handleDeleteSupplier(id);

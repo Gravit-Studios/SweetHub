@@ -70,3 +70,37 @@
     color: $primary-500;
   }
 }
+
+// Atalhos para os apps de delivery (iFood/99/Keeta), configurados na
+// página Empresa e exibidos aqui só quando o link estiver preenchido.
+.delivery-shortcuts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 24px;
+}
+
+.delivery-shortcut {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0.6rem 1rem;
+  border-radius: $radius-sm;
+  background: $surface;
+  border: 1px solid $border;
+  color: $ink-900;
+  font-weight: $fw-medium;
+  font-size: 0.9rem;
+  text-decoration: none;
+  transition: filter 0.15s ease;
+
+  &:hover {
+    filter: brightness(0.96);
+  }
+
+  .icon {
+    width: 16px;
+    height: 16px;
+    color: $secondary-500;
+  }
+}
