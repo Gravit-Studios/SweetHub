@@ -49,6 +49,34 @@
   }
 }
 
+// Lista compacta com quanto de cada ingrediente entrou na receita —
+// complementa os totais agregados do resultado com o detalhe por item.
+.ingredient-usage-list {
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid $secondary-200;
+
+  ul {
+    list-style: none;
+    margin: 10px 0 0;
+    padding: 0;
+    display: grid;
+    gap: 8px;
+  }
+
+  li {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    font-size: 0.9rem;
+    color: $ink-700;
+  }
+
+  strong {
+    color: $ink-900;
+  }
+}
+
 // Níveis de lucro em lista (um bloco por nível), em vez de tabela larga:
 // evita colunas espremidas/cortadas em telas ou painéis estreitos.
 .tiers-list {

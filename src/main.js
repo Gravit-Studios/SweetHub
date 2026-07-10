@@ -603,6 +603,18 @@ function tiersTable(pricing) {
   </div>`;
 }
 
+function ingredientUsageList(editor) {
+  const used = editor.ingredients.filter((i) => !i.draft && i.name.trim());
+  if (!used.length) return '';
+  return `
+    <div class="ingredient-usage-list">
+      <p class="eyebrow">Ingredientes usados</p>
+      <ul>
+        ${used.map((i) => `<li><span>${escapeHtml(i.name)}</span><strong>${escapeHtml(i.usedAmount)}${escapeHtml(i.unit)}</strong></li>`).join('')}
+      </ul>
+    </div>`;
+}
+
 function pricingResultBlock(editor) {
   const pricing = pricingFor(editor);
   return `<aside class="panel summary-panel">
@@ -613,6 +625,7 @@ function pricingResultBlock(editor) {
       <div><dt>Custo total da receita</dt><dd>${formatCurrency(pricing.totalCost)}</dd></div>
       <div class="highlight"><dt>Custo por unidade</dt><dd>${formatCurrency(pricing.unitCost)}</dd></div>
     </dl>
+    ${ingredientUsageList(editor)}
     <div style="margin-top:18px;">${tiersTable(pricing)}</div>
   </aside>`;
 }
@@ -1164,6 +1177,7 @@ function renderWizardReview(editor) {
       <div><dt>Custo total</dt><dd>${formatCurrency(pricing.totalCost)}</dd></div>
       <div><dt>Custo por unidade</dt><dd>${formatCurrency(pricing.unitCost)}</dd></div>
     </dl>
+    ${ingredientUsageList(editor)}
     <div style="margin-top:16px;">${tiersTable(pricing)}</div>
   </div>`;
 }
