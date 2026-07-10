@@ -30,6 +30,15 @@ function toNumberSafe(value) {
   return Number.isFinite(parsed) ? parsed : 0;
 }
 
+// Formata um número (vindo do banco, ex.: 126.99) pro padrão brasileiro de
+// exibição em input editável (126,99) — sem isso, um valor preenchido
+// automaticamente a partir de um número já salvo mostrava o ponto do
+// JavaScript em vez da vírgula que o resto do app usa.
+function toDecimalString(value) {
+  const num = typeof value === 'number' ? value : toNumberSafe(value);
+  return num ? String(num).replace('.', ',') : '';
+}
+
 // Nome de exibição para contas sem "nome completo" salvo: deriva algo
 // apresentável do e-mail em vez de mostrar o endereço cru.
 function nameFromEmail(email) {
@@ -225,9 +234,9 @@ async function ensureDetailLoaded(id) {
       ingredients: items.map((item) => newIngredient({
         ingredientId: item.ingredient_id,
         name: item.name,
-        packagePrice: String(item.package_price),
-        packageAmount: String(item.package_amount),
-        usedAmount: String(item.used_amount),
+        packagePrice: toDecimalString(item.package_price),
+        packageAmount: toDecimalString(item.package_amount),
+        usedAmount: toDecimalString(item.used_amount),
         unit: item.unit,
       })),
       photoUrl: product.photo_url || '',
@@ -511,6 +520,12 @@ function maxUsedAmount(ingredient) {
 // em qualquer lugar que precise buscar um ingrediente salvo).
 function ingredientNameCell(editorKey, ingredient) {
   const rowId = ingredient.id;
+  // Na receita já salva (editorKey "detail"), o nome só é exibido — trocar
+  // de ingrediente por busca aqui poderia dessincronizar o vínculo salvo.
+  // A busca só faz sentido enquanto a receita ainda está sendo montada.
+  if (editorKey !== 'wizard') {
+    return `<input aria-label="Ingrediente" value="${escapeHtml(ingredient.name)}" readonly />`;
+  }
   const isOpen = state.openCombobox === rowId;
   const query = ingredient.name.trim().toLowerCase();
   const options = query
@@ -733,10 +748,10 @@ function addExpenseModal(data) {
       <div class="modal-header"><h3>Adicionar despesa</h3><button type="button" class="icon-btn ghost" data-action="close-modal">${icon('close')}</button></div>
       ${data.error ? `<p class="auth-error">${escapeHtml(data.error)}</p>` : ''}
       <form data-form="add-expense" class="modal-form">
-        <label>Nome da despesa<input name="name" required /></label>
+        <label>Nome da despesa<input name="name" data-modal-field="name" value="${escapeHtml(data.name || '')}" required /></label>
         <div class="field-grid">
-          <label>Valor mensal<div class="input-prefix"><span class="prefix">R$</span><input name="monthlyValue" inputmode="decimal" placeholder="0,00" /></div></label>
-          <label>% por receita<input name="percentage" inputmode="decimal" value="1" required /></label>
+          <label>Valor mensal<div class="input-prefix"><span class="prefix">R$</span><input name="monthlyValue" inputmode="decimal" placeholder="0,00" data-modal-field="monthlyValue" value="${escapeHtml(data.monthlyValue || '')}" /></div></label>
+          <label>% por receita<input name="percentage" inputmode="decimal" data-modal-field="percentage" value="${escapeHtml(data.percentage ?? '1')}" required /></label>
         </div>
         <div class="save-actions">
           <button type="submit" ${data.loading ? 'disabled' : ''}>${data.loading ? 'Adicionando...' : 'Adicionar despesa'}</button>
@@ -771,16 +786,16 @@ function addIngredientModal(data) {
       <div class="modal-header"><h3>Adicionar ingrediente</h3><button type="button" class="icon-btn ghost" data-action="close-modal">${icon('close')}</button></div>
       ${data.error ? `<p class="auth-error">${escapeHtml(data.error)}</p>` : ''}
       <form data-form="new-ingredient" class="modal-form">
-        <label>Nome<input name="name" required /></label>
+        <label>Nome<input name="name" data-modal-field="name" value="${escapeHtml(data.name || '')}" required /></label>
         <div class="field-grid">
-          <label>Preço da compra<div class="input-prefix"><span class="prefix">R$</span><input name="packagePrice" inputmode="decimal" placeholder="0,00" required /></div></label>
-          <label>Qtd. comprada<input name="packageAmount" inputmode="decimal" placeholder="Kg/Gramas" required /></label>
+          <label>Preço da compra<div class="input-prefix"><span class="prefix">R$</span><input name="packagePrice" inputmode="decimal" placeholder="0,00" data-modal-field="packagePrice" value="${escapeHtml(data.packagePrice || '')}" required /></div></label>
+          <label>Qtd. comprada<input name="packageAmount" inputmode="decimal" placeholder="Kg/Gramas" data-modal-field="packageAmount" value="${escapeHtml(data.packageAmount || '')}" required /></label>
         </div>
         <div class="field-grid">
-          <label>Unidade<input name="unit" value="g" required /></label>
-          <label>Categoria<input name="category" /></label>
+          <label>Unidade<input name="unit" placeholder="Ex: ml, g, un." data-modal-field="unit" value="${escapeHtml(data.unit || '')}" required /></label>
+          <label>Categoria<input name="category" data-modal-field="category" value="${escapeHtml(data.category || '')}" /></label>
         </div>
-        <label>Marca<input name="brand" /></label>
+        <label>Marca<input name="brand" data-modal-field="brand" value="${escapeHtml(data.brand || '')}" /></label>
         <div class="save-actions">
           <button type="submit" ${data.loading ? 'disabled' : ''}>${data.loading ? 'Adicionando...' : 'Adicionar'}</button>
           <button type="button" class="ghost" data-action="close-modal">Cancelar</button>
@@ -795,15 +810,15 @@ function addSupplierModal(data) {
       <div class="modal-header"><h3>Adicionar fornecedor</h3><button type="button" class="icon-btn ghost" data-action="close-modal">${icon('close')}</button></div>
       ${data.error ? `<p class="auth-error">${escapeHtml(data.error)}</p>` : ''}
       <form data-form="new-supplier" class="modal-form">
-        <label>Nome<input name="name" required /></label>
+        <label>Nome<input name="name" data-modal-field="name" value="${escapeHtml(data.name || '')}" required /></label>
         <div class="field-grid">
-          <label>Telefone<input name="phone" /></label>
-          <label>E-mail<input name="email" type="email" /></label>
+          <label>Telefone<input name="phone" data-modal-field="phone" value="${escapeHtml(data.phone || '')}" /></label>
+          <label>E-mail<input name="email" type="email" data-modal-field="email" value="${escapeHtml(data.email || '')}" /></label>
         </div>
-        <label>Endereço<input name="address" /></label>
+        <label>Endereço<input name="address" data-modal-field="address" value="${escapeHtml(data.address || '')}" /></label>
         <div class="field-grid">
-          <label>Site<input name="site" /></label>
-          <label>Contato<input name="contact_name" /></label>
+          <label>Site<input name="site" data-modal-field="site" value="${escapeHtml(data.site || '')}" /></label>
+          <label>Contato<input name="contact_name" data-modal-field="contact_name" value="${escapeHtml(data.contact_name || '')}" /></label>
         </div>
         <div class="save-actions">
           <button type="submit" ${data.loading ? 'disabled' : ''}>${data.loading ? 'Adicionando...' : 'Adicionar'}</button>
@@ -843,8 +858,8 @@ function addTierModal(data) {
       <div class="modal-header"><h3>Adicionar nível de lucro</h3><button type="button" class="icon-btn ghost" data-action="close-modal">${icon('close')}</button></div>
       ${data.error ? `<p class="auth-error">${escapeHtml(data.error)}</p>` : ''}
       <form data-form="add-tier" class="modal-form">
-        <label>Nome do nível<input name="name" placeholder="Ex.: Promoção" required /></label>
-        <label>Margem<div class="input-suffix"><input name="multiplierPercent" inputmode="decimal" placeholder="0" required /><span class="suffix">%</span></div></label>
+        <label>Nome do nível<input name="name" placeholder="Ex.: Promoção" data-modal-field="name" value="${escapeHtml(data.name || '')}" required /></label>
+        <label>Margem<div class="input-suffix"><input name="multiplierPercent" inputmode="decimal" placeholder="0" data-modal-field="multiplierPercent" value="${escapeHtml(data.multiplierPercent || '')}" required /><span class="suffix">%</span></div></label>
         <div class="save-actions">
           <button type="submit" ${data.loading ? 'disabled' : ''}>${data.loading ? 'Adicionando...' : 'Adicionar'}</button>
           <button type="button" class="ghost" data-action="close-modal">Cancelar</button>
@@ -1834,8 +1849,8 @@ function openEditExpenseModal(id) {
   openModal('edit-expense', {
     expenseId: source.id,
     name: source.name,
-    monthlyValue: toNumberSafe(source.monthly_value) ? String(source.monthly_value) : '',
-    percentage: String(source.percentage),
+    monthlyValue: toDecimalString(source.monthly_value),
+    percentage: toDecimalString(source.percentage),
   });
 }
 
@@ -2004,8 +2019,8 @@ function openEditIngredientModal(id) {
   openModal('edit-ingredient', {
     ingredientId: source.id,
     name: source.name,
-    packagePrice: String(source.package_price),
-    packageAmount: String(source.package_amount),
+    packagePrice: toDecimalString(source.package_price),
+    packageAmount: toDecimalString(source.package_amount),
     unit: source.unit,
     category: source.category || '',
     brand: source.brand || '',
@@ -2348,14 +2363,14 @@ app.addEventListener('input', (event) => {
         const match = state.savedIngredients.find((si) => si.name.trim().toLowerCase() === target.value.trim().toLowerCase());
         updated.ingredientId = match ? match.id : null;
         if (match) {
-          updated.packagePrice = String(match.package_price);
-          updated.packageAmount = String(match.package_amount);
+          updated.packagePrice = toDecimalString(match.package_price);
+          updated.packageAmount = toDecimalString(match.package_amount);
           updated.unit = match.unit;
         }
       }
       if (field === 'usedAmount') {
         const max = maxUsedAmount(updated);
-        if (max && toNumberSafe(updated.usedAmount) > max) updated.usedAmount = String(max);
+        if (max && toNumberSafe(updated.usedAmount) > max) updated.usedAmount = toDecimalString(max);
       }
       return updated;
     });
@@ -2394,6 +2409,15 @@ app.addEventListener('input', (event) => {
       const digits = target.value.replace(/\D/g, '');
       if (digits.length === 8) handleCepLookup(digits);
     }
+    return;
+  }
+  // Campos de modais "adicionar novo" (ingrediente/despesa/fornecedor/nível):
+  // guarda o que foi digitado no próprio state.activeModal, para que um
+  // re-render disparado por algo alheio ao modal (ex.: o token do Supabase
+  // se renovando ao voltar o foco na aba) não apague o que já foi escrito.
+  if (target.dataset.modalField && state.activeModal) {
+    state.activeModal[target.dataset.modalField] = target.value;
+    render();
   }
 });
 
@@ -2602,8 +2626,8 @@ app.addEventListener('click', (event) => {
         ...i,
         ingredientId: source.id,
         name: source.name,
-        packagePrice: String(source.package_price),
-        packageAmount: String(source.package_amount),
+        packagePrice: toDecimalString(source.package_price),
+        packageAmount: toDecimalString(source.package_amount),
         unit: source.unit,
       } : i));
       state.openCombobox = null;
