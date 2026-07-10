@@ -1,4 +1,4 @@
--- Delícias da Tai Calc — schema do Supabase
+-- Sweet Price — schema do Supabase
 -- Rode este arquivo inteiro no SQL Editor do seu projeto Supabase
 -- (Dashboard -> SQL Editor -> New query -> colar -> Run)
 

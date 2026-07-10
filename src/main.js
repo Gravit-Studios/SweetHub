@@ -454,7 +454,7 @@ function avatarColorFor(name) {
 }
 
 function banner(title, subtitle) {
-  return `<div class="banner"><img src="/assets/bg-login.webp" alt="" class="banner-photo" /><div class="banner-overlay"></div><div class="banner-content"><p class="eyebrow">Delícias da Tai</p><h1>${escapeHtml(title)}</h1><p>${escapeHtml(subtitle)}</p></div></div>`;
+  return `<div class="banner"><img src="/assets/bg-login.webp" alt="" class="banner-photo" /><div class="banner-overlay"></div><div class="banner-content"><p class="eyebrow">Sweet Price</p><h1>${escapeHtml(title)}</h1><p>${escapeHtml(subtitle)}</p></div></div>`;
 }
 
 function statusBox() {
@@ -1017,14 +1017,15 @@ function renderWizard() {
         </div>`;
       }).join('')}
     </div>
+    ${editor.step === 2 ? '<h3>Selecione os ingredientes/embalagens da base e informe a quantidade usada</h3>' : ''}
+    ${editor.step === 4 ? '<h3>Adicione uma foto da receita (opcional)</h3>' : ''}
     <div class="panel">
       ${editor.step === 1 ? `<div class="field-grid">${fieldFor('wizard', 'productName', 'Nome da receita', editor.productName, 'text', editor.errors.productName)}</div>` : ''}
       ${editor.step === 2 ? `
-        <h3>Selecione os ingredientes/embalagens da base e informe a quantidade usada</h3>
         ${editor.errors.ingredients ? `<p class="form-error">${escapeHtml(editor.errors.ingredients)}</p>` : ''}
         ${ingredientsTable('wizard', editor.ingredients, editor.errors.invalidIngredientIds || new Set())}` : ''}
       ${editor.step === 3 ? `<div class="field-grid">${fieldFor('wizard', 'yieldAmount', 'Quantas unidades saem dessa receita (Qnt. por forma)', editor.yieldAmount, 'decimal', editor.errors.yieldAmount)}</div>` : ''}
-      ${editor.step === 4 ? `<h3>Adicione uma foto da receita (opcional)</h3>${photoUploadField('wizard', editor)}` : ''}
+      ${editor.step === 4 ? photoUploadField('wizard', editor) : ''}
       ${editor.step === 5 ? renderWizardReview(editor) : ''}
     </div>
     <div class="wizard-actions">
@@ -1355,7 +1356,7 @@ function shellHtml() {
       <header class="navbar">
         <div class="navbar-inner">
           <button type="button" class="brand" data-action="goto" data-route="inicio">
-            <span class="brand-mark"></span> Delícias da Tai
+            <span class="brand-mark"></span> Sweet Price
           </button>
           ${isAdmin ? '' : `
           <ul class="nav-list ${state.mobileMenuOpen ? 'open' : ''}">
@@ -1396,7 +1397,7 @@ function siteFooter() {
   return `
     <footer class="site-footer">
       <div class="site-footer-inner">
-        <span>&copy; ${year} Delícias da Tai. Todos os direitos reservados.</span>
+        <span>&copy; ${year} Sweet Price. Todos os direitos reservados.</span>
         <nav class="site-footer-links">
           <button type="button" data-action="goto" data-route="termos">Termos de uso</button>
           <button type="button" data-action="goto" data-route="privacidade">Privacidade</button>
@@ -1409,7 +1410,7 @@ function siteFooter() {
 function renderLegalPage(title, paragraphs) {
   return `
     <div class="section-header">
-      <div><p class="eyebrow">Delícias da Tai</p><h2>${escapeHtml(title)}</h2></div>
+      <div><p class="eyebrow">Sweet Price</p><h2>${escapeHtml(title)}</h2></div>
       <button type="button" class="ghost" data-action="goto" data-route="inicio">Voltar</button>
     </div>
     <div class="panel">
@@ -1419,7 +1420,7 @@ function renderLegalPage(title, paragraphs) {
 
 function renderTermosPage() {
   return renderLegalPage('Termos de uso', [
-    'Ao usar o Delícias da Tai Calc, você concorda em utilizar a ferramenta para calcular preços e organizar receitas, ingredientes e despesas do seu próprio negócio.',
+    'Ao usar o Sweet Price, você concorda em utilizar a ferramenta para calcular preços e organizar receitas, ingredientes e despesas do seu próprio negócio.',
     'Os cálculos apresentados são estimativas baseadas nos dados informados por você; a conferência dos valores antes de aplicá-los é de responsabilidade do usuário.',
     'Não é permitido usar a plataforma para armazenar dados de terceiros sem autorização, nem tentar acessar contas ou dados de outros usuários.',
     'Podemos atualizar estes termos periodicamente; o uso contínuo do app após uma atualização representa a aceitação dos novos termos.',
@@ -1440,7 +1441,7 @@ function authHtml() {
   return `
     <div class="auth-page">
       <div class="auth-form-side">
-        <div class="auth-brand"><span class="brand-mark"></span> Delícias da Tai</div>
+        <div class="auth-brand"><span class="brand-mark"></span> Sweet Price</div>
         <div class="auth-form-inner">
           <p class="eyebrow">${isSignUp ? 'Comece agora' : 'Bem-vindo de volta'}</p>
           <h1 class="auth-title">${isSignUp ? 'Crie sua conta' : 'Acesse sua conta'}</h1>

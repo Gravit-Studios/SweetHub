@@ -1,4 +1,4 @@
-# Delícias da Tai Calc
+# Sweet Price
 
 Sistema de cálculo e precificação de produtos para confeitaria.
 

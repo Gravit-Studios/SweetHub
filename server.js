@@ -34,5 +34,5 @@ const server = createServer(async (request, response) => {
 });
 
 server.listen(port, () => {
-  console.log(`Delícias da Tai Calc disponível em http://localhost:${port}`);
+  console.log(`Sweet Price disponível em http://localhost:${port}`);
 });
