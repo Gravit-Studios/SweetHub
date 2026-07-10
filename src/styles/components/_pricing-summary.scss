@@ -85,33 +85,50 @@
 }
 
 .tier-row {
-  border-top: 1px solid $secondary-200;
-  padding-top: 16px;
+  border: 1px solid $secondary-200;
+  border-radius: $radius-md;
+  padding: 16px 18px;
 
-  &:first-child {
-    border-top: 0;
-    padding-top: 0;
+  &.tier-featured {
+    border-color: $primary-500;
+    background: rgba($primary-500, 0.04);
   }
+}
+
+.tier-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
 }
 
 .tier-name {
-  display: block;
   color: $primary-500;
   font-size: 1.05rem;
   font-weight: $fw-medium;
-  margin-bottom: 10px;
+}
+
+.tier-badge {
+  font-size: 0.68rem;
+  font-weight: $fw-bold;
+  color: $primary-500;
+  background: rgba($primary-500, 0.12);
+  padding: 3px 9px;
+  border-radius: 999px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
 }
 
 .tier-stats {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 14px 28px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  gap: 14px 20px;
+}
 
-  div {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-  }
+.tier-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 
   span {
     font-size: $fs-xs;
@@ -122,6 +139,11 @@
   strong {
     font-size: 1rem;
     font-weight: $fw-bold;
+    color: $ink-900;
+  }
+
+  &.tier-stat-profit strong {
+    color: $success-500;
   }
 }
 

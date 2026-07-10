@@ -617,16 +617,22 @@ function validateIngredientAmounts(ingredients) {
 // estreitos.
 function tiersTable(pricing) {
   return `<div class="tiers-list">
-    ${pricing.tiers.map((tier) => `
-      <div class="tier-row">
-        <strong class="tier-name">${escapeHtml(tier.name)}</strong>
-        <div class="tier-stats">
-          <div><span>Preço un.</span><strong>${formatCurrency(tier.unitPrice)}</strong></div>
-          <div><span>Preço/forma</span><strong>${formatCurrency(tier.totalPrice)}</strong></div>
-          <div><span>Lucro líq. un.</span><strong>${formatCurrency(tier.netProfitUnit)}</strong></div>
-          <div><span>Lucro líq. total</span><strong>${formatCurrency(tier.netProfitTotal)}</strong></div>
+    ${pricing.tiers.map((tier) => {
+      const featured = tier.name.trim().toLowerCase() === 'média';
+      return `
+      <div class="tier-row ${featured ? 'tier-featured' : ''}">
+        <div class="tier-header">
+          <strong class="tier-name">${escapeHtml(tier.name)}</strong>
+          ${featured ? '<span class="tier-badge">Sugerido</span>' : ''}
         </div>
-      </div>`).join('')}
+        <div class="tier-stats">
+          <div class="tier-stat"><span>Preço un.</span><strong>${formatCurrency(tier.unitPrice)}</strong></div>
+          <div class="tier-stat"><span>Preço/forma</span><strong>${formatCurrency(tier.totalPrice)}</strong></div>
+          <div class="tier-stat tier-stat-profit"><span>Lucro líq. un.</span><strong>${formatCurrency(tier.netProfitUnit)}</strong></div>
+          <div class="tier-stat tier-stat-profit"><span>Lucro líq. total</span><strong>${formatCurrency(tier.netProfitTotal)}</strong></div>
+        </div>
+      </div>`;
+    }).join('')}
   </div>`;
 }
 
@@ -652,7 +658,6 @@ function pricingResultBlock(editor) {
       <div><dt>Custo total da receita</dt><dd>${formatCurrency(pricing.totalCost)}</dd></div>
       <div class="highlight"><dt>Custo por unidade</dt><dd>${formatCurrency(pricing.unitCost)}</dd></div>
     </dl>
-    ${ingredientUsageList(editor)}
     <div style="margin-top:18px;">${tiersTable(pricing)}</div>
   </aside>`;
 }
@@ -825,6 +830,7 @@ function addIngredientModal(data) {
     <div class="modal-box">
       <div class="modal-header"><h3>Adicionar ingrediente</h3><button type="button" class="icon-btn ghost" data-action="close-modal">${icon('close')}</button></div>
       ${data.error ? `<p class="auth-error">${escapeHtml(data.error)}</p>` : ''}
+      ${data.successMessage ? `<p class="auth-success">${escapeHtml(data.successMessage)}</p>` : ''}
       <form data-form="new-ingredient" class="modal-form">
         <label>Nome<input name="name" data-modal-field="name" value="${escapeHtml(data.name || '')}" required /></label>
         <div class="field-grid">
@@ -1865,8 +1871,25 @@ async function handleNewSavedIngredient(form) {
   try {
     await db.createIngredient(state.session.user.id, draft);
     await loadUserData();
-    closeModal();
-    showSuccess('Ingrediente cadastrado!');
+    // Mantém o modal aberto (em vez de fechar) para deixar cadastrar vários
+    // ingredientes em sequência sem precisar reabrir a cada um.
+    const modal = state.activeModal;
+    modal.loading = false;
+    modal.name = '';
+    modal.packagePrice = '';
+    modal.packageAmount = '';
+    modal.unit = '';
+    modal.category = '';
+    modal.brand = '';
+    modal.successMessage = 'Ingrediente cadastrado! Pode adicionar outro.';
+    render();
+    app.querySelector('[data-form="new-ingredient"] [name="name"]')?.focus();
+    setTimeout(() => {
+      if (state.activeModal === modal) {
+        modal.successMessage = '';
+        render();
+      }
+    }, 2500);
   } catch (error) {
     state.activeModal.loading = false;
     state.activeModal.error = error.message;
