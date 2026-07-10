@@ -479,7 +479,7 @@ function avatarColorFor(name) {
 }
 
 function banner(title, subtitle) {
-  return `<div class="banner"><img src="/assets/bg-login.webp" alt="" class="banner-photo" /><div class="banner-overlay"></div><div class="banner-content"><p class="eyebrow">Sweet Price</p><h1>${escapeHtml(title)}</h1><p>${escapeHtml(subtitle)}</p></div></div>`;
+  return `<div class="banner"><img src="/assets/bg-login.webp" alt="" class="banner-photo" /><div class="banner-overlay"></div><div class="banner-content"><p class="eyebrow">Doce Preço</p><h1>${escapeHtml(title)}</h1><p>${escapeHtml(subtitle)}</p></div></div>`;
 }
 
 function statusBox() {
@@ -1578,7 +1578,7 @@ function mobileDrawer(displayName) {
     <div class="mobile-drawer-overlay ${state.mobileMenuOpen ? 'open' : ''}">
       <nav class="mobile-drawer">
         <div class="mobile-drawer-header">
-          <span class="brand"><span class="brand-mark"></span> Sweet Price</span>
+          <span class="brand"><span class="brand-mark"></span> Doce Preço</span>
           <button type="button" class="icon-btn ghost" data-action="toggle-mobile-menu" aria-label="Fechar menu">${icon('close')}</button>
         </div>
         <ul class="mobile-drawer-nav">
@@ -1609,7 +1609,7 @@ function pendingApprovalHtml(displayName) {
       <header class="navbar">
         <div class="navbar-inner">
           <button type="button" class="brand" data-action="goto" data-route="inicio">
-            <span class="brand-mark"></span> Sweet Price
+            <span class="brand-mark"></span> Doce Preço
           </button>
           <div class="navbar-user">
             <span class="navbar-email">${escapeHtml(displayName)}</span>
@@ -1623,7 +1623,7 @@ function pendingApprovalHtml(displayName) {
           <div class="pending-approval-panel panel">
             <p class="eyebrow">Cadastro recebido</p>
             <h2>Aguardando aprovação</h2>
-            <p>Sua conta foi criada com sucesso. Um administrador do Sweet Price precisa aprovar o seu acesso antes de você poder usar o app — isso costuma ser rápido.</p>
+            <p>Sua conta foi criada com sucesso. Um administrador do Doce Preço precisa aprovar o seu acesso antes de você poder usar o app — isso costuma ser rápido.</p>
           </div>
         </div>
       </div>
@@ -1665,7 +1665,7 @@ function shellHtml() {
       <header class="navbar">
         <div class="navbar-inner">
           <button type="button" class="brand" data-action="goto" data-route="inicio">
-            <span class="brand-mark"></span> Sweet Price
+            <span class="brand-mark"></span> Doce Preço
           </button>
           ${isAdmin ? '' : `
           <ul class="nav-list">
@@ -1708,7 +1708,7 @@ function siteFooter() {
   return `
     <footer class="site-footer">
       <div class="site-footer-inner">
-        <span>&copy; ${year} Sweet Price. Todos os direitos reservados.</span>
+        <span>&copy; ${year} Doce Preço. Todos os direitos reservados.</span>
         <nav class="site-footer-links">
           <button type="button" data-action="goto" data-route="termos">Termos de uso</button>
           <button type="button" data-action="goto" data-route="privacidade">Privacidade</button>
@@ -1721,7 +1721,7 @@ function siteFooter() {
 function renderLegalPage(title, paragraphs) {
   return `
     <div class="section-header">
-      <div><p class="eyebrow">Sweet Price</p><h2>${escapeHtml(title)}</h2></div>
+      <div><p class="eyebrow">Doce Preço</p><h2>${escapeHtml(title)}</h2></div>
       <button type="button" class="ghost" data-action="goto" data-route="inicio">Voltar</button>
     </div>
     <div class="panel">
@@ -1731,7 +1731,7 @@ function renderLegalPage(title, paragraphs) {
 
 function renderTermosPage() {
   return renderLegalPage('Termos de uso', [
-    'Ao usar o Sweet Price, você concorda em utilizar a ferramenta para calcular preços e organizar receitas, ingredientes e despesas do seu próprio negócio.',
+    'Ao usar o Doce Preço, você concorda em utilizar a ferramenta para calcular preços e organizar receitas, ingredientes e despesas do seu próprio negócio.',
     'Os cálculos apresentados são estimativas baseadas nos dados informados por você; a conferência dos valores antes de aplicá-los é de responsabilidade do usuário.',
     'Não é permitido usar a plataforma para armazenar dados de terceiros sem autorização, nem tentar acessar contas ou dados de outros usuários.',
     'Podemos atualizar estes termos periodicamente; o uso contínuo do app após uma atualização representa a aceitação dos novos termos.',
@@ -1752,7 +1752,7 @@ function authHtml() {
   return `
     <div class="auth-page">
       <div class="auth-form-side">
-        <div class="auth-brand"><span class="brand-mark"></span> Sweet Price</div>
+        <div class="auth-brand"><span class="brand-mark"></span> Doce Preço</div>
         <div class="auth-form-inner">
           <p class="eyebrow">${isSignUp ? 'Comece agora' : 'Bem-vindo de volta'}</p>
           <h1 class="auth-title">${isSignUp ? 'Crie sua conta' : 'Acesse sua conta'}</h1>

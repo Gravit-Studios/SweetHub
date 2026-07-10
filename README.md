@@ -1,4 +1,4 @@
-# Sweet Price
+# Doce Preço
 
 Sistema de cálculo e precificação de produtos para confeitaria.
 
