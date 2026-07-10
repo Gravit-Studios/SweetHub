@@ -67,7 +67,6 @@ const state = {
 
   savedIngredients: [],
   savedProducts: [],
-  history: [],
   expenseCategories: [],
   profitTiers: [],
   suppliers: [],
@@ -143,10 +142,9 @@ async function loadUserData() {
   render();
   try {
     const userId = state.session.user.id;
-    const [ingredients, products, history, expenseCategories, profitTiers, suppliers, profile] = await Promise.all([
+    const [ingredients, products, expenseCategories, profitTiers, suppliers, profile] = await Promise.all([
       db.listIngredients(userId),
       db.listProducts(userId),
-      db.listHistory(userId, 30),
       db.ensureDefaultExpenseCategories(userId),
       db.ensureDefaultProfitTiers(userId),
       db.listSuppliers(userId),
@@ -154,7 +152,6 @@ async function loadUserData() {
     ]);
     state.savedIngredients = ingredients;
     state.savedProducts = products;
-    state.history = history;
     state.expenseCategories = expenseCategories;
     state.profitTiers = profitTiers;
     state.suppliers = suppliers;
@@ -265,7 +262,6 @@ onAuthStateChange((session) => {
   if (!session) {
     state.savedIngredients = [];
     state.savedProducts = [];
-    state.history = [];
     state.expenseCategories = [];
     state.profitTiers = [];
     state.suppliers = [];
@@ -412,7 +408,7 @@ function ingredientRows(editorKey, ingredients, invalidIds = new Set()) {
     return `
     <div class="ingredient-grid" data-ingredient="${ingredient.id}">
       ${ingredientNameCell(editorKey, ingredient)}
-      <input aria-label="Preço da compra" inputmode="decimal" data-editor="${editorKey}" data-ingredient="${ingredient.id}" data-ingredient-field="packagePrice" value="${escapeHtml(ingredient.packagePrice)}" />
+      <input aria-label="Preço da compra" inputmode="decimal" placeholder="R$ 0,00" data-editor="${editorKey}" data-ingredient="${ingredient.id}" data-ingredient-field="packagePrice" value="${escapeHtml(ingredient.packagePrice)}" />
       <input aria-label="Quantidade comprada" inputmode="decimal" data-editor="${editorKey}" data-ingredient="${ingredient.id}" data-ingredient-field="packageAmount" value="${escapeHtml(ingredient.packageAmount)}" />
       <input aria-label="Quantidade usada" inputmode="decimal" required class="${usedInvalid ? 'is-invalid' : ''}" placeholder="${max ? `Máx. ${max}` : 'Obrigatório'}" data-editor="${editorKey}" data-ingredient="${ingredient.id}" data-ingredient-field="usedAmount" value="${escapeHtml(ingredient.usedAmount)}" />
       <input aria-label="Unidade" data-editor="${editorKey}" data-ingredient="${ingredient.id}" data-ingredient-field="unit" value="${escapeHtml(ingredient.unit)}" />
@@ -490,7 +486,7 @@ function editIngredientModal(data) {
       <form data-form="edit-ingredient" class="modal-form">
         <label>Nome<input name="name" value="${escapeHtml(data.name)}" required /></label>
         <div class="field-grid">
-          <label>Preço da embalagem (R$)<input name="packagePrice" inputmode="decimal" value="${escapeHtml(data.packagePrice)}" required /></label>
+          <label>Preço da embalagem (R$)<input name="packagePrice" inputmode="decimal" placeholder="R$ 0,00" value="${escapeHtml(data.packagePrice)}" required /></label>
           <label>Qtd. da embalagem<input name="packageAmount" inputmode="decimal" value="${escapeHtml(data.packageAmount)}" required /></label>
         </div>
         <div class="field-grid">
@@ -549,7 +545,7 @@ function deleteAccountModal(data) {
     <div class="modal-box">
       <div class="modal-header"><h3>Excluir minha conta</h3><button type="button" class="icon-btn ghost" data-action="close-modal">${icon('close')}</button></div>
       ${data.error ? `<p class="auth-error">${escapeHtml(data.error)}</p>` : ''}
-      <p>Isso vai excluir permanentemente sua conta e todos os seus dados (receitas, ingredientes, despesas, histórico). Não é possível desfazer.</p>
+      <p>Isso vai excluir permanentemente sua conta e todos os seus dados (receitas, ingredientes, despesas). Não é possível desfazer.</p>
       <p>Digite <strong>EXCLUIR</strong> para confirmar.</p>
       <form data-form="delete-account" class="modal-form">
         <input name="confirmText" placeholder="EXCLUIR" required />
@@ -558,6 +554,38 @@ function deleteAccountModal(data) {
           <button type="button" class="ghost" data-action="close-modal">Cancelar</button>
         </div>
       </form>
+    </div>`;
+}
+
+function addExpenseModal(data) {
+  return `
+    <div class="modal-box">
+      <div class="modal-header"><h3>Adicionar despesa</h3><button type="button" class="icon-btn ghost" data-action="close-modal">${icon('close')}</button></div>
+      ${data.error ? `<p class="auth-error">${escapeHtml(data.error)}</p>` : ''}
+      <form data-form="add-expense" class="modal-form">
+        <label>Nome da despesa<input name="name" required /></label>
+        <div class="field-grid">
+          <label>Valor mensal<input name="monthlyValue" inputmode="decimal" placeholder="R$ 0,00" /></label>
+          <label>% por receita<input name="percentage" inputmode="decimal" value="1" required /></label>
+        </div>
+        <div class="save-actions">
+          <button type="submit" ${data.loading ? 'disabled' : ''}>${data.loading ? 'Adicionando...' : 'Adicionar despesa'}</button>
+          <button type="button" class="ghost" data-action="close-modal">Cancelar</button>
+        </div>
+      </form>
+    </div>`;
+}
+
+function confirmDeleteModal(data) {
+  return `
+    <div class="modal-box">
+      <div class="modal-header"><h3>${escapeHtml(data.title)}</h3><button type="button" class="icon-btn ghost" data-action="close-modal">${icon('close')}</button></div>
+      ${data.error ? `<p class="auth-error">${escapeHtml(data.error)}</p>` : ''}
+      <p>${escapeHtml(data.message)}</p>
+      <div class="save-actions">
+        <button type="button" class="danger" data-action="confirm-delete" ${data.loading ? 'disabled' : ''}>${data.loading ? 'Excluindo...' : 'Excluir'}</button>
+        <button type="button" class="ghost" data-action="close-modal">Cancelar</button>
+      </div>
     </div>`;
 }
 
@@ -577,6 +605,8 @@ function modalOverlay() {
     'edit-profile': editProfileModal,
     'change-password': changePasswordModal,
     'delete-account': deleteAccountModal,
+    'add-expense': addExpenseModal,
+    'confirm-delete': confirmDeleteModal,
   }[data.type];
   if (!content) return '';
   return `<div class="modal-overlay">${content(data)}</div>`;
@@ -586,8 +616,6 @@ function modalOverlay() {
 
 function renderDashboard() {
   const ultimoProduto = state.savedProducts[0];
-  const ultimoHistorico = state.history[0];
-  const ultimoMedia = ultimoHistorico?.tiers?.find((t) => t.name === 'Média') ?? ultimoHistorico?.tiers?.[0];
 
   return `
     ${banner('Calculadora de precificação para confeitaria', 'Acompanhe suas receitas, ingredientes e o histórico de preços em um só lugar.')}
@@ -604,7 +632,7 @@ function renderDashboard() {
         <span class="eyebrow">Última receita cadastrada</span>
         ${ultimoProduto
           ? `<strong class="highlight-name">${escapeHtml(ultimoProduto.name)}</strong>
-             <span class="muted">${ultimoMedia ? `Preço médio: ${formatCurrency(ultimoMedia.unitPrice)}` : `Rendimento: ${ultimoProduto.yield_amount} un.`}</span>
+             <span class="muted">Rendimento: ${ultimoProduto.yield_amount} un.</span>
              <button type="button" class="ghost" data-action="open-produto" data-id="${ultimoProduto.id}">Abrir receita ${icon('arrow')}</button>`
           : '<strong class="highlight-name">—</strong><span class="muted">Nenhuma receita ainda.</span>'}
       </div>
@@ -652,8 +680,7 @@ function renderProdutoDetalhe(id) {
         <h3>Ações</h3>
         <div class="save-actions">
           <button type="button" data-action="save-detail">Salvar alterações</button>
-          <button type="button" class="ghost" data-action="save-history-detail">Salvar cálculo no histórico</button>
-          <button type="button" class="danger" data-action="delete-detail" data-id="${id}">Excluir receita</button>
+          <button type="button" class="danger" data-action="delete-detail" data-id="${id}" data-name="${escapeHtml(editor.productName)}">Excluir receita</button>
         </div>
       </div>
       ${pricingResultBlock(editor)}
@@ -739,7 +766,7 @@ function renderIngredientesPage() {
       ${state.dataLoading ? loadingMsg() : list}
       <form data-form="new-ingredient" class="new-ingredient-form" style="grid-template-columns: 1.6fr 1fr 1fr 0.8fr 1fr 1fr auto;">
         <input name="name" placeholder="Nome" required />
-        <input name="packagePrice" inputmode="decimal" placeholder="Preço (R$)" required />
+        <input name="packagePrice" inputmode="decimal" placeholder="R$ 0,00" required />
         <input name="packageAmount" inputmode="decimal" placeholder="Kg/Gramas" required />
         <input name="unit" placeholder="Un. (g, ml, un)" value="g" required />
         <input name="category" placeholder="Categoria" />
@@ -831,20 +858,6 @@ function renderFornecedoresPage() {
     </div>`;
 }
 
-function renderHistoricoPage() {
-  if (!state.history.length) return `<div class="panel">${emptyState('Nenhum cálculo salvo ainda.', false)}</div>`;
-  return `<div class="panel">${state.history.map((h) => `
-      <div style="padding:14px 0; border-bottom:1px solid #f0ded6;">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-          <strong>${escapeHtml(h.product_name)}</strong>
-          <small class="muted">${new Date(h.created_at).toLocaleString('pt-BR')}</small>
-        </div>
-        <div style="display:flex; gap:18px; flex-wrap:wrap;">
-          ${(h.tiers || []).map((t) => `<span class="muted">${escapeHtml(t.name)}: <strong style="color:#8f3f37;">${formatCurrency(t.unitPrice)}</strong></span>`).join('')}
-        </div>
-      </div>`).join('')}</div>`;
-}
-
 function renderAdminUsersList() {
   if (!state.admin.users.length) return emptyState('Nenhum usuário encontrado.', false);
   return `<ul class="saved-list">${state.admin.users.map((u) => {
@@ -884,7 +897,6 @@ function renderPage() {
     case 'despesas': return renderDespesasPage();
     case 'lucro': return renderLucroPage();
     case 'fornecedores': return renderFornecedoresPage();
-    case 'historico': return renderHistoricoPage();
     case 'admin': return renderAdminPage();
     default: return renderDashboard();
   }
@@ -912,7 +924,6 @@ function shellHtml() {
             ${navItem('despesas', 'Despesas')}
             ${navItem('lucro', 'Lucro')}
             ${navItem('fornecedores', 'Fornecedores')}
-            ${navItem('historico', 'Histórico')}
             ${state.profile.role === 'admin' ? navItem('admin', 'Admin') : ''}
           </ul>
           <div class="navbar-user">
@@ -1110,23 +1121,6 @@ async function handleDeleteDetail(id) {
   }
 }
 
-async function handleSaveHistoryFromDetail() {
-  const ed = state.detail;
-  try {
-    const pricing = pricingFor(ed);
-    await db.saveHistoryEntry(state.session.user.id, {
-      productId: ed.productId,
-      productName: ed.productName || 'Receita sem nome',
-      ...pricing,
-    });
-    showSuccess('Cálculo salvo no histórico.');
-    await loadUserData();
-  } catch (error) {
-    state.statusMessage = `Erro ao salvar histórico: ${error.message}`;
-    render();
-  }
-}
-
 // ---------------- Ações: ingredientes / despesas / lucro / fornecedores ----------------
 
 async function handleNewSavedIngredient(form) {
@@ -1174,15 +1168,24 @@ async function handleSaveExpenses() {
   }
 }
 
-async function handleAddExpense() {
+async function handleAddExpenseSubmit(form) {
+  const formData = new FormData(form);
+  state.activeModal.loading = true;
+  state.activeModal.error = '';
+  render();
   try {
     await db.createExpenseCategory(state.session.user.id, {
-      name: 'Nova despesa', monthly_value: 0, percentage: 1, position: state.expenseCategories.length,
+      name: formData.get('name'),
+      monthly_value: toNumberSafe(formData.get('monthlyValue')),
+      percentage: toNumberSafe(formData.get('percentage')) || 1,
+      position: state.expenseCategories.length,
     });
     await loadUserData();
+    closeModal();
     showSuccess('Despesa adicionada!');
   } catch (error) {
-    state.statusMessage = `Erro: ${error.message}`;
+    state.activeModal.loading = false;
+    state.activeModal.error = error.message;
     render();
   }
 }
@@ -1327,6 +1330,33 @@ function openDeleteAccountModal() {
   openModal('delete-account');
 }
 
+function openConfirmDeleteIngredient(id) {
+  const source = state.savedIngredients.find((i) => i.id === id);
+  openModal('confirm-delete', {
+    kind: 'ingredient',
+    id,
+    title: 'Excluir ingrediente',
+    message: `Tem certeza que deseja excluir "${source?.name || 'este ingrediente'}"? Essa ação não pode ser desfeita.`,
+  });
+}
+
+function openConfirmDeleteProduct(id, name) {
+  openModal('confirm-delete', {
+    kind: 'product',
+    id,
+    title: 'Excluir receita',
+    message: `Tem certeza que deseja excluir "${name || 'esta receita'}"? Essa ação não pode ser desfeita.`,
+  });
+}
+
+async function handleConfirmDelete() {
+  const modal = state.activeModal;
+  if (!modal) return;
+  closeModal();
+  if (modal.kind === 'ingredient') await handleDeleteSavedIngredient(modal.id);
+  if (modal.kind === 'product') await handleDeleteDetail(modal.id);
+}
+
 async function handleDeleteAccountSubmit(form) {
   const formData = new FormData(form);
   if (formData.get('confirmText') !== 'EXCLUIR') {
@@ -1437,6 +1467,7 @@ app.addEventListener('submit', (event) => {
   if (formType === 'edit-profile') handleEditProfileSubmit(event.target);
   if (formType === 'change-password') handleChangePasswordSubmit(event.target);
   if (formType === 'delete-account') handleDeleteAccountSubmit(event.target);
+  if (formType === 'add-expense') handleAddExpenseSubmit(event.target);
 });
 
 app.addEventListener('click', (event) => {
@@ -1490,19 +1521,19 @@ app.addEventListener('click', (event) => {
       handleSaveDetail();
       break;
     case 'delete-detail':
-      handleDeleteDetail(id);
-      break;
-    case 'save-history-detail':
-      handleSaveHistoryFromDetail();
+      openConfirmDeleteProduct(id, el.dataset.name);
       break;
     case 'delete-saved-ingredient':
-      handleDeleteSavedIngredient(id);
+      openConfirmDeleteIngredient(id);
+      break;
+    case 'confirm-delete':
+      handleConfirmDelete();
       break;
     case 'save-expenses':
       handleSaveExpenses();
       break;
     case 'add-expense':
-      handleAddExpense();
+      openModal('add-expense');
       break;
     case 'delete-expense':
       handleDeleteExpense(id);

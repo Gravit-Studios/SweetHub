@@ -302,30 +302,3 @@ export async function deleteSupplier(id) {
   if (error) throw error;
 }
 
-// ---------- Histórico de precificação ----------
-
-export async function saveHistoryEntry(userId, entry) {
-  const { error } = await supabase.from('pricing_history').insert({
-    user_id: userId,
-    product_id: entry.productId ?? null,
-    product_name: entry.productName,
-    ingredients_cost: entry.ingredientsCost,
-    expenses_cost: entry.expensesCost,
-    total_cost: entry.totalCost,
-    unit_cost: entry.unitCost,
-    yield_amount: entry.yieldAmount,
-    tiers: entry.tiers,
-  });
-  if (error) throw error;
-}
-
-export async function listHistory(userId, limit = 30) {
-  const { data, error } = await supabase
-    .from('pricing_history')
-    .select('*')
-    .eq('user_id', userId)
-    .order('created_at', { ascending: false })
-    .limit(limit);
-  if (error) throw error;
-  return data;
-}
