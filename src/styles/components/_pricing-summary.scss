@@ -33,12 +33,12 @@
 
   dt {
     color: $ink-700;
-    font-weight: $fw-bold;
+    font-weight: $fw-medium;
   }
 
   dd {
     margin: 0;
-    font-weight: $fw-black;
+    font-weight: $fw-bold;
   }
 
   .highlight {
@@ -70,6 +70,7 @@
   display: block;
   color: $primary-500;
   font-size: 1.05rem;
+  font-weight: $fw-medium;
   margin-bottom: 10px;
 }
 
@@ -87,12 +88,12 @@
   span {
     font-size: $fs-xs;
     color: $ink-700;
-    font-weight: $fw-bold;
+    font-weight: $fw-regular;
   }
 
   strong {
     font-size: 1rem;
-    font-weight: $fw-black;
+    font-weight: $fw-bold;
   }
 }
 
