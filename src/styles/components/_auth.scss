@@ -95,40 +95,17 @@
   object-fit: cover;
 }
 
+// Vinheta sutil só pra dar profundidade à foto (sem texto por cima pra
+// legibilizar).
 .auth-visual-overlay {
   position: absolute;
   inset: 0;
-  background: linear-gradient(180deg, rgba($ink-900, 0.15) 0%, rgba($ink-900, 0) 30%, rgba($ink-900, 0.2) 62%, rgba($ink-900, 0.82) 100%);
+  background: linear-gradient(180deg, rgba($ink-900, 0.22) 0%, rgba($ink-900, 0) 35%, rgba($ink-900, 0) 65%, rgba($ink-900, 0.3) 100%);
 
   // No mobile a foto é o fundo inteiro atrás do cartão de login — um
-  // escurecido uniforme (em vez do degradê pensado para a faixa de citação)
-  // ajuda o cartão branco a se destacar por cima.
+  // escurecido uniforme ajuda o cartão branco a se destacar por cima.
   @include respond-down($bp-tablet) {
     background: rgba($ink-900, 0.35);
-  }
-}
-
-.auth-quote {
-  position: absolute;
-  left: 28px;
-  right: 28px;
-  bottom: 28px;
-  z-index: 1;
-  margin: 0;
-  text-align: center;
-
-  @include respond-down($bp-tablet) {
-    display: none;
-  }
-
-  p {
-    color: $white;
-    font-family: $font-heading;
-    font-size: 1.15rem;
-    font-weight: $fw-bold;
-    line-height: 1.4;
-    margin: 0 auto;
-    max-width: 34ch;
   }
 }
 

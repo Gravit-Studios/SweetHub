@@ -494,6 +494,21 @@ function banner(title, subtitle) {
   return `<div class="banner"><img src="/assets/bg-login.webp" alt="" class="banner-photo" /><div class="banner-overlay"></div><div class="banner-inner"><div class="banner-content"><p class="eyebrow">Doce Preço</p><h1>${escapeHtml(title)}</h1><p>${escapeHtml(subtitle)}</p></div></div></div>`;
 }
 
+// Cabeçalho padrão com foto pra cada página interna (Receitas, Ingredientes,
+// Despesas, Lucro, Fornecedores, Clientes, Empresa...): mesma ideia do
+// banner da Home, só que mais baixo e com o título/ação no lugar do
+// section-header simples.
+function pageBanner(eyebrow, title, actionsHtml = '') {
+  return `<div class="page-banner">
+    <img src="/assets/pexels-anntarazevich-6035994.webp" alt="" class="page-banner-photo" />
+    <div class="page-banner-overlay"></div>
+    <div class="page-banner-inner">
+      <div><p class="eyebrow">${escapeHtml(eyebrow)}</p><h2>${escapeHtml(title)}</h2></div>
+      ${actionsHtml}
+    </div>
+  </div>`;
+}
+
 function statusBox() {
   return state.statusMessage ? `<p class="status-message">${escapeHtml(state.statusMessage)}</p>` : '';
 }
@@ -517,13 +532,10 @@ function addRowLink(label, action, editorKey = '') {
   return `<button type="button" class="add-row-link" data-action="${action}"${editorKey ? ` data-editor="${editorKey}"` : ''}>${icon('plus')}<span>${label}</span></button>`;
 }
 
-// Cabeçalho padrão de página de base (Despesas, Lucro...): botão "Salvar
-// alterações" à direita, desabilitado até o formulário ficar "sujo".
+// Cabeçalho padrão de página de base (Configurações, Empresa...): botão
+// "Salvar alterações" à direita, desabilitado até o formulário ficar "sujo".
 function pageHeaderWithSave(eyebrow, title, saveAction, isDirty) {
-  return `<div class="section-header">
-    <div><p class="eyebrow">${escapeHtml(eyebrow)}</p><h2>${escapeHtml(title)}</h2></div>
-    <button type="button" data-action="${saveAction}" ${isDirty ? '' : 'disabled'}>Salvar alterações</button>
-  </div>`;
+  return pageBanner(eyebrow, title, `<button type="button" data-action="${saveAction}" ${isDirty ? '' : 'disabled'}>Salvar alterações</button>`);
 }
 
 // Padrão de campo do projeto: label acima do input, erro (se houver) abaixo.
@@ -1206,10 +1218,7 @@ function renderProdutosPage() {
     ? state.savedProducts.filter((p) => p.name.toLowerCase().includes(query))
     : state.savedProducts;
   return `
-    <div class="section-header">
-      <div><p class="eyebrow">Receitas</p><h2>Suas receitas salvas</h2></div>
-      <button type="button" data-action="start-wizard">+ Nova receita</button>
-    </div>
+    ${pageBanner('Receitas', 'Suas receitas salvas', '<button type="button" data-action="start-wizard">+ Nova receita</button>')}
     ${statusBox()}
     ${selectedCount > 0 ? `
       <div class="bulk-actions-bar">
@@ -1398,10 +1407,7 @@ function renderIngredientesPage() {
     : emptyState(query ? 'Nenhum ingrediente encontrado.' : 'Nenhum ingrediente cadastrado ainda.', false);
 
   return `
-    <div class="section-header">
-      <div><p class="eyebrow">Base de ingredientes</p><h2>Ingredientes e embalagens</h2></div>
-      <button type="button" data-action="add-ingredient-modal">Adicionar novo</button>
-    </div>
+    ${pageBanner('Base de ingredientes', 'Ingredientes e embalagens', '<button type="button" data-action="add-ingredient-modal">Adicionar novo</button>')}
     ${statusBox()}
     <div class="panel">
       <input class="search-input" type="search" name="ingredientSearch" data-search="ingredients" placeholder="Buscar por nome, categoria ou marca..." value="${escapeHtml(state.ingredientSearch)}" />
@@ -1434,10 +1440,7 @@ function renderDespesasPage() {
     : emptyState('Nenhuma despesa cadastrada ainda.', false);
 
   return `
-    <div class="section-header">
-      <div><p class="eyebrow">Base de despesas</p><h2>Custos fixos mensais</h2></div>
-      <button type="button" data-action="add-expense">Adicionar novo</button>
-    </div>
+    ${pageBanner('Base de despesas', 'Custos fixos mensais', '<button type="button" data-action="add-expense">Adicionar novo</button>')}
     <p>Cada despesa é alocada por receita usando o percentual informado (ex.: R$250 de energia × 1% = R$2,50 por receita).</p>
     ${statusBox()}
     <div class="panel">
@@ -1470,10 +1473,7 @@ function renderLucroPage() {
     : emptyState('Nenhum nível de lucro cadastrado ainda.', false);
 
   return `
-    <div class="section-header">
-      <div><p class="eyebrow">Base de lucro</p><h2>Níveis de margem</h2></div>
-      <button type="button" data-action="add-tier">Adicionar novo</button>
-    </div>
+    ${pageBanner('Base de lucro', 'Níveis de margem', '<button type="button" data-action="add-tier">Adicionar novo</button>')}
     <p>Cada nível multiplica o custo por unidade para sugerir o preço de venda (ex.: margem de 250% = custo × 2,5 no nível Mínimo).</p>
     ${statusBox()}
     <div class="panel">
@@ -1508,10 +1508,7 @@ function renderFornecedoresPage() {
     : emptyState(query ? 'Nenhum fornecedor encontrado.' : 'Nenhum fornecedor cadastrado ainda.', false);
 
   return `
-    <div class="section-header">
-      <div><p class="eyebrow">Base de fornecedores</p><h2>Contatos</h2></div>
-      <button type="button" data-action="add-supplier-modal">Adicionar novo</button>
-    </div>
+    ${pageBanner('Base de fornecedores', 'Contatos', '<button type="button" data-action="add-supplier-modal">Adicionar novo</button>')}
     ${statusBox()}
     <div class="panel">
       <input class="search-input" type="search" name="supplierSearch" data-search="suppliers" placeholder="Buscar por nome, contato ou e-mail..." value="${escapeHtml(state.supplierSearch)}" />
@@ -1549,10 +1546,7 @@ function renderClientesPage() {
     : emptyState(query ? 'Nenhum cliente encontrado.' : 'Nenhum cliente cadastrado ainda.', false);
 
   return `
-    <div class="section-header">
-      <div><p class="eyebrow">Base de clientes</p><h2>Clientes</h2></div>
-      <button type="button" data-action="add-customer-modal">Adicionar novo</button>
-    </div>
+    ${pageBanner('Base de clientes', 'Clientes', '<button type="button" data-action="add-customer-modal">Adicionar novo</button>')}
     ${statusBox()}
     <div class="panel">
       <input class="search-input" type="search" name="customerSearch" data-search="customers" placeholder="Buscar por nome, telefone ou e-mail..." value="${escapeHtml(state.customerSearch)}" />
@@ -2065,9 +2059,6 @@ function authHtml() {
       <div class="auth-visual">
         <img src="/assets/pexels-anntarazevich-6036020.webp" alt="" class="auth-visual-photo" />
         <div class="auth-visual-overlay"></div>
-        <blockquote class="auth-quote">
-          <p>&ldquo;Preço certo é doce garantido: cada receita com a margem que ela merece.&rdquo;</p>
-        </blockquote>
       </div>
     </div>
     ${modalOverlay()}`;

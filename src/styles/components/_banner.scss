@@ -58,3 +58,63 @@
 
   p { color: $tertiary-100; margin: 8px 0 0; }
 }
+
+// Cabeçalho padrão (com foto) das páginas internas: mesma técnica do
+// .banner acima, só que mais baixo — cabe o título/eyebrow de um lado e a
+// ação (Adicionar novo, Salvar alterações...) do outro, como o
+// .section-header que ele substitui.
+.page-banner {
+  position: relative;
+  overflow: hidden;
+  margin: -28px 0 24px;
+  width: 100vw;
+  margin-left: calc(50% - 50vw);
+  margin-right: calc(50% - 50vw);
+  min-height: 128px;
+  display: flex;
+  align-items: center;
+
+  @include respond-down($bp-tablet) {
+    margin-top: -20px;
+    min-height: auto;
+  }
+}
+
+.page-banner-photo {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.page-banner-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(100deg, rgba($ink-900, 0.72) 0%, rgba($ink-900, 0.45) 60%, rgba($ink-900, 0.25) 100%);
+}
+
+.page-banner-inner {
+  position: relative;
+  z-index: 1;
+  width: min(1200px, 100%);
+  margin: 0 auto;
+  padding: 22px 32px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+
+  .eyebrow { color: $tertiary-300; }
+
+  h2 { color: $white; margin: 4px 0 0; }
+
+  @include respond-down($bp-tablet) {
+    padding: 18px 16px;
+    flex-direction: column;
+    align-items: stretch;
+
+    > button { width: 100%; }
+  }
+}
