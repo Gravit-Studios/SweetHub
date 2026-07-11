@@ -401,9 +401,13 @@
   }
 }
 
+// Foto de fundo (com degradê na cor da marca por cima) em vez de verde
+// chapado — o padding de baixo é menor que o de cima pra não deixar um vão
+// grande entre o botão e o footer logo abaixo.
 .landing-cta {
-  padding: clamp(48px, 7vw, 72px) 0;
-  background: $primary-500;
+  position: relative;
+  overflow: hidden;
+  padding: clamp(48px, 7vw, 72px) 0 clamp(32px, 5vw, 48px);
   text-align: center;
 
   h2 {
@@ -412,7 +416,23 @@
   }
 }
 
+.landing-cta-photo {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.landing-cta-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(160deg, rgba($primary-600, 0.93) 0%, rgba($primary-500, 0.88) 100%);
+}
+
 .landing-cta-inner {
+  position: relative;
+  z-index: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -426,6 +446,67 @@
     &:hover {
       filter: none;
       background: $surface-tint;
+    }
+  }
+}
+
+// A seção anterior (verde/foto) já dá bastante respiro por conta própria —
+// somar o margin-top padrão do footer aqui só alongava ainda mais o gap.
+.landing-cta + .site-footer {
+  margin-top: 0;
+}
+
+// Barra de cookies: some assim que aceita (guardado em localStorage, ver
+// state.cookieConsent em main.js), então não precisa de animação de saída.
+.cookie-bar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 45;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  flex-wrap: wrap;
+  padding: 16px clamp(20px, 5vw, 48px);
+  background: $ink-900;
+  box-shadow: $shadow-lift;
+
+  p {
+    margin: 0;
+    color: rgba($white, 0.85);
+    font-size: 0.85rem;
+    max-width: 62ch;
+  }
+
+  .text-link {
+    color: $tertiary-300;
+    display: inline;
+    font-size: inherit;
+    font-weight: $fw-bold;
+
+    &:hover {
+      color: $white;
+    }
+  }
+
+  > button:last-child {
+    background: $primary-500;
+    color: $white;
+    flex-shrink: 0;
+
+    &:hover {
+      filter: brightness(1.08);
+    }
+  }
+
+  @include respond-down($bp-tablet) {
+    justify-content: flex-start;
+    text-align: left;
+
+    > button:last-child {
+      width: 100%;
     }
   }
 }

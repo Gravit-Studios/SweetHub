@@ -82,6 +82,7 @@ const state = {
   authMode: 'signin',
   authError: '',
   authLoading: false,
+  cookieConsent: localStorage.getItem('cookieConsent') === 'accepted',
 
   route: { path: 'inicio', param: undefined },
 
@@ -2025,6 +2026,8 @@ function landingHtml() {
       </section>
 
       <section class="landing-cta">
+        <img src="/assets/pexels-amar-9329437.webp" alt="" class="landing-cta-photo" />
+        <div class="landing-cta-overlay"></div>
         <div class="landing-section-inner landing-cta-inner reveal">
           <h2>Pronta pra saber o preço certo dos seus doces?</h2>
           <button type="button" data-action="goto" data-route="cadastro">Testar grátis por 7 dias</button>
@@ -2032,6 +2035,18 @@ function landingHtml() {
       </section>
 
       ${siteFooter()}
+    </div>
+    ${cookieBar()}`;
+}
+
+// Barra de cookies padrão de mercado: some assim que aceita, guardado no
+// localStorage pra não voltar a aparecer nas próximas visitas.
+function cookieBar() {
+  if (state.cookieConsent) return '';
+  return `
+    <div class="cookie-bar">
+      <p>Usamos cookies para melhorar sua experiência e analisar o uso do site. Ao continuar navegando, você concorda com nossa <button type="button" class="text-link" data-action="goto" data-route="privacidade">Política de Privacidade</button>.</p>
+      <button type="button" data-action="accept-cookies">Aceitar</button>
     </div>`;
 }
 
@@ -3268,6 +3283,11 @@ app.addEventListener('click', (event) => {
       break;
     case 'toggle-nav-menu':
       state.openNavMenu = state.openNavMenu === el.dataset.menu ? null : el.dataset.menu;
+      render();
+      break;
+    case 'accept-cookies':
+      state.cookieConsent = true;
+      localStorage.setItem('cookieConsent', 'accepted');
       render();
       break;
     case 'toggle-admin-alerts':
