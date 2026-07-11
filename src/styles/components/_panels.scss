@@ -80,7 +80,7 @@
   margin: 60px auto;
   text-align: center;
 
-  p {
+  p:not(.status-message) {
     color: $ink-700;
   }
 
