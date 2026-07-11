@@ -51,6 +51,31 @@ function nameFromEmail(email) {
   return prefix.replace(/[._-]+/g, ' ').replace(/\b\w/g, (char) => char.toUpperCase());
 }
 
+// ---------------- Planos (teste grátis / básico / pro) ----------------
+// Sem checkout automático ainda (Mercado Pago pendente): o teste grátis dá
+// acesso nível Básico por 7 dias; expirado sem plano pago, o acesso fica
+// bloqueado. A troca pra 'basico'/'pro' é manual (banco de dados) até o
+// checkout existir — por isso o botão de upgrade só mostra uma mensagem.
+const PRO_ONLY_ROUTES = { fornecedores: 'Fornecedores', clientes: 'Clientes', empresa: 'Empresa' };
+const FREE_RECIPE_LIMIT = 5;
+
+function planStatus(profile) {
+  if (profile.plan === 'trial') {
+    return profile.trialEndsAt && new Date(profile.trialEndsAt) > new Date() ? 'trial' : 'expired';
+  }
+  return profile.plan; // 'basico' | 'pro'
+}
+
+function isProPlan(profile) {
+  return planStatus(profile) === 'pro';
+}
+
+function trialDaysLeft(profile) {
+  if (!profile.trialEndsAt) return 0;
+  const ms = new Date(profile.trialEndsAt).getTime() - Date.now();
+  return Math.max(0, Math.ceil(ms / (24 * 60 * 60 * 1000)));
+}
+
 function defaultWizard() {
   return {
     step: 1,
@@ -106,7 +131,7 @@ const state = {
   ingredientColumnFilters: {},
   openIngredientFilterColumn: null,
 
-  profile: { fullName: '', role: 'user', approvalStatus: 'approved' },
+  profile: { fullName: '', role: 'user', approvalStatus: 'approved', plan: 'trial', trialEndsAt: null },
   settings: { fullName: '', email: '' },
   company: {
     name: '', cnpj: '',
@@ -195,6 +220,8 @@ async function loadUserData() {
       fullName: profile.full_name || '',
       role: profile.role || 'user',
       approvalStatus: profile.approval_status || 'approved',
+      plan: profile.plan || 'trial',
+      trialEndsAt: profile.trial_ends_at || null,
     };
     // Conta ainda não aprovada pelo super admin: não carrega o resto dos
     // dados nem libera o app — só a tela de "aguardando aprovação".
@@ -359,7 +386,7 @@ onAuthStateChange((session) => {
     state.customerSearch = '';
     state.ingredientColumnFilters = {};
     state.openIngredientFilterColumn = null;
-    state.profile = { fullName: '', role: 'user', approvalStatus: 'approved' };
+    state.profile = { fullName: '', role: 'user', approvalStatus: 'approved', plan: 'trial', trialEndsAt: null };
     state.settings = { fullName: '', email: '' };
     state.settingsSnapshot = '{}';
     state.company = {
@@ -1648,12 +1675,23 @@ function renderEmpresaPage() {
     </div>`;
 }
 
+// Rótulo do plano pra tabela do super admin: reaproveita planStatus() já
+// que o objeto vindo da edge function tem os mesmos campos (plan/trialEndsAt).
+function planLabel(u) {
+  const status = planStatus(u);
+  if (status === 'pro') return '<span class="status-pill status-pill-active">Pro</span>';
+  if (status === 'basico') return '<span class="status-pill status-pill-active">Básico</span>';
+  if (status === 'expired') return '<span class="status-pill status-pill-danger">Teste expirado</span>';
+  const days = trialDaysLeft(u);
+  return `<span class="status-pill status-pill-pending">Teste (${days === 1 ? '1 dia' : `${days} dias`})</span>`;
+}
+
 function renderAdminUsersList(users = state.admin.users) {
   const visible = users.filter((u) => u.role !== 'admin');
   if (!visible.length) return emptyState('Nenhum usuário encontrado.', false);
   return `<div class="table-scroll">
   <table class="data-table data-table-cards-mobile">
-    <thead><tr><th>Empresa</th><th>Nome</th><th>CNPJ</th><th>Status</th><th>Data de criação</th><th></th></tr></thead>
+    <thead><tr><th>Empresa</th><th>Nome</th><th>CNPJ</th><th>Status</th><th>Plano</th><th>Data de criação</th><th></th></tr></thead>
     <tbody>
       ${visible.map((u) => {
         const banned = u.bannedUntil && new Date(u.bannedUntil) > new Date();
@@ -1666,6 +1704,7 @@ function renderAdminUsersList(users = state.admin.users) {
           <td data-label="Nome">${escapeHtml(u.fullName || u.email)}</td>
           <td data-label="CNPJ">${escapeHtml(u.cnpj || '—')}</td>
           <td data-label="Status"><span class="status-pill ${statusClass}">${statusLabel}</span></td>
+          <td data-label="Plano">${planLabel(u)}</td>
           <td data-label="Data de criação">${formatDate(u.createdAt)}</td>
           <td class="data-table-actions">
             ${pending ? `<button type="button" class="primary" data-action="admin-approve" data-id="${u.id}">Aprovar</button>` : ''}
@@ -1694,11 +1733,29 @@ function renderAdminPage() {
     </div>`;
 }
 
+// Recurso exclusivo do plano Pro: em vez da página real, mostra um convite
+// pra upgrade (sem checkout ainda, então o botão só avisa que está a
+// caminho — ver "request-upgrade" no dispatch de cliques).
+function renderUpgradeGate(routePath) {
+  const label = PRO_ONLY_ROUTES[routePath];
+  return `
+    <div class="panel upgrade-gate">
+      <p class="eyebrow">Recurso Pro</p>
+      <h2>${escapeHtml(label)} é exclusivo do plano Pro</h2>
+      <p>Faça upgrade para o plano Pro e desbloqueie ${escapeHtml(label.toLowerCase())}, receitas ilimitadas e todos os outros recursos.</p>
+      ${statusBox()}
+      <button type="button" data-action="request-upgrade">Fazer upgrade</button>
+    </div>`;
+}
+
 function renderPage() {
   // Conta admin só enxerga o painel de usuários (visão de uma página só) —
   // exceto as páginas legais do footer, que continuam acessíveis a todos.
   if (state.profile.role === 'admin' && state.route.path !== 'termos' && state.route.path !== 'privacidade') {
     return renderAdminPage();
+  }
+  if (PRO_ONLY_ROUTES[state.route.path] && !isProPlan(state.profile)) {
+    return renderUpgradeGate(state.route.path);
   }
   switch (state.route.path) {
     case 'produtos': return renderProdutosPage();
@@ -1804,6 +1861,39 @@ function pendingApprovalHtml(displayName) {
     </div>`;
 }
 
+// Teste grátis (7 dias, nível Básico) acabou e a conta ainda não tem um
+// plano pago — bloqueia o app inteiro até a assinatura (sem checkout
+// automático ainda, então por enquanto isso é resolvido manualmente).
+function trialExpiredHtml(displayName) {
+  return `
+    <div class="shell">
+      <header class="navbar">
+        <div class="navbar-inner">
+          <button type="button" class="brand" data-action="goto" data-route="inicio">
+            <span class="brand-mark"></span> Doce Preço
+          </button>
+          <div class="navbar-user">
+            <span class="navbar-email">${escapeHtml(displayName)}</span>
+            <span class="navbar-divider" aria-hidden="true"></span>
+            <button type="button" class="text-link" data-action="logout">Sair</button>
+          </div>
+        </div>
+      </header>
+      <div class="main-area">
+        <div class="page">
+          <div class="pending-approval-panel panel">
+            <p class="eyebrow">Teste grátis encerrado</p>
+            <h2>Seu teste grátis de 7 dias acabou</h2>
+            <p>Para continuar usando o Doce Preço, escolha um dos nossos planos pagos.</p>
+            ${statusBox()}
+            <button type="button" data-action="request-upgrade">Fazer upgrade</button>
+          </div>
+        </div>
+      </div>
+      ${siteFooter()}
+    </div>`;
+}
+
 // Ícone de sino no navbar do super admin, com contagem de contas aguardando
 // aprovação e um atalho para aprovar direto do dropdown.
 function adminAlertsMenu() {
@@ -1833,6 +1923,10 @@ function shellHtml() {
   if (!isAdmin && state.profile.approvalStatus !== 'approved') {
     return pendingApprovalHtml(displayName);
   }
+  if (!isAdmin && planStatus(state.profile) === 'expired') {
+    return trialExpiredHtml(displayName);
+  }
+  const showTrialBanner = !isAdmin && planStatus(state.profile) === 'trial';
   return `
     <div class="shell">
       <header class="navbar">
@@ -1866,12 +1960,22 @@ function shellHtml() {
         </div>
       </header>
       ${isAdmin ? '' : mobileDrawer(displayName)}
+      ${showTrialBanner ? trialBanner() : ''}
       <div class="main-area">
         <div class="page">${renderPage()}</div>
       </div>
       ${siteFooter()}
     </div>
     ${modalOverlay()}`;
+}
+
+function trialBanner() {
+  const days = trialDaysLeft(state.profile);
+  return `
+    <div class="trial-banner">
+      <p>Teste grátis: ${days === 1 ? 'falta 1 dia' : `faltam ${days} dias`}.</p>
+      <button type="button" class="ghost" data-action="request-upgrade">Fazer upgrade</button>
+    </div>`;
 }
 
 function siteFooter() {
@@ -3175,8 +3279,17 @@ app.addEventListener('click', (event) => {
       openConfirmBulkDeleteProducts();
       break;
     case 'start-wizard':
+      if (!isProPlan(state.profile) && state.savedProducts.length >= FREE_RECIPE_LIMIT) {
+        state.statusMessage = `Você atingiu o limite de ${FREE_RECIPE_LIMIT} receitas do plano Básico. Faça upgrade para o Pro para cadastrar receitas ilimitadas.`;
+        render();
+        break;
+      }
       startWizard();
       navigate('#/novo-produto');
+      render();
+      break;
+    case 'request-upgrade':
+      state.statusMessage = 'Em breve! Fale com a gente pelo suporte para migrar de plano.';
       render();
       break;
     case 'logout':

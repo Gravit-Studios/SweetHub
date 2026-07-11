@@ -19,7 +19,7 @@ export async function getProfile(userId) {
   const { data, error } = await supabase
     .from('profiles')
     .select(`
-      full_name, company_name, cnpj, role, approval_status,
+      full_name, company_name, cnpj, role, approval_status, plan, trial_ends_at,
       cep, street, neighborhood, city, state, address_number, complement,
       ifood_url, link_99_url, keeta_url
     `)
@@ -28,6 +28,7 @@ export async function getProfile(userId) {
   if (error) throw error;
   return data ?? {
     full_name: null, company_name: null, cnpj: null, role: 'user', approval_status: 'approved',
+    plan: 'trial', trial_ends_at: null,
     cep: null, street: null, neighborhood: null, city: null, state: null, address_number: null, complement: null,
     ifood_url: null, link_99_url: null, keeta_url: null,
   };

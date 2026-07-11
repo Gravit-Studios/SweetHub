@@ -87,7 +87,7 @@ Deno.serve(async (req) => {
 
     const { data: profiles, error: profilesError } = await admin
       .from('profiles')
-      .select('id, full_name, company_name, cnpj, role, approval_status');
+      .select('id, full_name, company_name, cnpj, role, approval_status, plan, trial_ends_at');
     if (profilesError) return json({ error: profilesError.message }, 500);
     const profileById = new Map(profiles.map((p) => [p.id, p]));
 
@@ -99,6 +99,8 @@ Deno.serve(async (req) => {
       cnpj: profileById.get(u.id)?.cnpj ?? null,
       role: profileById.get(u.id)?.role ?? 'user',
       approvalStatus: profileById.get(u.id)?.approval_status ?? 'approved',
+      plan: profileById.get(u.id)?.plan ?? 'trial',
+      trialEndsAt: profileById.get(u.id)?.trial_ends_at ?? null,
       createdAt: u.created_at,
       lastSignInAt: u.last_sign_in_at,
       bannedUntil: u.banned_until ?? null,

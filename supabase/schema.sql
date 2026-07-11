@@ -25,7 +25,12 @@ create table if not exists public.profiles (
   created_at timestamptz not null default now(),
   role text not null default 'user' constraint profiles_role_check check (role in ('user', 'admin')),
   approval_status text not null default 'pending'
-    constraint profiles_approval_status_check check (approval_status in ('pending', 'approved', 'rejected'))
+    constraint profiles_approval_status_check check (approval_status in ('pending', 'approved', 'rejected')),
+  -- Teste grátis de 7 dias com acesso de nível Básico; depois disso, sem um
+  -- plano pago o acesso fica bloqueado (ver gating no client, main.js).
+  -- Sem checkout automático ainda: a troca pra 'basico'/'pro' é manual.
+  plan text not null default 'trial' constraint profiles_plan_check check (plan in ('trial', 'basico', 'pro')),
+  trial_ends_at timestamptz not null default (now() + interval '7 days')
 );
 alter table public.profiles enable row level security;
 create policy "Usuário vê o próprio perfil" on public.profiles for select using (auth.uid() = id);
