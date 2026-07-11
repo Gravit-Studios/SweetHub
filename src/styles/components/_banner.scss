@@ -30,7 +30,7 @@
   position: relative;
   z-index: 1;
   padding: 32px clamp(20px, 5vw, 48px);
-  color: #fff;
+  color: $white;
   max-width: 640px;
 
   .eyebrow { color: $tertiary-300; }

@@ -168,6 +168,14 @@
     white-space: nowrap;
   }
 
+  // A primeira coluna (nome/título) precisa poder quebrar linha — nomes
+  // longos com nowrap forçavam a tabela inteira a ficar mais larga que o
+  // painel, empurrando a coluna de ações pra fora da área visível (parecia
+  // "desalinhada"/cortada em telas de largura média).
+  td:first-child {
+    white-space: normal;
+  }
+
   tbody tr:last-child td {
     border-bottom: 0;
   }
@@ -313,7 +321,7 @@
     &:hover,
     &:focus {
       border-color: $secondary-200;
-      background: #fffdfb;
+      background: $input-bg-focus;
     }
 
     &.is-invalid {
@@ -344,6 +352,7 @@
 
 .data-table-actions {
   display: flex;
+  align-items: center;
   gap: 6px;
   justify-content: center;
 

@@ -12,7 +12,7 @@ textarea {
   width: 100%;
   border: 1px solid $secondary-200;
   border-radius: $radius-input;
-  background: #fffdfb;
+  background: $input-bg-focus;
   color: $ink-900;
   padding: 0.85rem 1rem;
   outline: none;

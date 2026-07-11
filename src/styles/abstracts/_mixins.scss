@@ -7,11 +7,6 @@
   }
 }
 
-@mixin button-variant($bg, $fg: #fff) {
-  background: $bg;
-  color: $fg;
-}
-
 @mixin focus-ring($color: c.$secondary-600) {
   border-color: $color;
   box-shadow: 0 0 0 4px rgba($color, 0.16);

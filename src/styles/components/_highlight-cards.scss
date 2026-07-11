@@ -55,7 +55,7 @@
 
 .highlight-icon-star { background: $primary-100; color: $primary-600; }
 
-.highlight-icon-cta { background: rgba(#fff, 0.18); color: #fff; }
+.highlight-icon-cta { background: rgba($white, 0.18); color: $white; }
 
 .highlight-card-cta {
   background: linear-gradient(135deg, $primary-600, $secondary-600);
@@ -63,10 +63,10 @@
 
   .eyebrow { color: $tertiary-300; }
 
-  strong { color: #fff; }
+  strong { color: $white; }
 
   button {
-    background: #fff;
+    background: $white;
     color: $primary-600;
   }
 }

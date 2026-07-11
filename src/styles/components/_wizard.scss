@@ -67,7 +67,7 @@
 .stepper-item.active .stepper-dot,
 .stepper-item.done .stepper-dot {
   background: $primary-500;
-  color: #fff;
+  color: $white;
 }
 
 .stepper-item.active .stepper-label,

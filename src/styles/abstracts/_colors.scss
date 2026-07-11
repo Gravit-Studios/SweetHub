@@ -56,12 +56,15 @@ $tertiary-900: #8c0784;
 $ink-900: #1b2233; // texto principal
 $ink-700: #4c5568; // texto secundário / labels
 $ink-400: #8993a8; // texto auxiliar / placeholders
+$white: #fff; // texto/ícone sobre fundo colorido (não confundir com $surface)
+$input-bg-focus: #fffdfb; // fundo levemente creme de input em hover/foco
 $surface: #fff;
 $surface-tint: #eef1f7;
 $bg: #f5f7fb;
 $border: rgba($ink-900, 0.1);
 
-// Feedback
+// Feedback — tons escurecidos o suficiente pra garantir contraste AA (4.5:1)
+// como texto sobre fundo branco ou sobre o próprio tom claro (100).
 $danger-100: #fce7e5;
-$danger-500: #ce4038;
-$success-500: #2f9e6b;
+$danger-500: #ba352e;
+$success-500: #267f56;
