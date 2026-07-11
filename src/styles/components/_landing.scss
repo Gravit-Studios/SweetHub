@@ -168,6 +168,25 @@
   margin: 0 auto 40px;
 }
 
+// Seção escura (Benefícios): cartões translúcidos com ícone solto (sem chip
+// de fundo) num canto e uma seta decorativa no outro, no lugar do cartão
+// claro anterior.
+.landing-section-dark {
+  background: $primary-900;
+
+  .eyebrow {
+    color: $tertiary-300;
+  }
+
+  h2 {
+    color: $white;
+  }
+
+  .landing-section-subtitle {
+    color: rgba($white, 0.72);
+  }
+}
+
 .landing-benefits-grid {
   margin-top: 40px;
   display: grid;
@@ -181,49 +200,102 @@
 }
 
 .landing-benefit-card {
-  @include card-surface;
+  background: rgba($white, 0.05);
+  border: 1px solid rgba($white, 0.1);
+  border-radius: $radius-lg;
   padding: 24px;
 
   h3 {
-    margin: 4px 0 8px;
+    color: $white;
+    margin: 20px 0 8px;
   }
 
   p {
+    color: rgba($white, 0.68);
     margin: 0;
   }
 }
 
-.landing-benefit-icon {
-  width: 40px;
-  height: 40px;
-  border-radius: $radius-sm;
-  background: $primary-100;
-  color: $primary-600;
+.landing-benefit-top {
   display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-bottom: 14px;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.landing-benefit-icon {
+  color: $tertiary-200;
 
   .icon {
-    width: 20px;
-    height: 20px;
+    width: 26px;
+    height: 26px;
+  }
+}
+
+.landing-benefit-arrow {
+  color: rgba($white, 0.4);
+
+  .icon {
+    width: 16px;
+    height: 16px;
+  }
+}
+
+// "Como funciona": imagem de um lado, linha do tempo vertical do outro — a
+// ::before de .landing-how-timeline desenha a linha contínua atrás dos
+// marcadores (26px = metade da largura/altura de .landing-step-icon),
+// então ela não depende da altura de cada bloco de texto pra se alinhar.
+.landing-how-grid {
+  margin-top: 40px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 56px;
+  align-items: center;
+  text-align: left;
+
+  @include respond-down($bp-tablet) {
+    grid-template-columns: 1fr;
+    gap: 40px;
+  }
+}
+
+.landing-how-image img {
+  width: 100%;
+  aspect-ratio: 4 / 5;
+  object-fit: cover;
+  border-radius: $radius-lg;
+
+  @include respond-down($bp-tablet) {
+    aspect-ratio: 16 / 10;
   }
 }
 
 .landing-steps {
-  margin-top: 40px;
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 32px;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 36px;
 
-  @include respond-down($bp-tablet) {
-    grid-template-columns: 1fr;
+  &::before {
+    content: '';
+    position: absolute;
+    top: 26px;
+    bottom: 26px;
+    left: 26px;
+    width: 2px;
+    background: $secondary-200;
+    z-index: 0;
   }
 }
 
 .landing-step {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: flex-start;
+  gap: 20px;
+
   h3 {
-    margin: 14px 0 8px;
+    margin: 0 0 6px;
   }
 
   p {
@@ -235,15 +307,16 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 56px;
-  height: 56px;
+  flex-shrink: 0;
+  width: 52px;
+  height: 52px;
   border-radius: $radius-pill;
   background: $primary-100;
   color: $primary-600;
 
   .icon {
-    width: 26px;
-    height: 26px;
+    width: 24px;
+    height: 24px;
   }
 }
 

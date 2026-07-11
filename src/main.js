@@ -480,6 +480,7 @@ const ICON_PATHS = {
   settings: '<circle cx="12" cy="12" r="3"/><path d="M19.4 13a7.6 7.6 0 0 0 0-2l2-1.5-2-3.5-2.4 1a7.4 7.4 0 0 0-1.7-1L15 3h-6l-.3 2.5a7.4 7.4 0 0 0-1.7 1l-2.4-1-2 3.5L4.6 11a7.6 7.6 0 0 0 0 2l-2 1.5 2 3.5 2.4-1a7.4 7.4 0 0 0 1.7 1L9 21h6l.3-2.5a7.4 7.4 0 0 0 1.7-1l2.4 1 2-3.5Z"/>',
   whisk: '<path d="M12 2v6"/><path d="M8 8c0 6 1.5 10 4 10s4-4 4-10"/><path d="M9.5 8c0 5 1 9 2.5 9s2.5-4 2.5-9"/><path d="M12 18v4"/>',
   bell: '<path d="M6 9a6 6 0 0 1 12 0c0 5 2 6 2 6H4s2-1 2-6Z"/><path d="M10 20a2 2 0 0 0 4 0"/>',
+  arrowUpRight: '<path d="M7 17L17 7"/><path d="M8 7h9v9"/>',
 };
 
 function icon(name, extraClass = '') {
@@ -1974,14 +1975,17 @@ function landingHtml() {
         </div>
       </section>
 
-      <section class="landing-section" id="beneficios">
+      <section class="landing-section landing-section-dark" id="beneficios">
         <div class="landing-section-inner">
           <p class="eyebrow">Benefícios</p>
           <h2>Tudo que sua confeitaria precisa pra precificar certo</h2>
           <div class="landing-benefits-grid">
             ${LANDING_BENEFITS.map((b, index) => `
               <div class="landing-benefit-card reveal" style="--reveal-delay: ${(index * 0.08).toFixed(2)}s">
-                <div class="landing-benefit-icon">${icon(b.icon)}</div>
+                <div class="landing-benefit-top">
+                  <span class="landing-benefit-icon">${icon(b.icon)}</span>
+                  <span class="landing-benefit-arrow">${icon('arrowUpRight')}</span>
+                </div>
                 <h3>${escapeHtml(b.title)}</h3>
                 <p>${escapeHtml(b.text)}</p>
               </div>`).join('')}
@@ -1993,13 +1997,20 @@ function landingHtml() {
         <div class="landing-section-inner">
           <p class="eyebrow">Como funciona</p>
           <h2>Comece a precificar em 3 passos</h2>
-          <div class="landing-steps">
-            ${LANDING_STEPS.map((step, index) => `
-              <div class="landing-step" style="--step-delay: ${(index * 0.2).toFixed(2)}s">
-                <span class="landing-step-icon">${icon(step.icon)}</span>
-                <h3>${escapeHtml(step.title)}</h3>
-                <p>${escapeHtml(step.text)}</p>
-              </div>`).join('')}
+          <div class="landing-how-grid">
+            <div class="landing-how-image reveal">
+              <img src="/assets/pexels-anntarazevich-6035994.webp" alt="Confeiteira preparando uma receita" />
+            </div>
+            <div class="landing-steps">
+              ${LANDING_STEPS.map((step, index) => `
+                <div class="landing-step" style="--step-delay: ${(index * 0.2).toFixed(2)}s">
+                  <span class="landing-step-icon">${icon(step.icon)}</span>
+                  <div>
+                    <h3>${escapeHtml(step.title)}</h3>
+                    <p>${escapeHtml(step.text)}</p>
+                  </div>
+                </div>`).join('')}
+            </div>
           </div>
         </div>
       </section>
