@@ -312,6 +312,9 @@ function handleRouteChange(route) {
   state.route = route;
   state.mobileMenuOpen = false;
   state.openNavMenu = null;
+  // Evita que um erro/aviso de uma página (ex.: limite de receitas) continue
+  // aparecendo depois que o usuário já navegou pra outro lugar.
+  state.statusMessage = '';
   if (!state.session) {
     if (route.path === 'cadastro') state.authMode = 'signup';
     if (route.path === 'entrar') state.authMode = 'signin';
