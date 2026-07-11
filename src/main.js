@@ -491,7 +491,7 @@ function avatarColorFor(name) {
 }
 
 function banner(title, subtitle) {
-  return `<div class="banner"><img src="/assets/bg-login.webp" alt="" class="banner-photo" /><div class="banner-overlay"></div><div class="banner-content"><p class="eyebrow">Doce Preço</p><h1>${escapeHtml(title)}</h1><p>${escapeHtml(subtitle)}</p></div></div>`;
+  return `<div class="banner"><img src="/assets/bg-login.webp" alt="" class="banner-photo" /><div class="banner-overlay"></div><div class="banner-inner"><div class="banner-content"><p class="eyebrow">Doce Preço</p><h1>${escapeHtml(title)}</h1><p>${escapeHtml(subtitle)}</p></div></div></div>`;
 }
 
 function statusBox() {
@@ -669,15 +669,29 @@ function tiersTable(pricing) {
   </div>`;
 }
 
+// Por ingrediente: peso/valor total comprado (dado da base) ao lado da
+// quantidade e do valor efetivamente usados nessa receita (proporcional).
 function ingredientUsageList(editor) {
   const used = editor.ingredients.filter((i) => !i.draft && i.name.trim());
   if (!used.length) return '';
   return `
     <div class="ingredient-usage-list">
       <p class="eyebrow">Ingredientes usados</p>
-      <ul>
-        ${used.map((i) => `<li><span>${escapeHtml(i.name)}</span><strong>${escapeHtml(i.usedAmount)}${escapeHtml(i.unit)}</strong></li>`).join('')}
-      </ul>
+      <div class="table-scroll">
+      <table class="data-table">
+        <thead><tr><th>Ingrediente</th><th>Peso/qtd. total</th><th>Valor total</th><th>Qtd. utilizada</th><th>Valor utilizado</th></tr></thead>
+        <tbody>
+          ${used.map((i) => `
+          <tr>
+            <td>${escapeHtml(i.name)}</td>
+            <td>${escapeHtml(i.packageAmount)}${escapeHtml(i.unit)}</td>
+            <td>${formatCurrency(toNumberSafe(i.packagePrice))}</td>
+            <td>${escapeHtml(i.usedAmount)}${escapeHtml(i.unit)}</td>
+            <td>${formatCurrency(calculateIngredientCost(i))}</td>
+          </tr>`).join('')}
+        </tbody>
+      </table>
+      </div>
     </div>`;
 }
 
@@ -685,13 +699,19 @@ function pricingResultBlock(editor) {
   const pricing = pricingFor(editor);
   return `<aside class="panel summary-panel">
     <p class="eyebrow">Resultado</p><h2>Custo e preços sugeridos</h2>
-    <dl>
-      <div><dt>Custo dos ingredientes</dt><dd>${formatCurrency(pricing.ingredientsCost)}</dd></div>
-      <div><dt>Despesas alocadas</dt><dd>${formatCurrency(pricing.expensesCost)}</dd></div>
-      <div><dt>Custo total da receita</dt><dd>${formatCurrency(pricing.totalCost)}</dd></div>
-      <div class="highlight"><dt>Custo por unidade</dt><dd>${formatCurrency(pricing.unitCost)}</dd></div>
-    </dl>
-    <div style="margin-top:18px;">${tiersTable(pricing)}</div>
+    <div class="summary-section">
+      <h3>Custos</h3>
+      <dl>
+        <div><dt>Custo dos ingredientes</dt><dd>${formatCurrency(pricing.ingredientsCost)}</dd></div>
+        <div><dt>Despesas alocadas</dt><dd>${formatCurrency(pricing.expensesCost)}</dd></div>
+        <div><dt>Custo total da receita</dt><dd>${formatCurrency(pricing.totalCost)}</dd></div>
+        <div class="highlight"><dt>Custo por unidade</dt><dd>${formatCurrency(pricing.unitCost)}</dd></div>
+      </dl>
+    </div>
+    <div class="summary-section">
+      <h3>Preços sugeridos</h3>
+      ${tiersTable(pricing)}
+    </div>
   </aside>`;
 }
 
@@ -736,7 +756,10 @@ function productsTable(list) {
           </td>
           <td data-label="Qnt. por forma">${product.yield_amount} un.</td>
           <td data-label="Preço un.">${priceUn}</td>
-          <td class="data-table-actions"><span class="item-card-link">Ver detalhes ${icon('arrow')}</span></td>
+          <td class="data-table-actions">
+            <button type="button" class="ghost" data-action="open-produto" data-id="${product.id}">Editar</button>
+            <button type="button" class="ghost" data-action="delete-product" data-id="${product.id}" data-name="${escapeHtml(product.name)}">Excluir</button>
+          </td>
         </tr>`;
       }).join('')}
     </tbody>
@@ -1290,14 +1313,20 @@ function renderWizardReview(editor) {
         <p class="muted">Rendimento: ${escapeHtml(editor.yieldAmount || '0')} un. · ${itemCount} item(ns)</p>
       </div>
     </div>
-    <dl>
-      <div><dt>Custo dos ingredientes</dt><dd>${formatCurrency(pricing.ingredientsCost)}</dd></div>
-      <div><dt>Despesas alocadas</dt><dd>${formatCurrency(pricing.expensesCost)}</dd></div>
-      <div><dt>Custo total</dt><dd>${formatCurrency(pricing.totalCost)}</dd></div>
-      <div><dt>Custo por unidade</dt><dd>${formatCurrency(pricing.unitCost)}</dd></div>
-    </dl>
+    <div class="summary-section">
+      <h3>Custos</h3>
+      <dl>
+        <div><dt>Custo dos ingredientes</dt><dd>${formatCurrency(pricing.ingredientsCost)}</dd></div>
+        <div><dt>Despesas alocadas</dt><dd>${formatCurrency(pricing.expensesCost)}</dd></div>
+        <div><dt>Custo total</dt><dd>${formatCurrency(pricing.totalCost)}</dd></div>
+        <div><dt>Custo por unidade</dt><dd>${formatCurrency(pricing.unitCost)}</dd></div>
+      </dl>
+    </div>
     ${ingredientUsageList(editor)}
-    <div style="margin-top:16px;">${tiersTable(pricing)}</div>
+    <div class="summary-section">
+      <h3>Preços sugeridos</h3>
+      ${tiersTable(pricing)}
+    </div>
   </div>`;
 }
 
@@ -1917,8 +1946,8 @@ function landingHtml() {
           <p class="eyebrow">Benefícios</p>
           <h2>Tudo que sua confeitaria precisa pra precificar certo</h2>
           <div class="landing-benefits-grid">
-            ${LANDING_BENEFITS.map((b) => `
-              <div class="landing-benefit-card">
+            ${LANDING_BENEFITS.map((b, index) => `
+              <div class="landing-benefit-card reveal" style="--reveal-delay: ${(index * 0.08).toFixed(2)}s">
                 <div class="landing-benefit-icon">${icon(b.icon)}</div>
                 <h3>${escapeHtml(b.title)}</h3>
                 <p>${escapeHtml(b.text)}</p>
@@ -1932,8 +1961,8 @@ function landingHtml() {
           <p class="eyebrow">Como funciona</p>
           <h2>Comece a precificar em 3 passos</h2>
           <div class="landing-steps">
-            ${LANDING_STEPS.map((step) => `
-              <div class="landing-step">
+            ${LANDING_STEPS.map((step, index) => `
+              <div class="landing-step" style="--step-delay: ${(index * 0.2).toFixed(2)}s">
                 <span class="landing-step-icon">${icon(step.icon)}</span>
                 <h3>${escapeHtml(step.title)}</h3>
                 <p>${escapeHtml(step.text)}</p>
@@ -1948,8 +1977,8 @@ function landingHtml() {
           <h2>Escolha o plano da sua confeitaria</h2>
           <p class="landing-section-subtitle">Todos os planos incluem 7 dias de teste grátis. Cancele quando quiser.</p>
           <div class="landing-pricing-grid">
-            ${LANDING_PLANS.map((plan) => `
-              <div class="landing-plan-card ${plan.highlight ? 'is-highlight' : ''}">
+            ${LANDING_PLANS.map((plan, index) => `
+              <div class="landing-plan-card reveal ${plan.highlight ? 'is-highlight' : ''}" style="--reveal-delay: ${(index * 0.12).toFixed(2)}s">
                 ${plan.highlight ? '<span class="landing-plan-badge">Mais popular</span>' : ''}
                 <h3>${escapeHtml(plan.name)}</h3>
                 <p class="landing-plan-description">${escapeHtml(plan.description)}</p>
@@ -1964,7 +1993,7 @@ function landingHtml() {
       </section>
 
       <section class="landing-cta">
-        <div class="landing-section-inner landing-cta-inner">
+        <div class="landing-section-inner landing-cta-inner reveal">
           <h2>Pronta pra saber o preço certo dos seus doces?</h2>
           <button type="button" data-action="goto" data-route="cadastro">Testar grátis por 7 dias</button>
         </div>
@@ -2068,6 +2097,34 @@ function render() {
   const restore = captureFocus();
   app.innerHTML = state.session ? shellHtml() : publicHtml();
   restoreFocus(restore);
+  setupScrollReveal();
+}
+
+// Animação de entrada ao dar scroll (landing page): cada render substitui o
+// DOM inteiro, então os elementos observados de antes deixam de existir —
+// por isso reobservamos a cada render em vez de configurar uma vez só.
+// O observer em si é reaproveitado (criado uma única vez).
+let scrollRevealObserver = null;
+function setupScrollReveal() {
+  const targets = app.querySelectorAll('.reveal, .landing-steps');
+  if (!targets.length) return;
+  if (!('IntersectionObserver' in window)) {
+    targets.forEach((el) => el.classList.add('is-visible'));
+    return;
+  }
+  if (!scrollRevealObserver) {
+    scrollRevealObserver = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('is-visible');
+          scrollRevealObserver.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.15 });
+  }
+  targets.forEach((el) => {
+    if (!el.classList.contains('is-visible')) scrollRevealObserver.observe(el);
+  });
 }
 
 // ---------------- Ações: autenticação ----------------
@@ -3100,6 +3157,7 @@ app.addEventListener('click', (event) => {
       handleSaveDetail();
       break;
     case 'delete-detail':
+    case 'delete-product':
       openConfirmDeleteProduct(id, el.dataset.name);
       break;
     case 'delete-saved-ingredient':

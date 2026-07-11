@@ -1,15 +1,19 @@
 @use '../abstracts' as *;
 
+// Full-bleed: a foto ocupa toda a largura da viewport (escapando do padding
+// do .page com o truque 100vw/margin negativa), mas o texto por dentro fica
+// alinhado ao container padrão de conteúdo (.banner-inner, mesma largura do
+// .page) em vez de colado na borda da tela.
 .banner {
   position: relative;
-  border-radius: $radius-lg;
   overflow: hidden;
   margin-bottom: 24px;
+  width: 100vw;
+  margin-left: calc(50% - 50vw);
+  margin-right: calc(50% - 50vw);
   min-height: 200px;
   display: flex;
   align-items: center;
-  box-shadow: $shadow-lift;
-
 }
 
 .banner-photo {
@@ -26,10 +30,20 @@
   background: linear-gradient(115deg, rgba($ink-900, 0.55) 0%, rgba($ink-900, 0.15) 55%, rgba($ink-900, 0) 75%);
 }
 
-.banner-content {
+.banner-inner {
   position: relative;
   z-index: 1;
-  padding: 32px clamp(20px, 5vw, 48px);
+  width: min(1200px, 100%);
+  margin: 0 auto;
+  padding: 0 32px;
+
+  @include respond-down($bp-tablet) {
+    padding: 0 16px;
+  }
+}
+
+.banner-content {
+  padding: 32px 0;
   color: $white;
   max-width: 640px;
 

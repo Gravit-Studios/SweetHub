@@ -8,6 +8,11 @@ html {
 body {
   min-width: 320px;
   background: $white;
+  // O banner do dashboard usa 100vw pra escapar do padding do .page (ver
+  // .banner em _banner.scss); overflow-x: hidden evita a barra de rolagem
+  // horizontal que esse truque pode gerar em navegadores com scrollbar
+  // clássica (não-overlay).
+  overflow-x: hidden;
 }
 
 h1,

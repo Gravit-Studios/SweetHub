@@ -20,3 +20,7 @@ $space-6: 24px;
 $space-8: 32px;
 
 $bp-tablet: 900px;
+
+// Breakpoints do container padrão de conteúdo (largura em %, não de UI/nav).
+$bp-container-tablet: 992px;
+$bp-container-wide: 1540px;

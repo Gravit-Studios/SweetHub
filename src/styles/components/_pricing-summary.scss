@@ -16,6 +16,20 @@
   align-content: start;
 }
 
+// Cada bloco do resumo (custos, ingredientes usados, preços sugeridos) fica
+// visualmente separado em vez de tudo corrido dentro do mesmo painel.
+.summary-section {
+  &:not(:first-child) {
+    margin-top: 24px;
+    padding-top: 20px;
+    border-top: 1px solid $secondary-200;
+  }
+
+  h3 {
+    margin: 0 0 14px;
+  }
+}
+
 .summary-panel {
   dl {
     display: grid;
@@ -77,17 +91,24 @@
   }
 }
 
-// Níveis de lucro em lista (um bloco por nível), em vez de tabela larga:
-// evita colunas espremidas/cortadas em telas ou painéis estreitos.
+// Níveis de lucro lado a lado em 3 colunas no desktop; empilha em telas ou
+// painéis estreitos, onde 3 colunas espremeriam demais o conteúdo.
 .tiers-list {
   display: grid;
+  grid-template-columns: repeat(3, 1fr);
   gap: 16px;
+
+  @include respond-down($bp-tablet) {
+    grid-template-columns: 1fr;
+  }
 }
 
 .tier-row {
   border: 1px solid $secondary-200;
   border-radius: $radius-md;
   padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
 
   &.tier-featured {
     border-color: $primary-500;
@@ -100,6 +121,7 @@
   align-items: center;
   gap: 10px;
   margin-bottom: 12px;
+  flex-wrap: wrap;
 }
 
 .tier-name {
