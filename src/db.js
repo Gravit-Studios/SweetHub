@@ -375,3 +375,36 @@ export async function deleteSupplier(id) {
   if (error) throw error;
 }
 
+// ---------- Clientes (recurso do plano Pro) ----------
+
+export async function listCustomers(userId) {
+  const { data, error } = await supabase
+    .from('customers')
+    .select('*')
+    .eq('user_id', userId)
+    .order('name', { ascending: true });
+  if (error) throw error;
+  return data;
+}
+
+export async function createCustomer(userId, customer) {
+  const { data, error } = await supabase
+    .from('customers')
+    .insert({ user_id: userId, ...customer })
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
+}
+
+export async function updateCustomer(id, fields) {
+  const { data, error } = await supabase.from('customers').update(fields).eq('id', id).select().single();
+  if (error) throw error;
+  return data;
+}
+
+export async function deleteCustomer(id) {
+  const { error } = await supabase.from('customers').delete().eq('id', id);
+  if (error) throw error;
+}
+

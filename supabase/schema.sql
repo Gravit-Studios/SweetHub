@@ -128,6 +128,23 @@ create policy "Usuário gerencia os próprios fornecedores" on public.suppliers 
   using (auth.uid() = user_id) with check (auth.uid() = user_id);
 
 -- =========================================================
+-- customers — clientes do usuário (recurso do plano Pro — gestão da empresa)
+-- =========================================================
+create table if not exists public.customers (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users (id) on delete cascade,
+  name text not null,
+  phone text default '',
+  email text default '',
+  address text default '',
+  notes text default '',
+  created_at timestamptz not null default now()
+);
+alter table public.customers enable row level security;
+create policy "Usuário gerencia os próprios clientes" on public.customers for all
+  using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+-- =========================================================
 -- products — receitas (nome + rendimento; custos vêm de ingredientes + despesas globais)
 -- =========================================================
 create table if not exists public.products (

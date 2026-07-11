@@ -91,6 +91,7 @@ const state = {
   expenseCategories: [],
   profitTiers: [],
   suppliers: [],
+  customers: [],
   dataLoading: false,
   statusMessage: '',
   detailSnapshot: '{}',
@@ -100,6 +101,7 @@ const state = {
   ingredientSearch: '',
   supplierSearch: '',
   productSearch: '',
+  customerSearch: '',
   ingredientColumnFilters: {},
   openIngredientFilterColumn: null,
 
@@ -197,18 +199,20 @@ async function loadUserData() {
     if (state.profile.role !== 'admin' && state.profile.approvalStatus !== 'approved') {
       return;
     }
-    const [ingredients, products, expenseCategories, profitTiers, suppliers] = await Promise.all([
+    const [ingredients, products, expenseCategories, profitTiers, suppliers, customers] = await Promise.all([
       db.listIngredients(userId),
       db.listProducts(userId),
       db.ensureDefaultExpenseCategories(userId),
       db.ensureDefaultProfitTiers(userId),
       db.listSuppliers(userId),
+      db.listCustomers(userId),
     ]);
     state.savedIngredients = ingredients;
     state.savedProducts = products;
     state.expenseCategories = expenseCategories;
     state.profitTiers = profitTiers;
     state.suppliers = suppliers;
+    state.customers = customers;
     state.settings = { fullName: state.profile.fullName, email: state.session.user.email };
     state.company = {
       name: profile.company_name || '',
@@ -345,9 +349,11 @@ onAuthStateChange((session) => {
     state.expenseCategories = [];
     state.profitTiers = [];
     state.suppliers = [];
+    state.customers = [];
     state.ingredientSearch = '';
     state.supplierSearch = '';
     state.productSearch = '';
+    state.customerSearch = '';
     state.ingredientColumnFilters = {};
     state.openIngredientFilterColumn = null;
     state.profile = { fullName: '', role: 'user', approvalStatus: 'approved' };
@@ -926,6 +932,48 @@ function editSupplierModal(data) {
     </div>`;
 }
 
+function addCustomerModal(data) {
+  return `
+    <div class="modal-box">
+      <div class="modal-header"><h3>Adicionar cliente</h3><button type="button" class="icon-btn ghost" data-action="close-modal">${icon('close')}</button></div>
+      ${data.error ? `<p class="auth-error">${escapeHtml(data.error)}</p>` : ''}
+      <form data-form="new-customer" class="modal-form">
+        <label>Nome<input name="name" data-modal-field="name" value="${escapeHtml(data.name || '')}" required /></label>
+        <div class="field-grid">
+          <label>Telefone<input name="phone" data-modal-field="phone" value="${escapeHtml(data.phone || '')}" /></label>
+          <label>E-mail<input name="email" type="email" data-modal-field="email" value="${escapeHtml(data.email || '')}" /></label>
+        </div>
+        <label>Endereço<input name="address" data-modal-field="address" value="${escapeHtml(data.address || '')}" /></label>
+        <label>Observações<input name="notes" data-modal-field="notes" value="${escapeHtml(data.notes || '')}" placeholder="Preferências, alergias, etc." /></label>
+        <div class="save-actions">
+          <button type="submit" ${data.loading ? 'disabled' : ''}>${data.loading ? 'Adicionando...' : 'Adicionar'}</button>
+          <button type="button" class="ghost" data-action="close-modal">Cancelar</button>
+        </div>
+      </form>
+    </div>`;
+}
+
+function editCustomerModal(data) {
+  return `
+    <div class="modal-box">
+      <div class="modal-header"><h3>Editar cliente</h3><button type="button" class="icon-btn ghost" data-action="close-modal">${icon('close')}</button></div>
+      ${data.error ? `<p class="auth-error">${escapeHtml(data.error)}</p>` : ''}
+      <form data-form="edit-customer" class="modal-form">
+        <label>Nome<input name="name" value="${escapeHtml(data.name)}" required /></label>
+        <div class="field-grid">
+          <label>Telefone<input name="phone" value="${escapeHtml(data.phone)}" /></label>
+          <label>E-mail<input name="email" type="email" value="${escapeHtml(data.email)}" /></label>
+        </div>
+        <label>Endereço<input name="address" value="${escapeHtml(data.address)}" /></label>
+        <label>Observações<input name="notes" value="${escapeHtml(data.notes)}" placeholder="Preferências, alergias, etc." /></label>
+        <div class="save-actions">
+          <button type="submit" ${data.loading ? 'disabled' : ''}>${data.loading ? 'Salvando...' : 'Salvar alterações'}</button>
+          <button type="button" class="ghost" data-action="close-modal">Cancelar</button>
+        </div>
+      </form>
+    </div>`;
+}
+
 function addTierModal(data) {
   return `
     <div class="modal-box">
@@ -1048,6 +1096,8 @@ function modalOverlay() {
     'add-ingredient': addIngredientModal,
     'add-supplier': addSupplierModal,
     'edit-supplier': editSupplierModal,
+    'add-customer': addCustomerModal,
+    'edit-customer': editCustomerModal,
     'add-tier': addTierModal,
     'edit-tier': editTierModal,
     'confirm-leave': confirmLeaveModal,
@@ -1440,6 +1490,47 @@ function renderFornecedoresPage() {
     </div>`;
 }
 
+// Gestão de clientes — recurso do plano Pro (ver nota em handleRouteChange
+// sobre o gate por plano ainda não existir, já que a cobrança não está
+// implementada).
+function renderClientesPage() {
+  const query = state.customerSearch.trim().toLowerCase();
+  const filtered = query
+    ? state.customers.filter((c) => c.name.toLowerCase().includes(query)
+      || (c.email || '').toLowerCase().includes(query)
+      || (c.phone || '').toLowerCase().includes(query))
+    : state.customers;
+  const list = filtered.length > 0
+    ? `<div class="table-scroll"><table class="data-table">
+        <thead><tr><th>Nome</th><th>Telefone</th><th>E-mail</th><th>Endereço</th><th></th></tr></thead>
+        <tbody>
+          ${filtered.map((c) => `
+            <tr>
+              <td>${escapeHtml(c.name)}</td>
+              <td>${c.phone ? escapeHtml(c.phone) : '—'}</td>
+              <td>${c.email ? escapeHtml(c.email) : '—'}</td>
+              <td>${c.address ? escapeHtml(c.address) : '—'}</td>
+              <td class="data-table-actions">
+                <button type="button" class="ghost" data-action="open-edit-customer" data-id="${c.id}">Editar</button>
+                <button type="button" class="ghost" data-action="delete-customer" data-id="${c.id}">Excluir</button>
+              </td>
+            </tr>`).join('')}
+        </tbody>
+      </table></div>`
+    : emptyState(query ? 'Nenhum cliente encontrado.' : 'Nenhum cliente cadastrado ainda.', false);
+
+  return `
+    <div class="section-header">
+      <div><p class="eyebrow">Base de clientes</p><h2>Clientes</h2></div>
+      <button type="button" data-action="add-customer-modal">Adicionar novo</button>
+    </div>
+    ${statusBox()}
+    <div class="panel">
+      <input class="search-input" type="search" name="customerSearch" data-search="customers" placeholder="Buscar por nome, telefone ou e-mail..." value="${escapeHtml(state.customerSearch)}" />
+      ${state.dataLoading ? loadingMsg() : list}
+    </div>`;
+}
+
 function renderConfiguracoesPage() {
   const isDirty = JSON.stringify(state.settings) !== state.settingsSnapshot;
   return `
@@ -1568,6 +1659,7 @@ function renderPage() {
     case 'despesas': return renderDespesasPage();
     case 'lucro': return renderLucroPage();
     case 'fornecedores': return renderFornecedoresPage();
+    case 'clientes': return renderClientesPage();
     case 'admin': return renderAdminPage();
     case 'configuracoes': return renderConfiguracoesPage();
     case 'empresa': return renderEmpresaPage();
@@ -1601,6 +1693,7 @@ function mobileDrawer(displayName) {
           ${navItem('despesas', 'Despesas')}
           ${navItem('lucro', 'Lucro')}
           ${navItem('fornecedores', 'Fornecedores')}
+          ${navItem('clientes', 'Clientes')}
           ${navItem('empresa', 'Empresa')}
         </ul>
         <div class="mobile-drawer-footer">
@@ -1688,6 +1781,7 @@ function shellHtml() {
             ${navItem('despesas', 'Despesas')}
             ${navItem('lucro', 'Lucro')}
             ${navItem('fornecedores', 'Fornecedores')}
+            ${navItem('clientes', 'Clientes')}
             ${navItem('empresa', 'Empresa')}
           </ul>`}
           <div class="navbar-user">
@@ -2543,6 +2637,7 @@ async function handleConfirmDelete() {
   if (modal.kind === 'expense') await handleDeleteExpense(modal.id);
   if (modal.kind === 'tier') await handleDeleteTier(modal.id);
   if (modal.kind === 'supplier') await handleDeleteSupplier(modal.id);
+  if (modal.kind === 'customer') await handleDeleteCustomer(modal.id);
   if (modal.kind === 'admin-suspend') await handleAdminAction('suspend', modal.id);
   if (modal.kind === 'admin-delete') await handleAdminAction('delete', modal.id);
   if (modal.kind === 'recipe-ingredient') handleRemoveIngredient(modal.editorKey, modal.id);
@@ -2673,6 +2768,87 @@ function openConfirmDeleteSupplier(id, name) {
   });
 }
 
+// ---------------- Ações: clientes (recurso do plano Pro) ----------------
+
+async function handleNewCustomer(form) {
+  const formData = new FormData(form);
+  const draft = {
+    name: formData.get('name'),
+    phone: formData.get('phone') || '',
+    email: formData.get('email') || '',
+    address: formData.get('address') || '',
+    notes: formData.get('notes') || '',
+  };
+  state.activeModal.loading = true;
+  state.activeModal.error = '';
+  render();
+  try {
+    await db.createCustomer(state.session.user.id, draft);
+    await loadUserData();
+    closeModal();
+    showSuccess('Cliente cadastrado!');
+  } catch (error) {
+    state.activeModal.loading = false;
+    state.activeModal.error = error.message;
+    render();
+  }
+}
+
+async function handleDeleteCustomer(id) {
+  try {
+    await db.deleteCustomer(id);
+    await loadUserData();
+  } catch (error) {
+    state.statusMessage = `Erro ao excluir cliente: ${error.message}`;
+    render();
+  }
+}
+
+function openEditCustomerModal(id) {
+  const source = state.customers.find((c) => c.id === id);
+  if (!source) return;
+  openModal('edit-customer', {
+    customerId: source.id,
+    name: source.name,
+    phone: source.phone || '',
+    email: source.email || '',
+    address: source.address || '',
+    notes: source.notes || '',
+  });
+}
+
+async function handleEditCustomerSubmit(form) {
+  const formData = new FormData(form);
+  state.activeModal.loading = true;
+  state.activeModal.error = '';
+  render();
+  try {
+    await db.updateCustomer(state.activeModal.customerId, {
+      name: formData.get('name'),
+      phone: formData.get('phone') || '',
+      email: formData.get('email') || '',
+      address: formData.get('address') || '',
+      notes: formData.get('notes') || '',
+    });
+    await loadUserData();
+    closeModal();
+    showSuccess('Cliente atualizado!');
+  } catch (error) {
+    state.activeModal.loading = false;
+    state.activeModal.error = error.message;
+    render();
+  }
+}
+
+function openConfirmDeleteCustomer(id, name) {
+  openModal('confirm-delete', {
+    kind: 'customer',
+    id,
+    title: 'Excluir cliente',
+    message: `Tem certeza que deseja excluir "${name || 'este cliente'}"? Essa ação não pode ser desfeita.`,
+  });
+}
+
 // ---------------- Listeners globais ----------------
 
 app.addEventListener('change', async (event) => {
@@ -2790,6 +2966,11 @@ app.addEventListener('input', (event) => {
     render();
     return;
   }
+  if (target.dataset.search === 'customers') {
+    state.customerSearch = target.value;
+    render();
+    return;
+  }
   if (target.dataset.settingsField) {
     state.settings[target.dataset.settingsField] = target.value;
     render();
@@ -2841,6 +3022,8 @@ app.addEventListener('submit', (event) => {
   if (formType === 'add-tier') handleAddTierSubmit(event.target);
   if (formType === 'edit-tier') handleEditTierSubmit(event.target);
   if (formType === 'edit-supplier') handleEditSupplierSubmit(event.target);
+  if (formType === 'new-customer') handleNewCustomer(event.target);
+  if (formType === 'edit-customer') handleEditCustomerSubmit(event.target);
 });
 
 app.addEventListener('click', (event) => {
@@ -2975,6 +3158,17 @@ app.addEventListener('click', (event) => {
     }
     case 'open-edit-supplier':
       openEditSupplierModal(id);
+      break;
+    case 'add-customer-modal':
+      openModal('add-customer');
+      break;
+    case 'delete-customer': {
+      const customer = state.customers.find((c) => c.id === id);
+      openConfirmDeleteCustomer(id, customer?.name);
+      break;
+    }
+    case 'open-edit-customer':
+      openEditCustomerModal(id);
       break;
     case 'open-edit-ingredient':
       openEditIngredientModal(id);
