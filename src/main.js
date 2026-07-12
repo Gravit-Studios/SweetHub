@@ -644,7 +644,7 @@ function renderMenuFields(editorKey, editor) {
       <label>Preço no cardápio<div class="input-prefix"><span class="prefix">R$</span><input inputmode="decimal" placeholder="0,00" data-editor="${editorKey}" data-field="menuPrice" value="${escapeHtml(editor.menuPrice)}" /></div></label>
     </div>
     <label style="margin-top:16px;">Descrição<textarea data-editor="${editorKey}" data-field="menuDescription" rows="3" placeholder="Uma breve descrição que aparece na página do produto">${escapeHtml(editor.menuDescription)}</textarea></label>
-    <label class="consent-field" style="margin-top:16px;">
+    <label class="consent-field consent-field-inline" style="margin-top:16px;">
       <input type="checkbox" data-action="toggle-menu-published" ${editor.menuPublished ? 'checked' : ''} />
       <span>Publicar no cardápio</span>
     </label>`;
@@ -1917,9 +1917,19 @@ function navItem(route, label) {
 // Agrupa páginas relacionadas num só item de navbar com dropdown, em vez de
 // uma lista cada vez mais longa de links soltos.
 const NAV_GROUPS = [
-  { key: 'gestao', label: 'Gestão', items: [{ route: 'clientes', label: 'Clientes' }, { route: 'empresa', label: 'Empresa' }] },
   { key: 'controle', label: 'Controle', items: [{ route: 'ingredientes', label: 'Ingredientes' }, { route: 'despesas', label: 'Despesas' }, { route: 'lucro', label: 'Lucro' }] },
 ];
+
+// "Gestão" precisa ser montado a cada render (não é uma constante estática
+// como os outros grupos) porque o item "Site" só existe pra conta Pro e
+// aponta pro link público da própria empresa (depende do slug carregado).
+function gestaoGroup() {
+  const items = [{ route: 'clientes', label: 'Clientes' }, { route: 'empresa', label: 'Empresa' }];
+  if (isProPlan(state.profile) && state.company.slug) {
+    items.push({ label: 'Site', external: true, href: publicMenuUrl(state.company.slug) });
+  }
+  return { key: 'gestao', label: 'Gestão', items };
+}
 
 // Alterna a classe "is-open" do trigger + painel de um dropdown de navbar
 // direto no DOM (sem passar por render()). Fecha qualquer outro dropdown
@@ -1947,7 +1957,9 @@ function navDropdown(group) {
     </button>
     <div class="nav-dropdown-menu ${isOpen ? 'is-open' : ''}" data-menu="${group.key}">
       <div class="nav-dropdown-menu-inner">
-        ${group.items.map((item) => `<button type="button" class="profile-dropdown-item ${state.route.path === item.route ? 'active' : ''}" data-action="goto" data-route="${item.route}">${item.label}</button>`).join('')}
+        ${group.items.map((item) => (item.external
+          ? `<a class="profile-dropdown-item" href="${escapeHtml(item.href)}" target="_blank" rel="noopener noreferrer">${escapeHtml(item.label)}${icon('arrowUpRight')}</a>`
+          : `<button type="button" class="profile-dropdown-item ${state.route.path === item.route ? 'active' : ''}" data-action="goto" data-route="${item.route}">${item.label}</button>`)).join('')}
       </div>
     </div>
   </li>`;
@@ -1967,9 +1979,9 @@ function mobileDrawer(displayName) {
         <div class="mobile-drawer-plan">${planLabel(state.profile)}</div>
         <ul class="mobile-drawer-nav">
           ${navItem('produtos', 'Receitas')}
-          ${navDropdown(NAV_GROUPS[1])}
-          ${navItem('fornecedores', 'Fornecedores')}
           ${navDropdown(NAV_GROUPS[0])}
+          ${navItem('fornecedores', 'Fornecedores')}
+          ${navDropdown(gestaoGroup())}
         </ul>
         <div class="mobile-drawer-footer">
           <div class="mobile-drawer-user">
@@ -2089,9 +2101,9 @@ function shellHtml() {
           ${isAdmin ? '' : `
           <ul class="nav-list">
             ${navItem('produtos', 'Receitas')}
-            ${navDropdown(NAV_GROUPS[1])}
-            ${navItem('fornecedores', 'Fornecedores')}
             ${navDropdown(NAV_GROUPS[0])}
+            ${navItem('fornecedores', 'Fornecedores')}
+            ${navDropdown(gestaoGroup())}
           </ul>`}
           <div class="navbar-user">
             ${isAdmin ? adminAlertsMenu() : ''}

@@ -132,4 +132,16 @@ label {
     width: auto;
     margin-top: 3px;
   }
+
+  // Variante pra texto de uma linha só (ex.: "Publicar no cardápio") — sem
+  // risco de quebrar em várias linhas, então centraliza o checkbox com o
+  // texto em vez de alinhar pelo topo (pensado pro texto de consentimento
+  // do cadastro, que pode quebrar linha).
+  &.consent-field-inline {
+    align-items: center;
+
+    input[type='checkbox'] {
+      margin-top: 0;
+    }
+  }
 }
