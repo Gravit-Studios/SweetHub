@@ -2465,15 +2465,25 @@ function landingStepsBigSection() {
     </section>`;
 }
 
-// Hero: card branco com título em duas cores e mockup fake da tela de
-// precificação, cercado de cartõezinhos flutuantes (depoimento, métrica,
-// selo de margem) com uma leve animação contínua de flutuação (CSS).
+// Hero: foto full-bleed (degradê já vem na própria imagem, escurecendo a
+// esquerda onde fica o texto) com o mockup fake da tela de precificação
+// flutuando à direita, cercado de cartõezinhos (depoimento/métrica/selo) com
+// leve animação contínua (CSS). A faixa de destaques fecha o rodapé da foto.
 function landingHeroV2() {
   return `
     <section class="landing-hero-v2">
+      <img src="/assets/bg-banner.webp" alt="" class="landing-hero-v2-photo" />
       <div class="landing-section-inner landing-hero-v2-inner">
-        <p class="eyebrow-pill">Feito para confeitarias</p>
-        <h1><span class="muted-tone">Sua confeitaria</span> no lucro certo</h1>
+        <div class="landing-hero-v2-copy">
+          <p class="eyebrow-pill">Facilite a gestão da sua confeitaria</p>
+          <h1>Sua confeitaria no lucro certo</h1>
+          <p class="landing-hero-v2-subtitle">Adicione ingredientes, crie receitas e saiba o quanto cobrar!</p>
+          <div class="landing-hero-actions">
+            <button type="button" data-action="goto" data-route="cadastro">Testar grátis por 7 dias</button>
+            <a href="#precos" class="landing-link-cta">Ver planos e preços</a>
+          </div>
+          <p class="landing-hero-note">Sem cartão de crédito para começar. Cancele quando quiser.</p>
+        </div>
         <div class="landing-hero-v2-stage">
           <div class="landing-hero-floater landing-hero-floater-1">
             <span class="landing-hero-floater-avatar" style="background:${avatarColorFor('Marina Duarte')}">MD</span>
@@ -2492,12 +2502,8 @@ function landingHeroV2() {
             ${icon('check')}<div><strong>Margem garantida</strong><small>em cada receita</small></div>
           </div>
         </div>
-        <div class="landing-hero-actions">
-          <button type="button" data-action="goto" data-route="cadastro">Testar grátis por 7 dias</button>
-          <a href="#precos" class="landing-link-cta">Ver planos e preços</a>
-        </div>
-        <p class="landing-hero-note">Sem cartão de crédito para começar. Cancele quando quiser.</p>
       </div>
+      ${landingHighlightsStrip()}
     </section>`;
 }
 
@@ -2550,7 +2556,6 @@ function landingHtml() {
     <div class="landing">
       ${landingNav()}
       ${landingHeroV2()}
-      ${landingHighlightsStrip()}
 
       <section class="landing-section landing-section-dark" id="beneficios">
         <div class="landing-section-inner">
@@ -2947,8 +2952,16 @@ function setupScrollReveal() {
 // (.landing-steps-big-track) rola por baixo — a cada trecho da pista, acende
 // o passo (texto + número) e troca a foto correspondente. Mais leve que o
 // scroll pinado antigo (abas/mockup): é só opacidade + crossfade, sem travar
-// a rolagem de verdade nem exigir JS pra "soltar" o pin.
+// a rolagem de verdade nem exigir JS pra "soltar" o pin. O deslocamento em
+// si roda num loop de rAF separado (stepsPhotoTarget/stepsPhotoCurrent) que
+// interpola (lerp) até o alvo a cada frame — sem isso a foto "pulava" junto
+// com o evento de scroll em vez de acompanhar de forma suave.
 let stepsPhotoRaf = null;
+let stepsPhotoTarget = 0;
+let stepsPhotoCurrent = 0;
+let stepsPhotoLoopRunning = false;
+const STEPS_PHOTO_TRAVEL = 160;
+
 function updateStepsBigPhoto() {
   const track = app.querySelector('.landing-steps-big-track');
   const photo = app.querySelector('.landing-steps-big-photo');
@@ -2956,7 +2969,8 @@ function updateStepsBigPhoto() {
   const rect = track.getBoundingClientRect();
   const total = rect.height - window.innerHeight;
   const progress = total > 0 ? Math.min(1, Math.max(0, -rect.top / total)) : 0;
-  photo.style.transform = `translateY(${(progress * 40).toFixed(1)}px)`;
+  stepsPhotoTarget = progress * STEPS_PHOTO_TRAVEL;
+  ensureStepsPhotoLoop();
   const stepCount = LANDING_STEPS_BIG_PHOTOS.length;
   const stepIndex = Math.min(stepCount - 1, Math.floor(progress * stepCount));
   if (photo.dataset.activeStep === String(stepIndex)) return;
@@ -2967,6 +2981,28 @@ function updateStepsBigPhoto() {
   app.querySelectorAll('.landing-steps-big-row[data-step]').forEach((el) => {
     el.classList.toggle('is-active', Number(el.dataset.step) === stepIndex);
   });
+}
+
+function ensureStepsPhotoLoop() {
+  if (stepsPhotoLoopRunning) return;
+  stepsPhotoLoopRunning = true;
+  const tick = () => {
+    const photo = app.querySelector('.landing-steps-big-photo');
+    if (!photo) {
+      stepsPhotoLoopRunning = false;
+      return;
+    }
+    stepsPhotoCurrent += (stepsPhotoTarget - stepsPhotoCurrent) * 0.1;
+    if (Math.abs(stepsPhotoTarget - stepsPhotoCurrent) < 0.05) {
+      stepsPhotoCurrent = stepsPhotoTarget;
+      photo.style.transform = `translateY(${stepsPhotoCurrent.toFixed(1)}px)`;
+      stepsPhotoLoopRunning = false;
+      return;
+    }
+    photo.style.transform = `translateY(${stepsPhotoCurrent.toFixed(1)}px)`;
+    requestAnimationFrame(tick);
+  };
+  requestAnimationFrame(tick);
 }
 
 window.addEventListener('scroll', () => {

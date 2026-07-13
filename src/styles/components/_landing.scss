@@ -90,31 +90,78 @@
   color: $ink-400;
 }
 
-// Hero novo: card claro, título grande em duas cores, mockup fake flutuando
-// cercado de cartõezinhos (depoimento/métrica/selo) com bob contínuo em CSS.
+// Hero novo: foto full-bleed (degradê já vem embutido na imagem, escurecendo
+// a esquerda) com o texto sobreposto de um lado e o mockup fake flutuando do
+// outro, cercado de cartõezinhos (depoimento/métrica/selo) com bob contínuo
+// em CSS. A faixa de destaques (ver .landing-highlights) fecha o rodapé.
 .landing-hero-v2 {
-  padding: clamp(56px, 8vw, 96px) 0 40px;
-  text-align: center;
+  position: relative;
   overflow: hidden;
+  margin: 24px 24px 0;
+  border-radius: $radius-xl;
+
+  @include respond-down($bp-tablet) {
+    margin: 12px 12px 0;
+  }
+}
+
+.landing-hero-v2-photo {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .landing-hero-v2-inner {
+  position: relative;
+  z-index: 1;
   display: flex;
-  flex-direction: column;
   align-items: center;
+  justify-content: space-between;
+  gap: clamp(24px, 5vw, 64px);
+  padding: clamp(56px, 9vw, 100px) 0 72px;
+
+  @include respond-down($bp-tablet) {
+    flex-direction: column;
+    text-align: center;
+    padding: 40px 0 56px;
+  }
+}
+
+.landing-hero-v2-copy {
+  max-width: 440px;
+  text-align: left;
+
+  .eyebrow-pill {
+    background: rgba($white, 0.15);
+    color: $white;
+  }
 
   h1 {
     margin: 14px 0 0;
     font-size: clamp(2.4rem, 5vw, 3.6rem);
     line-height: 1.08;
+    color: $white;
   }
+
+  @include respond-down($bp-tablet) {
+    max-width: 100%;
+    text-align: center;
+  }
+}
+
+.landing-hero-v2-subtitle {
+  margin: 14px 0 0;
+  color: rgba($white, 0.82);
+  font-size: 1.05rem;
 }
 
 .landing-hero-v2-stage {
   position: relative;
   width: 100%;
-  max-width: 640px;
-  margin: 64px auto 56px;
+  max-width: 460px;
+  flex-shrink: 0;
 
   .faux-window {
     margin: 0 auto;
@@ -122,7 +169,7 @@
 
   @include respond-down($bp-tablet) {
     max-width: 340px;
-    margin: 56px auto 40px;
+    margin: 40px auto 0;
   }
 }
 
@@ -170,8 +217,8 @@
 }
 
 .landing-hero-floater-2 {
-  top: 20%;
-  right: -20px;
+  top: -20px;
+  right: -16px;
   animation-delay: 0.6s;
 
   @include respond-down($bp-tablet) {
@@ -291,30 +338,34 @@
 .landing-hero-actions {
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
   gap: 20px;
   flex-wrap: wrap;
-  margin-bottom: 14px;
+  margin: 24px 0 14px;
 
   button {
     padding: 0.85rem 1.5rem;
     font-size: 1rem;
   }
+
+  @include respond-down($bp-tablet) {
+    justify-content: center;
+  }
 }
 
 .landing-link-cta {
-  color: $primary-600;
+  color: $white;
   font-weight: $fw-bold;
   text-decoration: underline;
 
   &:hover {
-    color: $primary-700;
+    color: rgba($white, 0.8);
   }
 }
 
 .landing-hero-note {
   margin: 0;
-  color: $ink-400;
+  color: rgba($white, 0.65);
   font-size: 0.85rem;
 }
 
@@ -411,12 +462,15 @@
   }
 }
 
-// Faixa de 3 destaques logo abaixo do hero — ícone + frase curta, sem
-// cartão/fundo próprio, separados por uma linha vertical fina.
+// Faixa de 3 destaques fechando o rodapé da foto do hero — ícone + frase
+// curta sobre um fundo escuro translúcido, separados por uma linha vertical
+// fina (mesmo tom claro usado no resto do texto sobre a foto).
 .landing-highlights {
-  border-top: 1px solid $border;
-  border-bottom: 1px solid $border;
-  padding: 20px 0;
+  position: relative;
+  z-index: 1;
+  background: rgba($ink-900, 0.32);
+  border-top: 1px solid rgba($white, 0.15);
+  padding: 18px 0;
 }
 
 .landing-highlights-inner {
@@ -426,7 +480,7 @@
 
   @include respond-down($bp-tablet) {
     flex-direction: column;
-    gap: 16px;
+    gap: 14px;
   }
 }
 
@@ -435,12 +489,12 @@
   align-items: center;
   gap: 10px;
   padding: 0 40px;
-  color: $ink-700;
+  color: $white;
   font-weight: $fw-bold;
   font-size: 0.92rem;
 
   &:not(:last-child) {
-    border-right: 1px solid $border;
+    border-right: 1px solid rgba($white, 0.2);
 
     @include respond-down($bp-tablet) {
       border-right: 0;
@@ -450,7 +504,7 @@
   .icon {
     width: 20px;
     height: 20px;
-    color: $primary-600;
+    color: $tertiary-200;
     flex-shrink: 0;
   }
 
@@ -549,9 +603,10 @@
   width: 220px;
   height: calc(220px * 4 / 3);
   z-index: 1;
-  // Atualizado via JS a cada scroll (ver updateStepsBigPhoto) — a foto
-  // desce aos poucos conforme a seção passa pela tela.
-  transition: transform 0.1s linear;
+  // O deslocamento (translateY) é 100% via JS, interpolado suavemente frame
+  // a frame (ver ensureStepsPhotoLoop em main.js) — uma transition CSS aqui
+  // dobraria o suavizado (JS já anima) e deixaria o acompanhamento do
+  // scroll com atraso perceptível.
 
   @include respond-down($bp-tablet) {
     display: none;
