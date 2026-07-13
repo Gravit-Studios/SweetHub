@@ -2436,11 +2436,14 @@ function fauxWindow(bodyHtml) {
 // "Como funciona": lista editorial com números grandes (estilo textos
 // grandes sobrepostos de referência) — a foto de destaque troca e desce
 // aos poucos conforme o scroll (ver updateStepsBigPhoto), o resto da seção
-// não depende de scroll pinado.
+// não depende de scroll pinado. A altura da pista soma +100vh à distância
+// que se quer de fato rolar com o conteúdo preso: o painel sticky (que
+// ocupa ~100vh) "gasta" essa altura da pista só ficando parado antes de
+// soltar, então sem esse extra o pin soltava bem antes do scroll acabar.
 function landingStepsBigSection() {
   return `
     <section class="landing-steps-big" id="como-funciona">
-      <div class="landing-steps-big-track" style="height: ${LANDING_STEPS_BIG.length * 90}vh">
+      <div class="landing-steps-big-track" style="height: calc(${LANDING_STEPS_BIG.length * 90}vh + 100vh)">
         <div class="landing-steps-big-sticky">
           <div class="landing-section-inner landing-steps-big-stack">
             <p class="eyebrow">Como funciona</p>
@@ -2961,10 +2964,15 @@ const STEPS_PHOTO_TRAVEL = 160;
 
 function updateStepsBigPhoto() {
   const track = app.querySelector('.landing-steps-big-track');
+  const sticky = app.querySelector('.landing-steps-big-sticky');
   const photo = app.querySelector('.landing-steps-big-photo');
-  if (!track || !photo) return;
+  if (!track || !sticky || !photo) return;
   const rect = track.getBoundingClientRect();
-  const total = rect.height - window.innerHeight;
+  // O quanto o sticky fica realmente preso é (altura da pista - altura do
+  // próprio painel sticky), não a altura da viewport — usar innerHeight aqui
+  // fazia o progresso chegar a 100% bem antes do pin soltar de verdade (foto
+  // "travava" no topo pelo resto do scroll da seção).
+  const total = rect.height - sticky.getBoundingClientRect().height;
   const progress = total > 0 ? Math.min(1, Math.max(0, -rect.top / total)) : 0;
   photo.style.transform = `translateY(${(progress * STEPS_PHOTO_TRAVEL).toFixed(1)}px)`;
   const stepCount = LANDING_STEPS_BIG_PHOTOS.length;
