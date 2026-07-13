@@ -187,6 +187,7 @@ const state = {
   },
   cepLookup: { loading: false, error: '' },
   publicMenu: { slug: null, loading: false, company: null, products: [], error: '' },
+  menuLightboxUrl: null,
   profileMenuOpen: false,
   mobileMenuOpen: false,
   openNavMenu: null,
@@ -622,6 +623,7 @@ const ICON_PATHS = {
   whisk: '<path d="M12 2v6"/><path d="M8 8c0 6 1.5 10 4 10s4-4 4-10"/><path d="M9.5 8c0 5 1 9 2.5 9s2.5-4 2.5-9"/><path d="M12 18v4"/>',
   bell: '<path d="M6 9a6 6 0 0 1 12 0c0 5 2 6 2 6H4s2-1 2-6Z"/><path d="M10 20a2 2 0 0 0 4 0"/>',
   arrowUpRight: '<path d="M7 17L17 7"/><path d="M8 7h9v9"/>',
+  storefront: '<path d="M4 9l1.2-4.5A1 1 0 0 1 6.2 4h11.6a1 1 0 0 1 1 .75L20 9"/><path d="M4 9h16v2a2 2 0 0 1-2 2h0a2 2 0 0 1-2-2 2 2 0 0 1-2 2h0a2 2 0 0 1-2-2 2 2 0 0 1-2 2h0a2 2 0 0 1-2-2 2 2 0 0 1-2 2h0a2 2 0 0 1-2-2V9Z"/><path d="M5 13v7h14v-7"/><path d="M10 20v-4.5a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1V20"/>',
 };
 
 function icon(name, extraClass = '') {
@@ -1184,7 +1186,6 @@ function addCustomerModal(data) {
           <label>Telefone<input name="phone" data-modal-field="phone" value="${escapeHtml(data.phone || '')}" /></label>
           <label>E-mail<input name="email" type="email" data-modal-field="email" value="${escapeHtml(data.email || '')}" /></label>
         </div>
-        <label>Endereço<input name="address" data-modal-field="address" value="${escapeHtml(data.address || '')}" /></label>
         <label>Observações<input name="notes" data-modal-field="notes" value="${escapeHtml(data.notes || '')}" placeholder="Preferências, alergias, etc." /></label>
         <div class="save-actions">
           <button type="submit" ${data.loading ? 'disabled' : ''}>${data.loading ? 'Adicionando...' : 'Adicionar'}</button>
@@ -1205,7 +1206,6 @@ function editCustomerModal(data) {
           <label>Telefone<input name="phone" value="${escapeHtml(data.phone)}" /></label>
           <label>E-mail<input name="email" type="email" value="${escapeHtml(data.email)}" /></label>
         </div>
-        <label>Endereço<input name="address" value="${escapeHtml(data.address)}" /></label>
         <label>Observações<input name="notes" value="${escapeHtml(data.notes)}" placeholder="Preferências, alergias, etc." /></label>
         <div class="save-actions">
           <button type="submit" ${data.loading ? 'disabled' : ''}>${data.loading ? 'Salvando...' : 'Salvar alterações'}</button>
@@ -1758,14 +1758,13 @@ function renderClientesPage() {
     : state.customers;
   const list = filtered.length > 0
     ? `<div class="table-scroll"><table class="data-table">
-        <thead><tr><th>Nome</th><th>Telefone</th><th>E-mail</th><th>Endereço</th><th></th></tr></thead>
+        <thead><tr><th>Nome</th><th>Telefone</th><th>E-mail</th><th></th></tr></thead>
         <tbody>
           ${filtered.map((c) => `
             <tr>
               <td>${escapeHtml(c.name)}</td>
               <td>${c.phone ? escapeHtml(c.phone) : '—'}</td>
               <td>${c.email ? escapeHtml(c.email) : '—'}</td>
-              <td>${c.address ? escapeHtml(c.address) : '—'}</td>
               <td class="data-table-actions">
                 <button type="button" class="ghost" data-action="open-edit-customer" data-id="${c.id}">Editar</button>
                 <button type="button" class="ghost" data-action="delete-customer" data-id="${c.id}">Excluir</button>
@@ -2286,10 +2285,34 @@ const LANDING_BENEFITS = [
   { icon: 'shield', title: 'Seus dados protegidos', text: 'Conforme a LGPD, com acesso só seu — você pode excluir tudo quando quiser.' },
 ];
 
-const LANDING_STEPS = [
-  { icon: 'box', title: 'Cadastre ingredientes e despesas', text: 'Preço de compra, quantidade comprada e as despesas fixas do seu negócio.' },
-  { icon: 'whisk', title: 'Monte suas receitas', text: 'Adicione os ingredientes usados e a quantidade de cada um por receita.' },
-  { icon: 'cupcake', title: 'Veja o preço sugerido', text: 'Com a margem de lucro que você escolher, calculada na hora.' },
+// Seção "Como funciona" (scrollytelling): cada passo tem uma aba, um texto
+// e um mockup fake próprio — ver landingScrollySection/landingScrollyMockup
+// e updateLandingScrolly (troca de passo pelo scroll, sem depender de render()).
+const LANDING_SCROLLY_STEPS = [
+  {
+    tab: 'Ingredientes', icon: 'box', eyebrow: 'Passo 1',
+    title: 'Cadastre ingredientes e despesas',
+    text: 'Preço de compra, quantidade e as despesas fixas do seu negócio — uma vez só, tudo num lugar.',
+    mockup: 'ingredientes',
+  },
+  {
+    tab: 'Receitas', icon: 'whisk', eyebrow: 'Passo 2',
+    title: 'Monte suas receitas',
+    text: 'Adicione os ingredientes usados e a quantidade de cada um — o custo de cada receita sai sozinho.',
+    mockup: 'receitas',
+  },
+  {
+    tab: 'Precificação', icon: 'trending', eyebrow: 'Passo 3',
+    title: 'Veja o preço sugerido',
+    text: 'Com a margem de lucro que você escolher — mínima, média ou máxima — calculada na hora, sem planilha.',
+    mockup: 'precificacao',
+  },
+  {
+    tab: 'Vitrine', icon: 'storefront', eyebrow: 'Passo 4',
+    title: 'Publique sua vitrine online',
+    text: 'Marque as receitas prontas pra vender e compartilhe um link com a lista bonita dos seus doces.',
+    mockup: 'vitrine',
+  },
 ];
 
 const LANDING_PLANS = [
@@ -2340,26 +2363,160 @@ function landingNav() {
     </header>`;
 }
 
+// Telas "de mentira" (recriadas em HTML/CSS, sem dado real) usadas nos
+// mockups da landing — moldura de navegador pras telas internas da
+// plataforma, moldura de celular pra vitrine (é lá que o cliente final vê).
+function fauxWindow(bodyHtml) {
+  return `
+    <div class="faux-window">
+      <div class="faux-window-bar"><span></span><span></span><span></span></div>
+      <div class="faux-window-body">${bodyHtml}</div>
+    </div>`;
+}
+
+function fauxPhone(bodyHtml) {
+  return `
+    <div class="faux-phone">
+      <div class="faux-phone-notch"></div>
+      <div class="faux-phone-body">${bodyHtml}</div>
+    </div>`;
+}
+
+const LANDING_SCROLLY_MOCKUPS = {
+  ingredientes: () => fauxWindow(`
+    <div class="faux-row"><span class="faux-dot" style="background:#e8c07d"></span><div><strong>Açúcar mascavo</strong><small>1000g · R$ 11,44</small></div></div>
+    <div class="faux-row"><span class="faux-dot" style="background:#8a5a3a"></span><div><strong>Chocolate 70%</strong><small>500g · R$ 24,90</small></div></div>
+    <div class="faux-row"><span class="faux-dot" style="background:#e9d7a8"></span><div><strong>Manteiga</strong><small>200g · R$ 9,80</small></div></div>
+    <div class="faux-row"><span class="faux-dot" style="background:#c8795b"></span><div><strong>Leite condensado</strong><small>395g · R$ 6,20</small></div></div>`),
+  receitas: () => fauxWindow(`
+    <p class="faux-card-title">Brownie de colher</p>
+    <div class="faux-meta"><span>Rendimento</span><strong>12 un.</strong></div>
+    <div class="faux-meta"><span>Ingredientes usados</span><strong>8</strong></div>
+    <div class="faux-meta"><span>Custo total da receita</span><strong>R$ 25,20</strong></div>`),
+  precificacao: () => fauxWindow(`
+    <div class="faux-meta faux-meta-highlight"><span>Custo por unidade</span><strong>R$ 2,10</strong></div>
+    <p class="faux-card-title" style="margin-top:14px">Preços sugeridos</p>
+    <div class="faux-tier"><span>Mínimo</span><strong>R$ 4,90</strong></div>
+    <div class="faux-tier is-active"><span>Média</span><strong>R$ 6,90</strong></div>
+    <div class="faux-tier"><span>Máximo</span><strong>R$ 8,90</strong></div>`),
+  vitrine: () => fauxPhone(`
+    <p class="faux-menu-brand">Doce Ponto</p>
+    <div class="faux-menu-item"><span class="faux-menu-photo"></span><div><strong>Brownie de colher</strong><p>Chocolate 70%, nozes e brigadeiro</p></div></div>
+    <p class="faux-menu-price">R$ 6,90</p>
+    <div class="faux-menu-item"><span class="faux-menu-photo"></span><div><strong>Cookie recheado</strong><p>Gotas de chocolate ao leite</p></div></div>
+    <p class="faux-menu-price">R$ 5,50</p>`),
+};
+
+// "Como funciona": abas fixas + mockup trocando conforme o scroll (ver
+// updateLandingScrolly) — a faixa alta (.landing-scrolly-track) dá espaço de
+// rolagem pros 4 passos enquanto o conteúdo (.landing-scrolly-inner) fica
+// grudado na tela (position: sticky).
+function landingScrollySection() {
+  return `
+    <section class="landing-scrolly" id="como-funciona">
+      <div class="landing-scrolly-track">
+        <div class="landing-scrolly-inner">
+          <div class="landing-section-inner">
+            <p class="eyebrow">Como funciona</p>
+            <h2>Do ingrediente ao cliente, em um só lugar</h2>
+            <div class="landing-scrolly-tabs">
+              ${LANDING_SCROLLY_STEPS.map((step, i) => `
+                <button type="button" class="landing-scrolly-tab ${i === 0 ? 'is-active' : ''}" data-step="${i}" data-action="scrolly-goto" data-step-target="${i}">
+                  ${icon(step.icon)}<span>${escapeHtml(step.tab)}</span>
+                </button>`).join('')}
+            </div>
+            <div class="landing-scrolly-stage">
+              <div class="landing-scrolly-copy">
+                ${LANDING_SCROLLY_STEPS.map((step, i) => `
+                  <div class="landing-scrolly-copy-item ${i === 0 ? 'is-active' : ''}" data-step="${i}">
+                    <p class="eyebrow">${escapeHtml(step.eyebrow)}</p>
+                    <h3>${escapeHtml(step.title)}</h3>
+                    <p>${escapeHtml(step.text)}</p>
+                    <button type="button" data-action="goto" data-route="cadastro">Testar grátis por 7 dias</button>
+                  </div>`).join('')}
+              </div>
+              <div class="landing-scrolly-mockup">
+                ${LANDING_SCROLLY_STEPS.map((step, i) => `
+                  <div class="landing-scrolly-mockup-item ${i === 0 ? 'is-active' : ''}" data-step="${i}">
+                    ${LANDING_SCROLLY_MOCKUPS[step.mockup]()}
+                  </div>`).join('')}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>`;
+}
+
+// Hero: card branco com título em duas cores e mockup fake da tela de
+// precificação, cercado de cartõezinhos flutuantes (depoimento, métrica,
+// selo de margem) com uma leve animação contínua de flutuação (CSS).
+function landingHeroV2() {
+  return `
+    <section class="landing-hero-v2">
+      <div class="landing-section-inner landing-hero-v2-inner">
+        <p class="eyebrow-pill">Feito para confeitarias</p>
+        <h1><span class="muted-tone">Sua confeitaria</span> no lucro certo</h1>
+        <div class="landing-hero-v2-stage">
+          <div class="landing-hero-floater landing-hero-floater-1">
+            <span class="landing-hero-floater-avatar" style="background:${avatarColorFor('Marina Duarte')}">MD</span>
+            <div><strong>Marina Duarte</strong><small>Doce Ponto Confeitaria</small></div>
+          </div>
+          ${fauxWindow(`
+            <div class="faux-meta faux-meta-highlight"><span>Custo por unidade</span><strong>R$ 2,10</strong></div>
+            <div class="faux-tier"><span>Mínimo</span><strong>R$ 4,90</strong></div>
+            <div class="faux-tier is-active"><span>Média</span><strong>R$ 6,90</strong></div>
+            <div class="faux-tier"><span>Máximo</span><strong>R$ 8,90</strong></div>
+          `)}
+          <div class="landing-hero-floater landing-hero-floater-2">
+            ${icon('trending')}<div><strong>+28%</strong><small>de margem média</small></div>
+          </div>
+          <div class="landing-hero-floater landing-hero-floater-3">
+            ${icon('check')}<div><strong>Margem garantida</strong><small>em cada receita</small></div>
+          </div>
+        </div>
+        <div class="landing-hero-actions">
+          <button type="button" data-action="goto" data-route="cadastro">Testar grátis por 7 dias</button>
+          <a href="#precos" class="landing-link-cta">Ver planos e preços</a>
+        </div>
+        <p class="landing-hero-note">Sem cartão de crédito para começar. Cancele quando quiser.</p>
+      </div>
+    </section>`;
+}
+
+// Painel escuro full-bleed com foto + cartões flutuantes de recursos —
+// reforça a praticidade do dia a dia (mesmo tratamento visual da referência
+// usada, seção "Endless Workout Options").
+function landingFeaturePanel() {
+  const cards = [
+    { title: 'Ingredientes ilimitados', text: 'Cadastre quantos insumos e embalagens usar.' },
+    { title: 'Cálculo automático', text: 'Custo e preço sugerido recalculados a cada alteração.' },
+    { title: 'Vitrine sincronizada', text: 'O que você publica aparece na hora pro seu cliente.' },
+  ];
+  return `
+    <section class="landing-feature-panel reveal" id="praticidade">
+      <img src="/assets/pexels-anntarazevich-6036020.webp" alt="" class="landing-feature-photo" />
+      <div class="landing-feature-overlay"></div>
+      <div class="landing-section-inner landing-feature-inner">
+        <p class="eyebrow-pill landing-feature-eyebrow">Praticidade todo dia</p>
+        <h2>Feito pra rotina da sua confeitaria</h2>
+        <p class="landing-section-subtitle" style="margin:12px 0 0;color:rgba(255,255,255,0.75)">Sem planilha, sem calculadora, sem achismo — só o preço certo, sempre à mão.</p>
+        <div class="landing-feature-cards">
+          ${cards.map((c, i) => `
+            <div class="landing-feature-card reveal" style="--reveal-delay: ${(i * 0.1).toFixed(2)}s">
+              <h3>${escapeHtml(c.title)}</h3>
+              <p>${escapeHtml(c.text)}</p>
+            </div>`).join('')}
+        </div>
+      </div>
+    </section>`;
+}
+
 function landingHtml() {
   return `
     <div class="landing">
       ${landingNav()}
-      <section class="landing-hero">
-        <img src="/assets/bg-login.webp" alt="" class="landing-hero-photo" />
-        <div class="landing-hero-overlay"></div>
-        <div class="landing-section-inner landing-hero-inner">
-          <div class="landing-hero-copy">
-            <p class="eyebrow">Precificação para confeitaria</p>
-            <h1>Pare de vender seus doces no prejuízo</h1>
-            <p class="landing-hero-subtitle">O Doce Preço calcula o preço certo de cada receita com base no custo real de ingredientes, despesas e a margem de lucro que você quer ganhar.</p>
-            <div class="landing-hero-actions">
-              <button type="button" data-action="goto" data-route="cadastro">Testar grátis por 7 dias</button>
-              <a href="#precos" class="landing-link-cta">Ver planos e preços</a>
-            </div>
-            <p class="landing-hero-note">Sem cartão de crédito para começar. Cancele quando quiser.</p>
-          </div>
-        </div>
-      </section>
+      ${landingHeroV2()}
 
       <section class="landing-section landing-section-dark" id="beneficios">
         <div class="landing-section-inner">
@@ -2379,39 +2536,20 @@ function landingHtml() {
         </div>
       </section>
 
-      <section class="landing-section landing-section-tint" id="como-funciona">
-        <div class="landing-section-inner">
-          <div class="landing-how-grid">
-            <div class="landing-how-image reveal">
-              <img src="/assets/pexels-anntarazevich-6035994.webp" alt="Confeiteira preparando uma receita" />
-            </div>
-            <div class="landing-how-content">
-              <p class="eyebrow">Como funciona</p>
-              <h2>Comece a precificar em 3 passos</h2>
-              <div class="landing-steps">
-                ${LANDING_STEPS.map((step, index) => `
-                  <div class="landing-step" style="--step-delay: ${(index * 0.2).toFixed(2)}s">
-                    <span class="landing-step-icon">${icon(step.icon)}</span>
-                    <div>
-                      <h3>${escapeHtml(step.title)}</h3>
-                      <p>${escapeHtml(step.text)}</p>
-                    </div>
-                  </div>`).join('')}
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
+      ${landingScrollySection()}
+
+      ${landingFeaturePanel()}
 
       <section class="landing-section" id="precos">
         <div class="landing-section-inner">
-          <p class="eyebrow">Planos</p>
-          <h2>Escolha o plano da sua confeitaria</h2>
+          <p class="eyebrow-pill">Planos</p>
+          <h2><span class="muted-tone">Escolha o plano</span> da sua confeitaria</h2>
           <p class="landing-section-subtitle">Todos os planos incluem 7 dias de teste grátis. Cancele quando quiser.</p>
           <div class="landing-pricing-grid">
             ${LANDING_PLANS.map((plan, index) => `
               <div class="landing-plan-card reveal ${plan.highlight ? 'is-highlight' : ''}" style="--reveal-delay: ${(index * 0.12).toFixed(2)}s">
                 ${plan.highlight ? '<span class="landing-plan-badge">Mais popular</span>' : ''}
+                <span class="landing-plan-icon">${icon(plan.highlight ? 'star' : 'cupcake')}</span>
                 <h3>${escapeHtml(plan.name)}</h3>
                 <p class="landing-plan-description">${escapeHtml(plan.description)}</p>
                 <p class="landing-plan-price">${formatCurrency(plan.price)}<span>/mês</span></p>
@@ -2427,6 +2565,12 @@ function landingHtml() {
       <section class="landing-cta">
         <img src="/assets/pexels-amar-9329437.webp" alt="" class="landing-cta-photo" />
         <div class="landing-cta-overlay"></div>
+        <div class="landing-cta-marquee" aria-hidden="true">
+          <div class="landing-cta-marquee-track">
+            <span>Comece agora · Comece agora · Comece agora · Comece agora · </span>
+            <span>Comece agora · Comece agora · Comece agora · Comece agora · </span>
+          </div>
+        </div>
         <div class="landing-section-inner landing-cta-inner reveal">
           <h2>Pronta pra saber o preço certo dos seus doces?</h2>
           <button type="button" data-action="goto" data-route="cadastro">Testar grátis por 7 dias</button>
@@ -2638,7 +2782,6 @@ function publicMenuFooter(company) {
 
 function publicMenuHtml() {
   const slug = state.route.param;
-  const productId = state.route.param2;
   if (!slug || state.publicMenu.slug !== slug) {
     return `<div class="menu-loading"><span class="loading-whisk">${icon('whisk')}</span></div>`;
   }
@@ -2648,14 +2791,22 @@ function publicMenuHtml() {
   if (!state.publicMenu.company) {
     return `<div class="menu-empty-page"><h1>Cardápio não encontrado</h1><p>Verifique se o link está correto.</p></div>`;
   }
-  return productId
-    ? renderPublicProductPage(state.publicMenu, productId)
-    : renderPublicMenuList(state.publicMenu);
+  return renderPublicMenuList(state.publicMenu);
 }
 
 function renderPublicMenuList(menu) {
   const { company, products } = menu;
   const categories = deriveMenuCategories(products);
+  const links = PUBLIC_DELIVERY_BRANDS
+    .map((brand) => ({ brand, url: company[brand.key] }))
+    .filter((l) => isHttpUrl(l.url));
+  const deliveryLinksHtml = links.length ? `
+    <div class="menu-item-links">
+      <p class="eyebrow">Peça pelo app</p>
+      <div class="delivery-shortcuts">
+        ${links.map((l) => `<a class="delivery-shortcut" href="${escapeHtml(l.url)}" target="_blank" rel="noopener noreferrer">${deliveryBadge(l.brand, 'delivery-badge-sm')}<span>${escapeHtml(l.brand.label)}</span></a>`).join('')}
+      </div>
+    </div>` : '';
   return `
     <div class="menu-page">
       ${publicMenuHeader(company, categories)}
@@ -2671,53 +2822,25 @@ function renderPublicMenuList(menu) {
               <section class="menu-category" id="cat-${slugify(cat)}">
                 <h2>${escapeHtml(cat)}</h2>
                 ${products.filter((p) => (p.category?.trim() || 'Cardápio') === cat).map((product) => `
-                  <a class="menu-item" href="#/cardapio/${escapeHtml(company.slug)}/${product.id}">
-                    ${product.photo_url ? `<img src="${escapeHtml(product.photo_url)}" alt="" class="menu-item-photo" />` : '<span class="menu-item-photo menu-item-photo-empty"></span>'}
+                  <div class="menu-item">
+                    ${product.photo_url
+                      ? `<button type="button" class="menu-item-photo-btn" data-action="open-menu-lightbox" data-url="${escapeHtml(product.photo_url)}" aria-label="Ampliar foto de ${escapeHtml(product.name)}"><img src="${escapeHtml(product.photo_url)}" alt="" class="menu-item-photo" /></button>`
+                      : '<span class="menu-item-photo menu-item-photo-empty"></span>'}
                     <div class="menu-item-info">
                       <div class="menu-item-top"><strong>${escapeHtml(product.name)}</strong><span class="menu-item-price">${formatCurrency(toNumberSafe(product.menu_price))}</span></div>
                       ${product.description ? `<p>${escapeHtml(product.description)}</p>` : ''}
+                      ${deliveryLinksHtml}
                     </div>
-                  </a>`).join('')}
+                  </div>`).join('')}
               </section>`).join('')}
         </div>
       </div>
       ${publicMenuFooter(company)}
-    </div>`;
-}
-
-function renderPublicProductPage(menu, productId) {
-  const { company, products } = menu;
-  const categories = deriveMenuCategories(products);
-  const product = products.find((p) => p.id === productId);
-  if (!product) {
-    return `
-      <div class="menu-page">
-        ${publicMenuHeader(company, categories)}
-        <div class="menu-empty-page"><h1>Produto não encontrado</h1><a href="#/cardapio/${escapeHtml(company.slug)}">Voltar ao cardápio</a></div>
-        ${publicMenuFooter(company)}
-      </div>`;
-  }
-  const links = PUBLIC_DELIVERY_BRANDS
-    .map((brand) => ({ brand, url: company[brand.key] }))
-    .filter((l) => isHttpUrl(l.url));
-  return `
-    <div class="menu-page">
-      ${publicMenuHeader(company, categories)}
-      <div class="menu-product-page">
-        <a class="menu-back" href="#/cardapio/${escapeHtml(company.slug)}">${icon('arrow', 'menu-back-icon')} Voltar ao cardápio</a>
-        ${product.photo_url ? `<img src="${escapeHtml(product.photo_url)}" alt="" class="menu-product-photo" />` : ''}
-        <h1>${escapeHtml(product.name)}</h1>
-        ${product.description ? `<p class="menu-product-description">${escapeHtml(product.description)}</p>` : ''}
-        <p class="menu-product-price">${formatCurrency(toNumberSafe(product.menu_price))}</p>
-        ${links.length ? `
-          <div class="menu-product-links">
-            <p class="eyebrow">Peça pelo app</p>
-            <div class="delivery-shortcuts">
-              ${links.map((l) => `<a class="delivery-shortcut" href="${escapeHtml(l.url)}" target="_blank" rel="noopener noreferrer">${deliveryBadge(l.brand, 'delivery-badge-sm')}<span>${escapeHtml(l.brand.label)}</span></a>`).join('')}
-            </div>
-          </div>` : ''}
-      </div>
-      ${publicMenuFooter(company)}
+      ${state.menuLightboxUrl ? `
+        <div class="menu-lightbox" data-action="close-menu-lightbox">
+          <button type="button" class="menu-lightbox-close" data-action="close-menu-lightbox" aria-label="Fechar">${icon('close')}</button>
+          <img src="${escapeHtml(state.menuLightboxUrl)}" alt="" />
+        </div>` : ''}
     </div>`;
 }
 
@@ -2758,7 +2881,36 @@ function setupScrollReveal() {
   targets.forEach((el) => {
     if (!el.classList.contains('is-visible')) scrollRevealObserver.observe(el);
   });
+  updateLandingScrolly();
 }
+
+// Seção "Como funciona" da landing: uma faixa alta (.landing-scrolly-track)
+// com o conteúdo (.landing-scrolly-inner) grudado (position: sticky) — a
+// aba/texto/mockup ativos mudam direto no DOM conforme a posição de scroll
+// dentro dessa faixa, sem passar por render() (mudaria a cada pixel rolado).
+let scrollyRaf = null;
+function updateLandingScrolly() {
+  const track = app.querySelector('.landing-scrolly-track');
+  if (!track) return;
+  const stepCount = LANDING_SCROLLY_STEPS.length;
+  const rect = track.getBoundingClientRect();
+  const total = rect.height - window.innerHeight;
+  const progress = total > 0 ? Math.min(1, Math.max(0, -rect.top / total)) : 0;
+  const stepIndex = Math.min(stepCount - 1, Math.floor(progress * stepCount));
+  if (track.dataset.activeStep === String(stepIndex)) return;
+  track.dataset.activeStep = String(stepIndex);
+  track.querySelectorAll('[data-step]').forEach((el) => {
+    el.classList.toggle('is-active', Number(el.dataset.step) === stepIndex);
+  });
+}
+
+window.addEventListener('scroll', () => {
+  if (scrollyRaf) return;
+  scrollyRaf = requestAnimationFrame(() => {
+    scrollyRaf = null;
+    updateLandingScrolly();
+  });
+}, { passive: true });
 
 // ---------------- Ações: autenticação ----------------
 
@@ -3998,6 +4150,30 @@ app.addEventListener('click', (event) => {
       state.mobileMenuOpen = false;
       const overlay = app.querySelector('.mobile-drawer-overlay');
       if (overlay) overlay.classList.remove('open');
+      break;
+    }
+    // Ampliar a foto do produto na vitrine (modal simples, só a imagem sobre
+    // fundo escuro) — não há mais página interna do produto pra mostrar a
+    // foto grande, então esse é o único jeito de vê-la ampliada.
+    case 'open-menu-lightbox':
+      state.menuLightboxUrl = el.dataset.url;
+      render();
+      break;
+    case 'close-menu-lightbox':
+      state.menuLightboxUrl = null;
+      render();
+      break;
+    // Clique numa aba do "como funciona" (landing): rola até o trecho do
+    // scroll pinado (ver updateLandingScrolly) correspondente àquele passo,
+    // em vez de pular direto (o scroll em si já troca a aba ativa).
+    case 'scrolly-goto': {
+      const track = document.querySelector('.landing-scrolly-track');
+      if (track) {
+        const idx = Number(el.dataset.stepTarget);
+        const total = track.offsetHeight - window.innerHeight;
+        const trackTop = track.getBoundingClientRect().top + window.scrollY;
+        window.scrollTo({ top: trackTop + (total * (idx + 0.5)) / LANDING_SCROLLY_STEPS.length, behavior: 'smooth' });
+      }
       break;
     }
     case 'open-change-password':
