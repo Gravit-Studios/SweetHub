@@ -599,6 +599,7 @@ function handleConfirmLeave() {
 const ICON_PATHS = {
   home: '<path d="M3 11.5 12 4l9 7.5"/><path d="M5 10v9h14v-9"/><path d="M9.5 19v-5h5v5"/>',
   box: '<path d="M3 8l9-4 9 4-9 4-9-4Z"/><path d="M3 8v8l9 4 9-4V8"/><path d="M12 12v8"/>',
+  upload: '<path d="M12 15V4"/><path d="M7 9l5-5 5 5"/><path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/>',
   leaf: '<path d="M5 19c8 0 14-6 14-14 0 0-14-2-14 8 0 3 2 6 2 6Z"/><path d="M5 19c0-4 2-7 5-9"/>',
   wallet: '<rect x="3" y="6" width="18" height="13" rx="3"/><path d="M3 10.5h18"/><circle cx="16.5" cy="14.5" r="1.1" fill="currentColor" stroke="none"/>',
   trending: '<path d="M4 16l6-6 4 4 6-8"/><path d="M15 6h5v5"/>',
@@ -985,15 +986,16 @@ function productsTable(list) {
 function photoUploadField(editorKey, editor) {
   const previewSrc = editor.photoPreviewUrl || editor.photoUrl || '';
   return `
-    <label class="photo-dropzone" data-photo-drop="${editorKey}">
+    <label class="photo-dropzone ${previewSrc ? 'has-preview' : ''}" data-photo-drop="${editorKey}">
       <input type="file" accept="image/*" data-photo-input="${editorKey}" hidden />
       ${previewSrc
-        ? `<img src="${previewSrc}" alt="Prévia da foto da receita" class="photo-preview" />`
-        : `<div class="photo-dropzone-icon">${icon('box')}</div>`}
-      <div class="photo-dropzone-text">
-        <strong>${previewSrc ? 'Trocar foto' : 'Arraste uma foto aqui ou clique para enviar'}</strong>
-        <span>PNG ou JPG</span>
-      </div>
+        ? `<img src="${previewSrc}" alt="Prévia da foto da receita" class="photo-preview" />
+          <div class="photo-dropzone-text"><strong>Trocar foto</strong><span>PNG ou JPG</span></div>`
+        : `<div class="photo-dropzone-icon">${icon('upload')}</div>
+          <div class="photo-dropzone-text">
+            <p>Arraste uma foto aqui ou <strong>clique para enviar</strong></p>
+            <span>PNG ou JPG</span>
+          </div>`}
     </label>`;
 }
 
@@ -1003,18 +1005,19 @@ function photoUploadField(editorKey, editor) {
 function logoUploadField() {
   const previewSrc = state.company.logoPreviewUrl || state.company.logoUrl || '';
   return `
-    <label class="photo-dropzone logo-dropzone" data-logo-drop>
+    <label class="photo-dropzone logo-dropzone ${previewSrc ? 'has-preview' : ''}" data-logo-drop>
       <input type="file" accept="image/*" data-logo-input hidden />
       ${previewSrc
         ? `<div class="photo-preview-wrap">
             <img src="${previewSrc}" alt="Prévia do logotipo" class="photo-preview" />
             <span class="photo-preview-edit">${icon('pencil')}</span>
-          </div>`
-        : `<div class="photo-dropzone-icon">${icon('box')}</div>`}
-      <div class="photo-dropzone-text">
-        <strong>${previewSrc ? 'Trocar logotipo' : 'Arraste um logotipo aqui ou clique para enviar'}</strong>
-        <span>PNG ou JPG</span>
-      </div>
+          </div>
+          <div class="photo-dropzone-text"><strong>Trocar logotipo</strong><span>PNG ou JPG</span></div>`
+        : `<div class="photo-dropzone-icon">${icon('upload')}</div>
+          <div class="photo-dropzone-text">
+            <p>Arraste um logotipo aqui ou <strong>clique para enviar</strong></p>
+            <span>PNG ou JPG</span>
+          </div>`}
     </label>`;
 }
 

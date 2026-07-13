@@ -1,24 +1,35 @@
 @use '../abstracts' as *;
 
 // Upload de foto de receita, reaproveitado no wizard e no detalhe: a área
-// toda (imagem/ícone + texto) é um único alvo clicável e de arrastar-soltar.
-// Sem borda/moldura própria — o painel que já envolve isso (.panel) já
-// demarca o espaço, então uma segunda caixa tracejada só sobrava como área
-// vazia à direita do conteúdo.
+// toda (ícone + texto) é um único alvo clicável e de arrastar-soltar, com
+// moldura tracejada (sem foto ainda) igual ao padrão de outras áreas de
+// upload. Com uma foto já escolhida (.has-preview), vira uma linha com a
+// miniatura à esquerda em vez da caixa tracejada centralizada.
 .photo-dropzone {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 20px;
-  flex-wrap: wrap;
-  padding: 8px;
-  margin: -8px;
-  border-radius: $radius-md;
+  justify-content: center;
+  gap: 10px;
+  text-align: center;
+  padding: 32px 20px;
+  border: 1.5px dashed $border;
+  border-radius: $radius-lg;
   cursor: pointer;
-  transition: background 0.15s ease;
+  transition: border-color 0.15s ease, background 0.15s ease;
 
   &:hover,
   &.is-dragover {
+    border-color: $primary-400;
     background: rgba($primary-500, 0.04);
+  }
+
+  &.has-preview {
+    flex-direction: row;
+    justify-content: flex-start;
+    text-align: left;
+    padding: 8px;
+    border-style: solid;
   }
 }
 
@@ -60,8 +71,8 @@
 }
 
 .photo-dropzone-icon {
-  width: 120px;
-  height: 120px;
+  width: 44px;
+  height: 44px;
   border-radius: $radius-md;
   background: $surface-tint;
   color: $secondary-600;
@@ -71,8 +82,8 @@
   flex-shrink: 0;
 
   .icon {
-    width: 32px;
-    height: 32px;
+    width: 20px;
+    height: 20px;
   }
 }
 
@@ -80,6 +91,12 @@
   display: flex;
   flex-direction: column;
   gap: 2px;
+
+  p {
+    margin: 0;
+    color: $ink-700;
+    font-size: 0.95rem;
+  }
 
   strong {
     color: $primary-600;
