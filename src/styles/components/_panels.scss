@@ -108,6 +108,17 @@
   color: $ink-400;
 }
 
+.empty-state-illustration {
+  width: 160px;
+  margin: 0 auto 12px;
+
+  svg {
+    width: 100%;
+    height: auto;
+    display: block;
+  }
+}
+
 .pending-approval-panel {
   max-width: 480px;
   margin: 60px auto;

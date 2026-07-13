@@ -660,16 +660,28 @@ function statusBox() {
   return state.statusMessage ? `<p class="status-message">${escapeHtml(state.statusMessage)}</p>` : '';
 }
 
+// SVGs animados (SMIL) exportados de um pacote de ícones — o Chromium não
+// decodifica esse tipo de SVG quando usado via <img>/<object> (a animação
+// simplesmente não aparece, fica em branco), só quando faz parte de verdade
+// do documento. Por isso injetamos o markup inline via fetch (ver
+// hydrateInlineSvgs) em vez de referenciar o arquivo direto num <img>.
+function inlineSvgPlaceholder(tag, className, src) {
+  return `<${tag} class="${className}" data-inline-svg="${src}"></${tag}>`;
+}
+
 function loadingMsg() {
   return `
     <div class="loading-state" role="status" aria-label="Carregando">
-      <span class="loading-whisk">${icon('whisk')}</span>
+      ${inlineSvgPlaceholder('span', 'loading-whisk', '/assets/cooking-loader.svg')}
       <span class="muted">Carregando...</span>
     </div>`;
 }
 
 function emptyState(message, showCta) {
-  return `<div class="empty-state"><p>${escapeHtml(message)}</p>${showCta ? '<button type="button" data-action="start-wizard">Criar receita</button>' : ''}</div>`;
+  return `<div class="empty-state">
+    ${inlineSvgPlaceholder('div', 'empty-state-illustration', '/assets/cooking-illustration.svg')}
+    <p>${escapeHtml(message)}</p>${showCta ? '<button type="button" data-action="start-wizard">Criar receita</button>' : ''}
+  </div>`;
 }
 
 // Ação de "adicionar mais uma linha" (ingrediente, despesa...): um link
@@ -2481,6 +2493,7 @@ function landingHeroV2() {
           <a href="#precos" class="landing-link-cta">Ver planos e preços</a>
         </div>
         <p class="landing-hero-note">Sem cartão de crédito para começar. Cancele quando quiser.</p>
+        ${inlineSvgPlaceholder('div', 'landing-hero-illustration', '/assets/cooking-illustration.svg')}
       </div>
     </section>`;
 }
@@ -2786,10 +2799,10 @@ function publicMenuFooter(company) {
 function publicMenuHtml() {
   const slug = state.route.param;
   if (!slug || state.publicMenu.slug !== slug) {
-    return `<div class="menu-loading"><span class="loading-whisk">${icon('whisk')}</span></div>`;
+    return `<div class="menu-loading">${inlineSvgPlaceholder('span', 'loading-whisk', '/assets/cooking-loader.svg')}</div>`;
   }
   if (state.publicMenu.loading) {
-    return `<div class="menu-loading"><span class="loading-whisk">${icon('whisk')}</span></div>`;
+    return `<div class="menu-loading">${inlineSvgPlaceholder('span', 'loading-whisk', '/assets/cooking-loader.svg')}</div>`;
   }
   if (!state.publicMenu.company) {
     return `<div class="menu-empty-page"><h1>Cardápio não encontrado</h1><p>Verifique se o link está correto.</p></div>`;
@@ -2856,6 +2869,30 @@ function render() {
     : (state.session ? shellHtml() : publicHtml());
   restoreFocus(restore);
   setupScrollReveal();
+  hydrateInlineSvgs();
+}
+
+// Busca e injeta o markup de cada [data-inline-svg] ainda vazio (ver
+// inlineSvgPlaceholder) — cacheado em memória pra não refazer o fetch a
+// cada render() (a cada mudança de estado da página, não só ao navegar).
+const inlineSvgCache = new Map();
+function hydrateInlineSvgs() {
+  app.querySelectorAll('[data-inline-svg]').forEach(async (el) => {
+    if (el.childNodes.length) return;
+    const src = el.dataset.inlineSvg;
+    if (inlineSvgCache.has(src)) {
+      el.innerHTML = inlineSvgCache.get(src);
+      return;
+    }
+    try {
+      const text = await (await fetch(src)).text();
+      inlineSvgCache.set(src, text);
+      if (!el.isConnected) return;
+      el.innerHTML = text;
+    } catch {
+      // Sem ilustração/loader animado, mas o resto da página segue normal.
+    }
+  });
 }
 
 // Animação de entrada ao dar scroll (landing page): cada render substitui o

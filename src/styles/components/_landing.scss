@@ -408,8 +408,19 @@
 
 .landing-hero-note {
   margin: 0;
-  color: rgba($white, 0.7);
+  color: $ink-400;
   font-size: 0.85rem;
+}
+
+.landing-hero-illustration {
+  width: min(420px, 90%);
+  margin: 32px auto 0;
+
+  svg {
+    width: 100%;
+    height: auto;
+    display: block;
+  }
 }
 
 .landing-section {
