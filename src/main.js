@@ -2445,21 +2445,23 @@ function landingStepsBigSection() {
         <h2>Do ingrediente à precificação certa</h2>
       </div>
       <div class="landing-steps-big-track" style="height: ${LANDING_STEPS_BIG.length * 90}vh">
-        <div class="landing-section-inner landing-steps-big-stack">
-          <div class="landing-steps-big-photo">
-            ${LANDING_STEPS_BIG_PHOTOS.map((photo, i) => `
-              <div class="landing-steps-big-photo-item ${i === 0 ? 'is-active' : ''}" data-step="${i}">
-                <img src="${photo.src}" alt="${escapeHtml(photo.alt)}" />
+        <div class="landing-steps-big-sticky">
+          <div class="landing-section-inner landing-steps-big-stack">
+            <div class="landing-steps-big-photo">
+              ${LANDING_STEPS_BIG_PHOTOS.map((photo, i) => `
+                <div class="landing-steps-big-photo-item ${i === 0 ? 'is-active' : ''}" data-step="${i}">
+                  <img src="${photo.src}" alt="${escapeHtml(photo.alt)}" />
+                </div>`).join('')}
+            </div>
+            ${LANDING_STEPS_BIG.map((step, i) => `
+              <div class="landing-steps-big-row ${i === 0 ? 'is-active' : ''}" data-step="${i}">
+                <span class="landing-steps-big-num">${escapeHtml(step.num)}</span>
+                <div class="landing-steps-big-text">
+                  <h3>${escapeHtml(step.label)}</h3>
+                  <p>${escapeHtml(step.text)}</p>
+                </div>
               </div>`).join('')}
           </div>
-          ${LANDING_STEPS_BIG.map((step, i) => `
-            <div class="landing-steps-big-row ${i === 0 ? 'is-active' : ''}" data-step="${i}">
-              <span class="landing-steps-big-num">${escapeHtml(step.num)}</span>
-              <div class="landing-steps-big-text">
-                <h3>${escapeHtml(step.label)}</h3>
-                <p>${escapeHtml(step.text)}</p>
-              </div>
-            </div>`).join('')}
         </div>
       </div>
     </section>`;

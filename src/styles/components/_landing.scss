@@ -97,14 +97,11 @@
 .landing-hero-v2 {
   position: relative;
   overflow: hidden;
-  margin: 24px 24px 0;
-  border-radius: $radius-xl;
   min-height: 80vh;
   display: flex;
   flex-direction: column;
 
   @include respond-down($bp-tablet) {
-    margin: 12px 12px 0;
     min-height: auto;
   }
 }
@@ -537,15 +534,20 @@
   position: relative;
 }
 
-.landing-steps-big-stack {
+// Painel do tamanho da tela (abaixo do navbar) que gruda no topo enquanto a
+// pista rola por baixo — a centralização vertical vem do próprio flex
+// (align-items: center) em vez de um transform, que "vazava" pra fora da
+// pista (sobrepondo a seção anterior) antes do sticky realmente engatar.
+.landing-steps-big-sticky {
   position: sticky;
-  // Centralizado verticalmente no espaço visível abaixo do navbar (em vez de
-  // colado no topo), pra não sobrar um vão em branco embaixo enquanto a
-  // pista rola por baixo.
-  top: calc($navbar-height / 2 + 50vh);
-  transform: translateY(-50%);
-  margin-top: 20px;
-  padding-bottom: 40px;
+  top: $navbar-height;
+  height: calc(100vh - #{$navbar-height});
+  display: flex;
+  align-items: center;
+}
+
+.landing-steps-big-stack {
+  width: 100%;
 }
 
 .landing-steps-big-row {
