@@ -2326,6 +2326,15 @@ const LANDING_STEPS_BIG = [
   },
 ];
 
+// Uma foto por passo — troca e desce um pouco conforme o scroll (ver
+// updateStepsBigPhoto), pra dar mais movimento à seção sem reintroduzir o
+// scroll pinado inteiro (abas/mockup) que a seção tinha antes.
+const LANDING_STEPS_BIG_PHOTOS = [
+  { src: '/assets/pexels-anntarazevich-6035994.webp', alt: 'Confeiteira preparando uma receita' },
+  { src: '/assets/pexels-anntarazevich-6036020.webp', alt: 'Calda de chocolate sendo derramada' },
+  { src: '/assets/pexels-amar-9329437.webp', alt: 'Doces prontos para servir' },
+];
+
 const LANDING_PLANS = [
   {
     key: 'basico',
@@ -2387,8 +2396,9 @@ function fauxWindow(bodyHtml) {
 }
 
 // "Como funciona": lista editorial com números grandes (estilo textos
-// grandes sobrepostos de referência) — sem interação de scroll, só uma
-// foto de destaque flutuando no canto.
+// grandes sobrepostos de referência) — a foto de destaque troca e desce
+// aos poucos conforme o scroll (ver updateStepsBigPhoto), o resto da seção
+// não depende de scroll pinado.
 function landingStepsBigSection() {
   return `
     <section class="landing-steps-big" id="como-funciona">
@@ -2397,7 +2407,10 @@ function landingStepsBigSection() {
         <h2>Do ingrediente à precificação certa</h2>
         <div class="landing-steps-big-stack">
           <div class="landing-steps-big-photo reveal">
-            <img src="/assets/pexels-anntarazevich-6035994.webp" alt="Confeiteira preparando uma receita" />
+            ${LANDING_STEPS_BIG_PHOTOS.map((photo, i) => `
+              <div class="landing-steps-big-photo-item ${i === 0 ? 'is-active' : ''}" data-step="${i}">
+                <img src="${photo.src}" alt="${escapeHtml(photo.alt)}" />
+              </div>`).join('')}
           </div>
           ${LANDING_STEPS_BIG.map((step, i) => `
             <div class="landing-steps-big-row reveal" style="--reveal-delay: ${(i * 0.1).toFixed(2)}s">
@@ -2868,7 +2881,7 @@ function hydrateInlineSvgs() {
 // O observer em si é reaproveitado (criado uma única vez).
 let scrollRevealObserver = null;
 function setupScrollReveal() {
-  const targets = app.querySelectorAll('.reveal, .landing-steps');
+  const targets = app.querySelectorAll('.reveal');
   if (!targets.length) return;
   if (!('IntersectionObserver' in window)) {
     targets.forEach((el) => el.classList.add('is-visible'));
@@ -2887,7 +2900,37 @@ function setupScrollReveal() {
   targets.forEach((el) => {
     if (!el.classList.contains('is-visible')) scrollRevealObserver.observe(el);
   });
+  updateStepsBigPhoto();
 }
+
+// Foto de destaque da seção "Como funciona": desce um pouco e troca de
+// imagem conforme o scroll passa pela faixa de passos — dá movimento sem
+// reintroduzir o scroll pinado (tabs/mockup) que a seção tinha antes.
+let stepsPhotoRaf = null;
+function updateStepsBigPhoto() {
+  const stack = app.querySelector('.landing-steps-big-stack');
+  const photo = app.querySelector('.landing-steps-big-photo');
+  if (!stack || !photo) return;
+  const rect = stack.getBoundingClientRect();
+  const total = rect.height + window.innerHeight;
+  const progress = Math.min(1, Math.max(0, (window.innerHeight - rect.top) / total));
+  photo.style.transform = `translateY(${(progress * 80).toFixed(1)}px)`;
+  const photoCount = LANDING_STEPS_BIG_PHOTOS.length;
+  const stepIndex = Math.min(photoCount - 1, Math.floor(progress * photoCount));
+  if (photo.dataset.activeStep === String(stepIndex)) return;
+  photo.dataset.activeStep = String(stepIndex);
+  photo.querySelectorAll('[data-step]').forEach((el) => {
+    el.classList.toggle('is-active', Number(el.dataset.step) === stepIndex);
+  });
+}
+
+window.addEventListener('scroll', () => {
+  if (stepsPhotoRaf) return;
+  stepsPhotoRaf = requestAnimationFrame(() => {
+    stepsPhotoRaf = null;
+    updateStepsBigPhoto();
+  });
+}, { passive: true });
 
 // ---------------- Ações: autenticação ----------------
 
