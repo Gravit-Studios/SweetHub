@@ -2952,14 +2952,11 @@ function setupScrollReveal() {
 // (.landing-steps-big-track) rola por baixo — a cada trecho da pista, acende
 // o passo (texto + número) e troca a foto correspondente. Mais leve que o
 // scroll pinado antigo (abas/mockup): é só opacidade + crossfade, sem travar
-// a rolagem de verdade nem exigir JS pra "soltar" o pin. O deslocamento em
-// si roda num loop de rAF separado (stepsPhotoTarget/stepsPhotoCurrent) que
-// interpola (lerp) até o alvo a cada frame — sem isso a foto "pulava" junto
-// com o evento de scroll em vez de acompanhar de forma suave.
+// a rolagem de verdade nem exigir JS pra "soltar" o pin. O deslocamento
+// acompanha o scroll 1:1 (só o rAF-throttle abaixo, ~16ms) — um lerp/loop
+// próprio aqui já foi tentado e deixava a foto visivelmente atrasada em
+// relação ao scroll de verdade, o oposto do que se queria.
 let stepsPhotoRaf = null;
-let stepsPhotoTarget = 0;
-let stepsPhotoCurrent = 0;
-let stepsPhotoLoopRunning = false;
 const STEPS_PHOTO_TRAVEL = 160;
 
 function updateStepsBigPhoto() {
@@ -2969,8 +2966,7 @@ function updateStepsBigPhoto() {
   const rect = track.getBoundingClientRect();
   const total = rect.height - window.innerHeight;
   const progress = total > 0 ? Math.min(1, Math.max(0, -rect.top / total)) : 0;
-  stepsPhotoTarget = progress * STEPS_PHOTO_TRAVEL;
-  ensureStepsPhotoLoop();
+  photo.style.transform = `translateY(${(progress * STEPS_PHOTO_TRAVEL).toFixed(1)}px)`;
   const stepCount = LANDING_STEPS_BIG_PHOTOS.length;
   const stepIndex = Math.min(stepCount - 1, Math.floor(progress * stepCount));
   if (photo.dataset.activeStep === String(stepIndex)) return;
@@ -2981,28 +2977,6 @@ function updateStepsBigPhoto() {
   app.querySelectorAll('.landing-steps-big-row[data-step]').forEach((el) => {
     el.classList.toggle('is-active', Number(el.dataset.step) === stepIndex);
   });
-}
-
-function ensureStepsPhotoLoop() {
-  if (stepsPhotoLoopRunning) return;
-  stepsPhotoLoopRunning = true;
-  const tick = () => {
-    const photo = app.querySelector('.landing-steps-big-photo');
-    if (!photo) {
-      stepsPhotoLoopRunning = false;
-      return;
-    }
-    stepsPhotoCurrent += (stepsPhotoTarget - stepsPhotoCurrent) * 0.22;
-    if (Math.abs(stepsPhotoTarget - stepsPhotoCurrent) < 0.05) {
-      stepsPhotoCurrent = stepsPhotoTarget;
-      photo.style.transform = `translateY(${stepsPhotoCurrent.toFixed(1)}px)`;
-      stepsPhotoLoopRunning = false;
-      return;
-    }
-    photo.style.transform = `translateY(${stepsPhotoCurrent.toFixed(1)}px)`;
-    requestAnimationFrame(tick);
-  };
-  requestAnimationFrame(tick);
 }
 
 window.addEventListener('scroll', () => {

@@ -610,10 +610,9 @@
   width: 300px;
   height: calc(300px * 4 / 3);
   z-index: 1;
-  // O deslocamento (translateY) é 100% via JS, interpolado suavemente frame
-  // a frame (ver ensureStepsPhotoLoop em main.js) — uma transition CSS aqui
-  // dobraria o suavizado (JS já anima) e deixaria o acompanhamento do
-  // scroll com atraso perceptível.
+  // O deslocamento (translateY) acompanha o scroll 1:1 via JS (ver
+  // updateStepsBigPhoto em main.js) — uma transition CSS aqui atrasaria
+  // visivelmente a foto em relação ao scroll de verdade.
 
   @include respond-down($bp-tablet) {
     display: none;
