@@ -524,6 +524,13 @@
   justify-content: center;
   padding: 48px 0;
 
+  // Só o título da seção fica centralizado — o conteúdo de cada passo
+  // (abas, texto, mockup) continua alinhado à esquerda, ver .landing-scrolly-stage.
+  > .landing-section-inner > .eyebrow,
+  > .landing-section-inner > h2 {
+    text-align: center;
+  }
+
   @include respond-down($bp-tablet) {
     position: static;
     min-height: 0;
@@ -534,7 +541,7 @@
   display: flex;
   justify-content: center;
   gap: 4px;
-  margin: 20px auto 40px;
+  margin: 40px auto 40px;
   padding: 4px;
   border-radius: $radius-pill;
   background: $surface-tint;
@@ -597,18 +604,44 @@
   }
 }
 
+// No desktop, texto e mockup de todos os passos ficam empilhados na mesma
+// célula de grid (se sobrepõem) — só o passo ativo aparece, com um
+// fade+leve deslocamento na troca (bem mais evidente que um corte seco de
+// display:none/block). O grid também garante que o container já nasça do
+// tamanho do maior passo, sem pular de altura ao trocar.
+.landing-scrolly-copy,
+.landing-scrolly-mockup {
+  display: grid;
+}
+
 .landing-scrolly-copy {
-  position: relative;
-  min-height: 220px;
+  @include respond-down($bp-tablet) {
+    display: block;
+  }
+}
+
+.landing-scrolly-copy-item,
+.landing-scrolly-mockup-item {
+  grid-area: 1 / 1;
+  opacity: 0;
+  transform: translateY(14px);
+  transition: opacity 0.45s ease, transform 0.45s ease;
+  pointer-events: none;
+
+  &.is-active {
+    opacity: 1;
+    transform: none;
+    pointer-events: auto;
+  }
 
   @include respond-down($bp-tablet) {
-    min-height: 0;
+    opacity: 1;
+    transform: none;
+    pointer-events: auto;
   }
 }
 
 .landing-scrolly-copy-item {
-  display: none;
-
   h3 {
     margin: 8px 0 12px;
   }
@@ -617,12 +650,7 @@
     margin-top: 20px;
   }
 
-  &.is-active {
-    display: block;
-  }
-
   @include respond-down($bp-tablet) {
-    display: block;
     padding-bottom: 32px;
     border-bottom: 1px solid $border;
 
@@ -630,14 +658,6 @@
       border-bottom: 0;
       padding-bottom: 0;
     }
-  }
-}
-
-.landing-scrolly-mockup-item {
-  display: none;
-
-  &.is-active {
-    display: block;
   }
 }
 
@@ -676,13 +696,16 @@
     box-shadow: $shadow-md;
   }
 
-  h3 {
-    margin-bottom: 4px;
-  }
-
   > button {
     margin-top: 24px;
   }
+}
+
+.landing-plan-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
 }
 
 .landing-plan-badge {
@@ -840,7 +863,7 @@
   border-radius: $radius-md;
   background: $primary-100;
   color: $primary-600;
-  margin-bottom: 16px;
+  flex-shrink: 0;
 
   .icon {
     width: 22px;

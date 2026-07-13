@@ -2338,6 +2338,7 @@ const LANDING_PLANS = [
       'Tudo do plano Básico',
       'Gestão de fornecedores',
       'Gestão da empresa (CNPJ, endereço, links de delivery)',
+      'Vitrine online para vender seus doces',
     ],
     highlight: true,
   },
@@ -2549,8 +2550,10 @@ function landingHtml() {
             ${LANDING_PLANS.map((plan, index) => `
               <div class="landing-plan-card reveal ${plan.highlight ? 'is-highlight' : ''}" style="--reveal-delay: ${(index * 0.12).toFixed(2)}s">
                 ${plan.highlight ? '<span class="landing-plan-badge">Mais popular</span>' : ''}
-                <span class="landing-plan-icon">${icon(plan.highlight ? 'star' : 'cupcake')}</span>
-                <h3>${escapeHtml(plan.name)}</h3>
+                <div class="landing-plan-head">
+                  <span class="landing-plan-icon">${icon(plan.highlight ? 'star' : 'cupcake')}</span>
+                  <h3>${escapeHtml(plan.name)}</h3>
+                </div>
                 <p class="landing-plan-description">${escapeHtml(plan.description)}</p>
                 <p class="landing-plan-price">${formatCurrency(plan.price)}<span>/mês</span></p>
                 <ul class="landing-plan-features">
@@ -2802,7 +2805,6 @@ function renderPublicMenuList(menu) {
     .filter((l) => isHttpUrl(l.url));
   const deliveryLinksHtml = links.length ? `
     <div class="menu-item-links">
-      <p class="eyebrow">Peça pelo app</p>
       <div class="delivery-shortcuts">
         ${links.map((l) => `<a class="delivery-shortcut" href="${escapeHtml(l.url)}" target="_blank" rel="noopener noreferrer">${deliveryBadge(l.brand, 'delivery-badge-sm')}<span>${escapeHtml(l.brand.label)}</span></a>`).join('')}
       </div>
