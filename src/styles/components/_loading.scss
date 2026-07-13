@@ -19,3 +19,13 @@
     height: 100%;
   }
 }
+
+// Tela cheia enquanto o perfil de verdade ainda não carregou (ver
+// profileLoaded/profileLoadingHtml em main.js) — evita mostrar o shell com
+// dados de placeholder por um instante.
+.app-boot-loading {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}

@@ -177,6 +177,11 @@ const state = {
   ingredientColumnFilters: {},
   openIngredientFilterColumn: null,
 
+  // Falso até o primeiro carregamento do perfil de verdade (ver
+  // loadUserData): enquanto isso, o profile abaixo é só um placeholder, e
+  // shellHtml() não deve usá-lo pra decidir aprovação/trial (ver
+  // profileLoaded em shellHtml).
+  profileLoaded: false,
   profile: { fullName: '', role: 'user', approvalStatus: 'approved', plan: 'trial', trialEndsAt: null },
   settings: { fullName: '', email: '' },
   company: {
@@ -277,6 +282,7 @@ async function loadUserData() {
       createdAt: profile.created_at || null,
       lastPriceReviewAt: profile.last_price_review_at || null,
     };
+    state.profileLoaded = true;
     // Conta ainda não aprovada pelo super admin: não carrega o resto dos
     // dados nem libera o app — só a tela de "aguardando aprovação".
     if (state.profile.role !== 'admin' && state.profile.approvalStatus !== 'approved') {
@@ -476,6 +482,7 @@ onAuthStateChange((session) => {
     state.customerSearch = '';
     state.ingredientColumnFilters = {};
     state.openIngredientFilterColumn = null;
+    state.profileLoaded = false;
     state.profile = { fullName: '', role: 'user', approvalStatus: 'approved', plan: 'trial', trialEndsAt: null };
     state.settings = { fullName: '', email: '' };
     state.settingsSnapshot = '{}';
@@ -2213,7 +2220,18 @@ function priceReviewAlertMenu() {
     </div>`;
 }
 
+function profileLoadingHtml() {
+  return `<div class="app-boot-loading">${loadingMsg()}</div>`;
+}
+
 function shellHtml() {
+  // Antes do perfil de verdade carregar, state.profile é só o placeholder
+  // (plan: 'trial', trialEndsAt: null) — sem esse gate, os checks abaixo
+  // leriam isso como "trial encerrado" por um instante, mesmo pra quem já é
+  // Pro (ver profileLoaded em loadUserData).
+  if (!state.profileLoaded) {
+    return profileLoadingHtml();
+  }
   const displayName = state.profile.fullName || nameFromEmail(state.session.user.email);
   const isAdmin = state.profile.role === 'admin';
   if (!isAdmin && state.profile.approvalStatus !== 'approved') {
