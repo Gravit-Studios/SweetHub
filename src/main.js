@@ -49,6 +49,20 @@ function toDecimalString(value) {
   return num ? String(num).replace('.', ',') : '';
 }
 
+// Máscara de dinheiro (padrão PDV/app de banco): os dígitos digitados
+// preenchem da direita pra esquerda, os 2 últimos sempre viram os centavos —
+// assim "2400" já aparece como "24,00" sem o usuário precisar digitar a
+// vírgula. Aplicada em todo input dentro de um .input-prefix (ver listener
+// de 'input' mais abaixo), então cobre tanto campos controlados (data-field/
+// data-ingredient-field/data-modal-field) quanto os lidos via FormData no
+// submit — a máscara mexe direto no value do elemento antes de qualquer um
+// desses caminhos ler o valor.
+function applyMoneyMask(input) {
+  const digits = input.value.replace(/\D/g, '');
+  input.value = digits ? (Number(digits) / 100).toFixed(2).replace('.', ',') : '';
+  input.setSelectionRange(input.value.length, input.value.length);
+}
+
 function formatDate(value) {
   if (!value) return '—';
   return new Date(value).toLocaleDateString('pt-BR');
@@ -112,6 +126,9 @@ function defaultDetail() {
     menuCategory: '',
     menuDescription: '',
     menuPrice: '',
+    // Nome do nível de lucro escolhido como preço no cardápio, ou 'custom'
+    // quando o usuário prefere digitar um valor à parte dos sugeridos.
+    menuPriceTier: '',
     menuPublished: false,
     errors: {},
   };
@@ -317,9 +334,26 @@ async function ensureDetailLoaded(id) {
       menuCategory: product.category || '',
       menuDescription: product.description || '',
       menuPrice: product.menu_price ? toDecimalString(product.menu_price) : '',
+      menuPriceTier: '',
       menuPublished: Boolean(product.published),
       errors: {},
     };
+    // Preço no cardápio nasce como um select com os níveis de lucro já
+    // cadastrados (ver renderMenuFields); aqui só decidimos qual opção vem
+    // pré-selecionada: o nível cujo preço bate com o salvo, "Informar outro
+    // preço" se o valor salvo não bate com nenhum nível, ou o primeiro nível
+    // (preenchendo o preço) quando a receita ainda não tem preço definido.
+    const pricing = pricingFor(state.detail);
+    const savedPrice = toNumberSafe(state.detail.menuPrice);
+    if (savedPrice > 0) {
+      const match = pricing.tiers.find((tier) => Math.abs(tier.unitPrice - savedPrice) < 0.005);
+      state.detail.menuPriceTier = match ? match.name : 'custom';
+    } else if (pricing.tiers.length > 0) {
+      state.detail.menuPriceTier = pricing.tiers[0].name;
+      state.detail.menuPrice = toDecimalString(pricing.tiers[0].unitPrice);
+    } else {
+      state.detail.menuPriceTier = 'custom';
+    }
     state.detailSnapshot = detailSnapshotOf(state.detail);
   } catch (error) {
     state.statusMessage = `Erro ao abrir receita: ${error.message}`;
@@ -491,6 +525,7 @@ function detailSnapshotOf(editor) {
     menuCategory: editor.menuCategory,
     menuDescription: editor.menuDescription,
     menuPrice: editor.menuPrice,
+    menuPriceTier: editor.menuPriceTier,
     menuPublished: editor.menuPublished,
   });
 }
@@ -637,12 +672,24 @@ function basicFields(editorKey, editor) {
 // Campos do cardápio público (recurso do plano Pro): categoria, descrição,
 // preço de exibição e o interruptor de publicação por receita.
 function renderMenuFields(editorKey, editor) {
+  const pricing = pricingFor(editor);
+  const isCustomPrice = editor.menuPriceTier === 'custom' || pricing.tiers.length === 0;
   return `
     <p class="muted">Preencha e ative "Publicar no cardápio" para essa receita aparecer no seu cardápio online (ver link na página Empresa).</p>
     <div class="field-grid">
       <label>Categoria<input data-editor="${editorKey}" data-field="menuCategory" value="${escapeHtml(editor.menuCategory)}" placeholder="Ex.: Bolos, Doces, Salgados" /></label>
-      <label>Preço no cardápio<div class="input-prefix"><span class="prefix">R$</span><input inputmode="decimal" placeholder="0,00" data-editor="${editorKey}" data-field="menuPrice" value="${escapeHtml(editor.menuPrice)}" /></div></label>
+      <label>Preço no cardápio
+        <select data-editor="${editorKey}" data-field="menuPriceTier">
+          ${pricing.tiers.map((tier) => `<option value="${escapeHtml(tier.name)}" ${editor.menuPriceTier === tier.name ? 'selected' : ''}>${escapeHtml(tier.name)} — ${formatCurrency(tier.unitPrice)}</option>`).join('')}
+          <option value="custom" ${isCustomPrice ? 'selected' : ''}>Informar outro preço</option>
+        </select>
+      </label>
     </div>
+    ${isCustomPrice ? `
+    <div class="input-prefix" style="margin-top:16px;max-width:220px;">
+      <span class="prefix">R$</span>
+      <input inputmode="decimal" placeholder="0,00" data-editor="${editorKey}" data-field="menuPrice" value="${escapeHtml(editor.menuPrice)}" />
+    </div>` : ''}
     <label style="margin-top:16px;">Descrição<textarea data-editor="${editorKey}" data-field="menuDescription" rows="3" placeholder="Uma breve descrição que aparece na página do produto">${escapeHtml(editor.menuDescription)}</textarea></label>
     <label class="consent-field consent-field-inline" style="margin-top:16px;">
       <input type="checkbox" data-action="toggle-menu-published" ${editor.menuPublished ? 'checked' : ''} />
@@ -2451,7 +2498,20 @@ const PUBLIC_DELIVERY_BRANDS = [
   { key: 'keeta_url', label: 'Keeta', logo: '/assets/logo-keeta.png' },
 ];
 
-function publicMenuHeader(company) {
+// Categorias na ordem em que aparecem pela primeira vez na lista de
+// produtos — usado tanto pra montar a barra lateral (desktop) quanto o
+// menu de categorias (mobile), então fica num único lugar.
+function deriveMenuCategories(products) {
+  const categories = [];
+  for (const product of products) {
+    const name = product.category?.trim() || 'Cardápio';
+    if (!categories.includes(name)) categories.push(name);
+  }
+  return categories;
+}
+
+function publicMenuHeader(company, categories) {
+  const hasNav = categories.length > 1;
   return `
     <header class="menu-header">
       <div class="menu-header-inner">
@@ -2459,8 +2519,30 @@ function publicMenuHeader(company) {
           ${company.logo_url ? `<img src="${escapeHtml(company.logo_url)}" alt="" class="menu-logo" />` : ''}
           <span>${escapeHtml(company.company_name || 'Cardápio')}</span>
         </a>
+        ${hasNav ? `<button type="button" class="navbar-menu-toggle" data-action="toggle-mobile-menu" aria-label="Abrir categorias">${icon('menu')}</button>` : ''}
       </div>
-    </header>`;
+    </header>
+    ${hasNav ? publicMenuNavDrawer(company, categories) : ''}`;
+}
+
+// Menu de categorias no mobile: mesmo drawer lateral do app logado (mesma
+// classe, mesmo estado state.mobileMenuOpen e a mesma ação
+// "toggle-mobile-menu" de abrir/fechar/clicar fora) — no desktop a barra
+// lateral (.menu-sidebar) já cobre a navegação, então o CSS esconde esse
+// drawer lá (ver _menu.scss).
+function publicMenuNavDrawer(company, categories) {
+  return `
+    <div class="mobile-drawer-overlay ${state.mobileMenuOpen ? 'open' : ''}">
+      <nav class="mobile-drawer">
+        <div class="mobile-drawer-header">
+          <span class="brand">${escapeHtml(company.company_name || 'Cardápio')}</span>
+          <button type="button" class="icon-btn ghost" data-action="toggle-mobile-menu" aria-label="Fechar categorias">${icon('close')}</button>
+        </div>
+        <ul class="mobile-drawer-nav">
+          ${categories.map((cat) => `<li><button type="button" class="nav-link" data-action="scroll-to-menu-category" data-target="cat-${slugify(cat)}">${escapeHtml(cat)}</button></li>`).join('')}
+        </ul>
+      </nav>
+    </div>`;
 }
 
 function publicMenuFooter(company) {
@@ -2498,18 +2580,14 @@ function publicMenuHtml() {
 
 function renderPublicMenuList(menu) {
   const { company, products } = menu;
-  const categories = [];
-  for (const product of products) {
-    const name = product.category?.trim() || 'Cardápio';
-    if (!categories.includes(name)) categories.push(name);
-  }
+  const categories = deriveMenuCategories(products);
   return `
     <div class="menu-page">
-      ${publicMenuHeader(company)}
+      ${publicMenuHeader(company, categories)}
       <div class="menu-body">
         ${categories.length > 1 ? `
           <nav class="menu-sidebar">
-            ${categories.map((cat) => `<a href="#cat-${slugify(cat)}">${escapeHtml(cat)}</a>`).join('')}
+            ${categories.map((cat) => `<button type="button" data-action="scroll-to-menu-category" data-target="cat-${slugify(cat)}">${escapeHtml(cat)}</button>`).join('')}
           </nav>` : ''}
         <div class="menu-content">
           ${products.length === 0
@@ -2534,11 +2612,12 @@ function renderPublicMenuList(menu) {
 
 function renderPublicProductPage(menu, productId) {
   const { company, products } = menu;
+  const categories = deriveMenuCategories(products);
   const product = products.find((p) => p.id === productId);
   if (!product) {
     return `
       <div class="menu-page">
-        ${publicMenuHeader(company)}
+        ${publicMenuHeader(company, categories)}
         <div class="menu-empty-page"><h1>Produto não encontrado</h1><a href="#/cardapio/${escapeHtml(company.slug)}">Voltar ao cardápio</a></div>
         ${publicMenuFooter(company)}
       </div>`;
@@ -2548,7 +2627,7 @@ function renderPublicProductPage(menu, productId) {
     .filter((l) => isHttpUrl(l.url));
   return `
     <div class="menu-page">
-      ${publicMenuHeader(company)}
+      ${publicMenuHeader(company, categories)}
       <div class="menu-product-page">
         <a class="menu-back" href="#/cardapio/${escapeHtml(company.slug)}">${icon('arrow', 'menu-back-icon')} Voltar ao cardápio</a>
         ${product.photo_url ? `<img src="${escapeHtml(product.photo_url)}" alt="" class="menu-product-photo" />` : ''}
@@ -3477,6 +3556,17 @@ app.addEventListener('compositionend', () => { isComposing = false; });
 app.addEventListener('input', (event) => {
   if (isComposing) return;
   const target = event.target;
+  if (target.matches?.('.input-prefix input')) applyMoneyMask(target);
+  if (target.dataset.field === 'menuPriceTier') {
+    const ed = getEditor(target.dataset.editor);
+    ed.menuPriceTier = target.value;
+    if (target.value !== 'custom') {
+      const tier = pricingFor(ed).tiers.find((t) => t.name === target.value);
+      if (tier) ed.menuPrice = toDecimalString(tier.unitPrice);
+    }
+    render();
+    return;
+  }
   if (target.dataset.ingredientField) {
     const ed = getEditor(target.dataset.editor);
     const rowId = target.closest('[data-ingredient]').dataset.ingredient;
@@ -3795,6 +3885,17 @@ app.addEventListener('click', (event) => {
       const overlay = app.querySelector('.mobile-drawer-overlay');
       if (overlay) overlay.classList.toggle('open', state.mobileMenuOpen);
       else render();
+      break;
+    }
+    // Categoria escolhida no menu mobile do cardápio público (mesmo drawer
+    // do app logado, ver publicMenuNavDrawer): rola até a seção em vez de
+    // navegar por #hash (isso mudaria a rota pra fora de #/cardapio/:slug)
+    // e fecha o drawer.
+    case 'scroll-to-menu-category': {
+      document.getElementById(el.dataset.target)?.scrollIntoView({ behavior: 'smooth' });
+      state.mobileMenuOpen = false;
+      const overlay = app.querySelector('.mobile-drawer-overlay');
+      if (overlay) overlay.classList.remove('open');
       break;
     }
     case 'open-change-password':

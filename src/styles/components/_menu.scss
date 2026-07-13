@@ -24,6 +24,8 @@
   width: min(900px, 100%);
   margin: 0 auto;
   padding: 16px 24px;
+  display: flex;
+  align-items: center;
 
   @include respond-down($bp-tablet) {
     padding: 14px 16px;
@@ -73,13 +75,17 @@
   flex-shrink: 0;
   width: 180px;
 
-  a {
+  button {
+    display: block;
+    width: 100%;
+    text-align: left;
     padding: 8px 12px;
     border-radius: $radius-sm;
+    background: none;
     color: $ink-700;
     font-weight: $fw-medium;
     font-size: $fs-sm;
-    text-decoration: none;
+    font: inherit;
 
     &:hover {
       background: $surface-tint;
@@ -87,11 +93,11 @@
     }
   }
 
+  // No mobile a navegação por categoria vira o drawer do header (mesmo
+  // componente do menu mobile do app logado, ver publicMenuNavDrawer no
+  // main.js) em vez desta barra lateral.
   @include respond-down($bp-tablet) {
-    position: static;
-    flex-direction: row;
-    flex-wrap: wrap;
-    width: 100%;
+    display: none;
   }
 }
 
