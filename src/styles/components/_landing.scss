@@ -466,6 +466,9 @@
 .landing-steps-big {
   position: relative;
   scroll-margin-top: $navbar-height;
+  // Sem .landing-section, essa seção não herdava o padding-top que separa
+  // as demais seções — ficava colada na seção escura anterior.
+  padding-top: clamp(48px, 7vw, 80px);
   // A foto desce conforme o scroll (ver updateStepsBigPhoto em main.js) —
   // sem isso, em algum ponto ela vaza pra baixo da seção e some atrás do
   // painel escuro seguinte em vez de só ficar fora da vista.
