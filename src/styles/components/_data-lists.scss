@@ -425,17 +425,18 @@
       display: block;
     }
 
+    // Sem borda/fundo/raio próprios — o painel que já envolve a lista (.panel)
+    // já é a "caixa"; um cartão com moldura própria por linha só duplicava
+    // margin+border dentro de outro margin+border. Um traço fino entre linhas
+    // já separa os itens.
     tr {
       display: block;
-      border: 1px solid $secondary-200;
-      border-radius: $radius-md;
-      padding: 14px 16px;
-      margin-bottom: 12px;
-      background: $surface;
+      padding: 14px 0;
+      border-bottom: 1px solid $secondary-100;
     }
 
     tbody tr:last-child {
-      margin-bottom: 0;
+      border-bottom: 0;
     }
 
     td {
@@ -495,11 +496,11 @@
   }
 
   // O :hover de .data-table-clickable (ver _product-cards.scss) é pensado
-  // pra mouse; em touch ele fica "grudado" no cartão tocado por último, o
+  // pra mouse; em touch ele fica "grudado" no item tocado por último, o
   // que parece um bug. No mobile trocamos o preenchimento por só destacar
-  // a borda do cartão.
+  // o traço debaixo do item.
   .data-table-cards-mobile.data-table-clickable tbody tr:hover {
     background: none;
-    border-color: $primary-500;
+    border-bottom-color: $primary-500;
   }
 }
