@@ -546,6 +546,14 @@
   align-items: center;
 }
 
+// Sem position:relative aqui, a foto (position:absolute; right:0) ancorava
+// no .landing-steps-big-sticky (full-bleed) em vez do container de conteúdo
+// — por isso ela vazava até a borda da viewport em vez de ficar contida
+// junto com o texto.
+.landing-steps-big-stack {
+  position: relative;
+}
+
 .landing-steps-big-row {
   display: flex;
   align-items: baseline;
