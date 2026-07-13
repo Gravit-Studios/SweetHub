@@ -21,6 +21,10 @@ $space-8: 32px;
 
 $bp-tablet: 900px;
 
+// Altura real do .navbar (padding 14px + conteúdo ~32px + borda 1px) — usada
+// pra grudar o cabeçalho de página logo abaixo dele ao fixar no scroll.
+$navbar-height: 61px;
+
 // Breakpoints do container padrão de conteúdo (largura em %, não de UI/nav).
 $bp-container-tablet: 992px;
 $bp-container-wide: 1540px;

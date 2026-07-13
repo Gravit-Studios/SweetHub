@@ -682,8 +682,17 @@ function addRowLink(label, action, editorKey = '') {
 function pageHeaderWithSave(eyebrow, title, saveAction, isDirty) {
   return `${pageBanner(eyebrow, title)}
     <div class="action-row">
-      <button type="button" data-action="${saveAction}" ${isDirty ? '' : 'disabled'}>Salvar alterações</button>
-    </div>`;
+      <button type="button" class="save-action-btn" data-action="${saveAction}" ${isDirty ? '' : 'disabled'}>Salvar alterações</button>
+    </div>
+    ${mobileSaveBar(saveAction, isDirty)}`;
+}
+
+// No mobile, o botão "Salvar alterações" some do lugar de origem (ver
+// .save-action-btn) e reaparece fixado no final da tela só quando há
+// alteração pendente — evita ter que rolar até o topo pra salvar.
+function mobileSaveBar(saveAction, isDirty) {
+  if (!isDirty) return '';
+  return `<div class="mobile-save-bar"><button type="button" data-action="${saveAction}">Salvar alterações</button></div>`;
 }
 
 // Padrão de campo do projeto: label acima do input, erro (se houver) abaixo.
@@ -1447,14 +1456,15 @@ function renderProdutoDetalhe(id) {
   const editor = state.detail;
   const isDirty = detailSnapshotOf(editor) !== state.detailSnapshot;
   return `
-    <div class="section-header">
+    <div class="section-header section-header-sticky">
       <div><p class="eyebrow">Receita</p><h2>${escapeHtml(editor.productName || 'Receita')}</h2></div>
       <div class="section-header-actions">
         <button type="button" class="ghost" data-action="goto" data-route="produtos">Voltar</button>
         <button type="button" class="danger" data-action="delete-detail" data-id="${id}" data-name="${escapeHtml(editor.productName)}">Excluir receita</button>
-        <button type="button" data-action="save-detail" ${isDirty ? '' : 'disabled'}>Salvar alterações</button>
+        <button type="button" class="save-action-btn" data-action="save-detail" ${isDirty ? '' : 'disabled'}>Salvar alterações</button>
       </div>
     </div>
+    ${mobileSaveBar('save-detail', isDirty)}
     ${statusBox()}
     <div class="panel">
       <h3>Foto da receita</h3>
