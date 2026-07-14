@@ -2982,8 +2982,11 @@ function updateStepsBigPhoto() {
   photo.querySelectorAll('[data-step]').forEach((el) => {
     el.classList.toggle('is-active', Number(el.dataset.step) === stepIndex);
   });
+  // Passos já vistos ficam acesos (não só o atual) — dá a sensação de ir
+  // "completando" a lista conforme rola, em vez de cada passo apagar de
+  // novo assim que o próximo acende.
   app.querySelectorAll('.landing-steps-big-row[data-step]').forEach((el) => {
-    el.classList.toggle('is-active', Number(el.dataset.step) === stepIndex);
+    el.classList.toggle('is-active', Number(el.dataset.step) <= stepIndex);
   });
 }
 
