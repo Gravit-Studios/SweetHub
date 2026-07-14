@@ -896,8 +896,8 @@ function ingredientUsageList(editor) {
   const used = editor.ingredients.filter((i) => !i.draft && i.name.trim());
   if (!used.length) return '';
   return `
-    <div class="ingredient-usage-list">
-      <p class="eyebrow">Ingredientes usados</p>
+    <div class="ingredient-usage-list summary-section">
+      <h3>Ingredientes usados</h3>
       <div class="table-scroll">
       <table class="data-table">
         <thead><tr><th>Ingrediente</th><th>Peso/qtd. total</th><th>Valor total</th><th>Qtd. utilizada</th><th>Valor utilizado</th></tr></thead>
