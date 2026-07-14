@@ -46,6 +46,14 @@ create table if not exists public.profiles (
   -- client, que mostra "ativado manualmente" quando ausentes).
   plan_billing_cycle text constraint profiles_plan_billing_cycle_check check (plan_billing_cycle in ('mensal', 'anual')),
   plan_renews_at timestamptz,
+  -- Preferência do usuário (aba Configurações), independente de cobrança de
+  -- verdade acontecer ou não ainda. Mapeia direto pro conceito de
+  -- auto_recurring do Mercado Pago (preapproval): true = assinatura seguiria
+  -- renovando no próximo ciclo; false = já foi "desativada a renovação
+  -- automática" e o acesso vale até plan_renews_at. Por enquanto é só
+  -- informativo — não corta o acesso sozinho (ver planStatus no client),
+  -- porque sem o checkout automático real a data é preenchida à mão.
+  plan_auto_renew boolean not null default true,
   -- Recurso do plano Controle: aviso a cada 30 dias pra revisar os preços
   -- das receitas (ver pricesNeedReview no client). Nulo até a primeira
   -- revisão marcada; nesse caso o client usa created_at como referência.

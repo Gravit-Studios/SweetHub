@@ -295,6 +295,7 @@ async function loadUserData() {
       trialEndsAt: profile.trial_ends_at || null,
       planBillingCycle: profile.plan_billing_cycle || null,
       planRenewsAt: profile.plan_renews_at || null,
+      planAutoRenew: profile.plan_auto_renew ?? true,
       createdAt: profile.created_at || null,
       lastPriceReviewAt: profile.last_price_review_at || null,
     };
@@ -468,6 +469,22 @@ async function handleAdminAction(action, userId) {
     );
   } catch (error) {
     state.admin.error = error.message;
+    render();
+  }
+}
+
+// Otimista: alterna na tela na hora e só desfaz se o updateProfile falhar
+// (ver toggle-plan-auto-renew) — é só uma preferência informativa por
+// enquanto, não vale a pena travar a UI numa chamada de rede pra isso.
+async function handleTogglePlanAutoRenew() {
+  const previous = state.profile.planAutoRenew;
+  state.profile.planAutoRenew = !previous;
+  render();
+  try {
+    await db.updateProfile(state.session.user.id, { plan_auto_renew: state.profile.planAutoRenew });
+  } catch (error) {
+    state.profile.planAutoRenew = previous;
+    state.statusMessage = `Erro: ${error.message}`;
     render();
   }
 }
@@ -1850,8 +1867,16 @@ function planInfoPanel(profile) {
     rows.push(cycleLabel
       ? `<div><dt>Cobrança</dt><dd>${cycleLabel}</dd></div>`
       : `<div><dt>Cobrança</dt><dd class="dd-muted">Ativado manualmente pela equipe Doce Preço</dd></div>`);
-    if (profile.planRenewsAt) {
-      rows.push(`<div><dt>${cycleLabel ? 'Renova em' : 'Vence em'}</dt><dd>${formatDate(profile.planRenewsAt)}</dd></div>`);
+    rows.push(`<div><dt>Renovação automática</dt><dd>
+      <label class="consent-field consent-field-inline">
+        <input type="checkbox" data-action="toggle-plan-auto-renew" ${profile.planAutoRenew ? 'checked' : ''} />
+        <span>${profile.planAutoRenew ? 'Ativada' : 'Desativada'}</span>
+      </label>
+    </dd></div>`);
+    if (!profile.planAutoRenew) {
+      rows.push(`<div><dt>Expira em</dt><dd>${profile.planRenewsAt ? formatDate(profile.planRenewsAt) : 'Ainda não definida — fale com o suporte.'}</dd></div>`);
+    } else if (profile.planRenewsAt) {
+      rows.push(`<div><dt>Renova em</dt><dd>${formatDate(profile.planRenewsAt)}</dd></div>`);
     }
   }
   const showUpgrade = status !== 'vitrine';
@@ -1965,7 +1990,7 @@ function renderAdminUsersList(users = state.admin.users) {
   if (!visible.length) return emptyState('Nenhum usuário encontrado.', false);
   return `<div class="table-scroll">
   <table class="data-table data-table-cards-mobile">
-    <thead><tr><th>Empresa</th><th>Nome</th><th>CNPJ</th><th>Status</th><th>Plano</th><th>Data de criação</th><th></th></tr></thead>
+    <thead><tr><th>Empresa</th><th>Nome</th><th>CNPJ</th><th>Status</th><th>Plano</th><th>Expira em</th><th>Data de criação</th><th></th></tr></thead>
     <tbody>
       ${visible.map((u) => {
         const banned = u.bannedUntil && new Date(u.bannedUntil) > new Date();
@@ -1979,6 +2004,7 @@ function renderAdminUsersList(users = state.admin.users) {
           <td data-label="CNPJ">${escapeHtml(u.cnpj || '—')}</td>
           <td data-label="Status"><span class="status-pill ${statusClass}">${statusLabel}</span></td>
           <td data-label="Plano">${planLabel(u)}</td>
+          <td data-label="Expira em">${u.planRenewsAt ? formatDate(u.planRenewsAt) : '—'}</td>
           <td data-label="Data de criação">${formatDate(u.createdAt)}</td>
           <td class="data-table-actions">
             ${pending ? `<button type="button" class="primary" data-action="admin-approve" data-id="${u.id}">Aprovar</button>` : ''}
@@ -4178,6 +4204,9 @@ app.addEventListener('click', (event) => {
     case 'request-upgrade':
       state.statusMessage = 'Em breve! Fale com a gente pelo suporte para migrar de plano.';
       render();
+      break;
+    case 'toggle-plan-auto-renew':
+      handleTogglePlanAutoRenew();
       break;
     case 'logout':
       requestNavigation(() => signOut());
