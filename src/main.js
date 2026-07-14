@@ -967,11 +967,11 @@ function pricingForProduct(product) {
   });
 }
 
-function productsTable(list) {
+function productsTable(list, { selectable = true } = {}) {
   const allSelected = list.length > 0 && list.every((p) => state.selectedProducts.has(p.id));
   return `<div class="table-scroll"><table class="data-table data-table-clickable data-table-cards-mobile">
     <thead><tr>
-      <th><input type="checkbox" aria-label="Selecionar todas" data-action="toggle-select-all-products" ${allSelected ? 'checked' : ''} /> Receita</th>
+      <th>${selectable ? `<input type="checkbox" aria-label="Selecionar todas" data-action="toggle-select-all-products" ${allSelected ? 'checked' : ''} /> ` : ''}Receita</th>
       <th>Qnt. por forma</th><th>Preço un.</th><th></th>
     </tr></thead>
     <tbody>
@@ -984,7 +984,7 @@ function productsTable(list) {
         <tr data-action="open-produto" data-id="${product.id}">
           <td>
             <div class="table-row-title">
-              <input type="checkbox" aria-label="Selecionar receita" data-action="toggle-select-product" data-id="${product.id}" ${checked ? 'checked' : ''} />
+              ${selectable ? `<input type="checkbox" aria-label="Selecionar receita" data-action="toggle-select-product" data-id="${product.id}" ${checked ? 'checked' : ''} />` : ''}
               ${product.photo_url
                 ? `<img class="item-avatar item-avatar-photo" src="${escapeHtml(product.photo_url)}" alt="" />`
                 : `<span class="item-avatar" style="background:${avatarColorFor(product.name)}">${escapeHtml(product.name.trim().charAt(0).toUpperCase() || '?')}</span>`}
@@ -1340,17 +1340,26 @@ function addRecipeIngredientModal(data) {
 
 // Modal de confirmação genérico para ações destrutivas/sensíveis (excluir
 // ingrediente/receita, suspender/excluir usuário no admin...). O rótulo do
-// botão de confirmação é configurável; por padrão é "Excluir".
+// botão de confirmação é configurável; por padrão é "Excluir". Quando
+// data.confirmText é definido (ex.: exclusão de usuário no admin), o botão
+// de confirmar só libera depois de digitar exatamente esse texto — barreira
+// extra contra clique acidental numa ação irreversível.
 function confirmDeleteModal(data) {
   const confirmLabel = data.confirmLabel || 'Excluir';
   const confirmLoadingLabel = data.confirmLoadingLabel || 'Excluindo...';
+  const needsTypedConfirm = Boolean(data.confirmText);
+  const typedMatches = !needsTypedConfirm || data.confirmInput === data.confirmText;
   return `
     <div class="modal-box">
       <div class="modal-header"><h3>${escapeHtml(data.title)}</h3><button type="button" class="icon-btn ghost" data-action="close-modal">${icon('close')}</button></div>
       ${data.error ? `<p class="auth-error">${escapeHtml(data.error)}</p>` : ''}
       <p>${escapeHtml(data.message)}</p>
+      ${needsTypedConfirm ? `
+      <label style="margin-top:16px;">Digite "${escapeHtml(data.confirmText)}" para confirmar
+        <input data-modal-field="confirmInput" value="${escapeHtml(data.confirmInput || '')}" autocomplete="off" />
+      </label>` : ''}
       <div class="save-actions">
-        <button type="button" class="danger" data-action="confirm-delete" ${data.loading ? 'disabled' : ''}>${data.loading ? confirmLoadingLabel : confirmLabel}</button>
+        <button type="button" class="danger" data-action="confirm-delete" ${data.loading || !typedMatches ? 'disabled' : ''}>${data.loading ? confirmLoadingLabel : confirmLabel}</button>
         <button type="button" class="ghost" data-action="close-modal">Cancelar</button>
       </div>
     </div>`;
@@ -1456,7 +1465,7 @@ function renderDashboard() {
     </div>
     <div class="panel">
       <div class="section-header"><h2>Receitas cadastradas</h2></div>
-      ${state.dataLoading ? loadingMsg() : (state.savedProducts.length ? productsTable(state.savedProducts) : emptyState('Nenhuma receita salva ainda.', true))}
+      ${state.dataLoading ? loadingMsg() : (state.savedProducts.length ? productsTable(state.savedProducts, { selectable: false }) : emptyState('Nenhuma receita salva ainda.', true))}
     </div>`;
 }
 
@@ -2931,8 +2940,21 @@ function renderPublicMenuList(menu) {
     </div>`;
 }
 
+// Chave da "página atual" pra decidir quando tocar a animação de entrada
+// (ver render/lastPageKey abaixo) — só muda ao navegar de verdade (rota,
+// parâmetro ou login/logout), nunca a cada re-render por causa de digitação,
+// abrir modal etc. (render() roda a cada tecla; sem esse filtro a animação
+// tocaria de novo a cada caractere digitado).
+let lastPageKey = null;
+
 function render() {
   const restore = captureFocus();
+  // dataLoading entra na chave pra a troca do spinner de carregamento pelo
+  // conteúdo de verdade (mesma rota, dois renders em loadUserData) também
+  // contar como "página nova" e animar — sem isso só o spinner animaria.
+  const pageKey = `${state.session ? 'app' : 'public'}:${state.route.path}:${state.route.param || ''}:${state.dataLoading}`;
+  const isNewPage = pageKey !== lastPageKey;
+  lastPageKey = pageKey;
   // O cardápio público é sempre a mesma página, esteja o visitante logado
   // ou não (ex.: o próprio lojista pré-visualizando o link) — por isso vem
   // antes do shellHtml()/publicHtml() de sempre.
@@ -2940,6 +2962,10 @@ function render() {
     ? publicMenuHtml()
     : (state.session ? shellHtml() : publicHtml());
   restoreFocus(restore);
+  // O primeiro filho é sempre o wrapper principal da página (.shell/.landing/
+  // .auth-page/...); os demais irmãos (modal, cookie bar, banner de upgrade)
+  // não devem deslizar junto — ver padrão em shellHtml/landingHtml/authHtml.
+  if (isNewPage) app.firstElementChild?.classList.add('page-enter');
   setupScrollReveal();
   hydrateInlineSvgs();
   renderRecaptchaWidgets();
@@ -3658,11 +3684,13 @@ function openConfirmAdminSuspend(user) {
 }
 
 function openConfirmAdminDelete(user) {
+  const confirmText = user.companyName || user.fullName || user.email;
   openModal('confirm-delete', {
     kind: 'admin-delete',
     id: user.id,
     title: 'Excluir usuário',
     message: `Excluir permanentemente a conta de "${user.fullName || user.email}" e todos os dados dele? Essa ação não pode ser desfeita.`,
+    confirmText,
   });
 }
 

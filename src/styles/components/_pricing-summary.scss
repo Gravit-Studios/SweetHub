@@ -185,9 +185,14 @@
   }
 }
 
+// Convenção padrão dos modais: um botão de cada lado, a ação principal
+// (primeira no DOM, ver confirmDeleteModal/modais de adicionar-editar) sempre
+// à direita — por isso row-reverse + space-between em vez da ordem do DOM.
 .save-actions {
   display: flex;
   flex-wrap: wrap;
+  flex-direction: row-reverse;
+  justify-content: space-between;
   gap: 10px;
   margin-top: 6px;
 }
