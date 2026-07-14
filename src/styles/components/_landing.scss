@@ -171,7 +171,7 @@
 
   @include respond-down($bp-tablet) {
     max-width: 340px;
-    margin: 40px auto 0;
+    margin: 64px auto 40px;
   }
 }
 
@@ -214,6 +214,7 @@
   animation-delay: 0s;
 
   @include respond-down($bp-tablet) {
+    top: -48px;
     left: 4px;
   }
 }
@@ -224,6 +225,7 @@
   animation-delay: 0.6s;
 
   @include respond-down($bp-tablet) {
+    top: -48px;
     right: 4px;
   }
 }
@@ -235,7 +237,7 @@
 
   @include respond-down($bp-tablet) {
     left: 4px;
-    bottom: -28px;
+    bottom: -56px;
   }
 }
 
@@ -552,6 +554,15 @@
 // junto com o texto.
 .landing-steps-big-stack {
   position: relative;
+  // Reserva espaço pra foto (absoluta, fora do fluxo) não ficar por cima do
+  // texto em telas médias, onde o container encolhe mas a foto continua com
+  // largura fixa — sem isso, títulos/linhas mais longas entravam embaixo
+  // dela.
+  padding-right: 340px;
+
+  @include respond-down($bp-tablet) {
+    padding-right: 0;
+  }
 }
 
 .landing-steps-big-row {
@@ -661,10 +672,18 @@
   }
 }
 
+// A seção de preços precisa de mais espaço horizontal que as outras (3
+// cartões lado a lado) — por isso o container próprio, mais largo que o
+// .landing-section-inner padrão (70/80/90%) usado no resto da landing.
+#precos .landing-section-inner {
+  width: 94%;
+  max-width: 1120px;
+}
+
 .landing-pricing-grid {
   margin-top: 12px;
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 340px));
+  grid-template-columns: repeat(auto-fit, minmax(260px, 320px));
   justify-content: center;
   gap: 24px;
   text-align: left;
@@ -861,19 +880,13 @@
   }
 }
 
-// Painel escuro full-bleed com foto de fundo + cartões flutuantes de
-// recursos — mesmo tratamento visual da seção "Endless Workout Options" da
-// referência usada.
+// Painel escuro full-bleed (sem margem/moldura, ocupa a viewport inteira)
+// com foto de fundo + cartões flutuantes de recursos — mesmo tratamento
+// visual da seção "Endless Workout Options" da referência usada.
 .landing-feature-panel {
   position: relative;
   overflow: hidden;
   padding: clamp(56px, 8vw, 96px) 0;
-  margin: 0 24px;
-  border-radius: $radius-xl;
-
-  @include respond-down($bp-tablet) {
-    margin: 0 12px;
-  }
 }
 
 .landing-feature-photo {
@@ -893,7 +906,10 @@
 .landing-feature-inner {
   position: relative;
   z-index: 1;
-  text-align: left;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 
   .eyebrow-pill {
     background: rgba($white, 0.12);
@@ -903,7 +919,8 @@
   h2 {
     margin: 14px 0 0;
     color: $white;
-    max-width: 20ch;
+    max-width: 16ch;
+    font-size: clamp(2rem, 4.5vw, 3rem);
   }
 }
 
@@ -912,26 +929,91 @@
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 16px;
+  text-align: left;
+  width: 100%;
 
   @include respond-down($bp-tablet) {
     grid-template-columns: 1fr;
   }
 }
 
+// Cada cartão revela uma fotinho de fundo ao passar o mouse (crossfade),
+// reforçando de forma tátil o recurso descrito — só no hover pra não competir
+// com a foto grande do painel por trás.
 .landing-feature-card {
+  position: relative;
+  overflow: hidden;
   background: rgba($white, 0.94);
   border-radius: $radius-lg;
   padding: 20px;
+  isolation: isolate;
+
+  .landing-feature-card-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: $radius-md;
+    background: $primary-100;
+    color: $primary-600;
+    margin-bottom: 14px;
+
+    .icon {
+      width: 20px;
+      height: 20px;
+    }
+  }
+
+  .landing-feature-card-photo {
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    object-fit: cover;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+
+  &::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background: linear-gradient(0deg, rgba($ink-900, 0.75) 0%, rgba($ink-900, 0.3) 100%);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+
+  &:hover {
+    .landing-feature-card-photo,
+    &::after {
+      opacity: 1;
+    }
+
+    h3,
+    p {
+      color: $white;
+    }
+
+    .landing-feature-card-icon {
+      background: rgba($white, 0.15);
+      color: $white;
+    }
+  }
 
   h3 {
     margin: 0 0 6px;
     font-size: 1rem;
+    transition: color 0.3s ease;
   }
 
   p {
     margin: 0;
     color: $ink-400;
     font-size: 0.88rem;
+    transition: color 0.3s ease;
   }
 }
 

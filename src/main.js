@@ -2380,11 +2380,31 @@ const LANDING_STEPS_BIG_PHOTOS = [
   { src: '/assets/pexels-amar-9329437.webp', alt: 'Doces prontos para servir' },
 ];
 
+// O teste grátis dá acesso aos recursos do plano Básico por 7 dias (ver
+// planStatus/isProPlan) — por isso vira seu próprio cartão em vez de uma
+// promessa genérica em todos os planos, e só ele usa CTA de "começar teste";
+// Básico/Pro são assinatura direta.
 const LANDING_PLANS = [
+  {
+    key: 'trial',
+    icon: 'clock',
+    name: 'Teste grátis',
+    priceLabel: 'Grátis',
+    priceSuffix: '/7 dias',
+    description: 'Para conhecer a plataforma sem compromisso.',
+    features: [
+      'Recursos do plano Básico',
+      'Sem cartão de crédito',
+      'Cancele quando quiser',
+    ],
+    highlight: false,
+    cta: 'Começar teste grátis',
+  },
   {
     key: 'basico',
     name: 'Básico',
     price: 19.9,
+    priceSuffix: '/mês',
     description: 'Para quem está começando a organizar os preços.',
     features: [
       'Até 5 receitas cadastradas',
@@ -2392,11 +2412,13 @@ const LANDING_PLANS = [
       'Cálculo automático de preço sugerido',
     ],
     highlight: false,
+    cta: 'Assinar Básico',
   },
   {
     key: 'pro',
     name: 'Pro',
     price: 39.9,
+    priceSuffix: '/mês',
     description: 'Para quem quer controlar o negócio inteiro.',
     features: [
       'Receitas ilimitadas',
@@ -2406,6 +2428,7 @@ const LANDING_PLANS = [
       'Vitrine online para vender seus doces',
     ],
     highlight: true,
+    cta: 'Assinar Pro',
   },
 ];
 
@@ -2522,9 +2545,9 @@ function landingHeroV2() {
 // usada, seção "Endless Workout Options").
 function landingFeaturePanel() {
   const cards = [
-    { title: 'Ingredientes ilimitados', text: 'Cadastre quantos insumos e embalagens usar.' },
-    { title: 'Cálculo automático', text: 'Custo e preço sugerido recalculados a cada alteração.' },
-    { title: 'Vitrine sincronizada', text: 'O que você publica aparece na hora pro seu cliente.' },
+    { icon: 'box', title: 'Ingredientes ilimitados', text: 'Cadastre quantos insumos e embalagens usar.', photo: '/assets/pexels-anntarazevich-6035994.webp' },
+    { icon: 'trending', title: 'Cálculo automático', text: 'Custo e preço sugerido recalculados a cada alteração.', photo: '/assets/pexels-anntarazevich-6036020.webp' },
+    { icon: 'storefront', title: 'Vitrine sincronizada', text: 'O que você publica aparece na hora pro seu cliente.', photo: '/assets/pexels-amar-9329437.webp' },
   ];
   return `
     <section class="landing-feature-panel reveal" id="praticidade">
@@ -2537,6 +2560,8 @@ function landingFeaturePanel() {
         <div class="landing-feature-cards">
           ${cards.map((c, i) => `
             <div class="landing-feature-card reveal" style="--reveal-delay: ${(i * 0.1).toFixed(2)}s">
+              <img src="${c.photo}" alt="" class="landing-feature-card-photo" />
+              <span class="landing-feature-card-icon">${icon(c.icon)}</span>
               <h3>${escapeHtml(c.title)}</h3>
               <p>${escapeHtml(c.text)}</p>
             </div>`).join('')}
@@ -2593,21 +2618,21 @@ function landingHtml() {
         <div class="landing-section-inner">
           <p class="eyebrow-pill">Planos</p>
           <h2><span class="muted-tone">Escolha o plano</span> da sua confeitaria</h2>
-          <p class="landing-section-subtitle">Todos os planos incluem 7 dias de teste grátis. Cancele quando quiser.</p>
+          <p class="landing-section-subtitle">O teste grátis de 7 dias dá acesso aos recursos do plano Básico. Assine quando estiver pronta pra continuar.</p>
           <div class="landing-pricing-grid">
             ${LANDING_PLANS.map((plan, index) => `
               <div class="landing-plan-card reveal ${plan.highlight ? 'is-highlight' : ''}" style="--reveal-delay: ${(index * 0.12).toFixed(2)}s">
                 ${plan.highlight ? '<span class="landing-plan-badge">Mais popular</span>' : ''}
                 <div class="landing-plan-head">
-                  <span class="landing-plan-icon">${icon(plan.highlight ? 'star' : 'cupcake')}</span>
+                  <span class="landing-plan-icon">${icon(plan.icon || (plan.highlight ? 'star' : 'cupcake'))}</span>
                   <h3>${escapeHtml(plan.name)}</h3>
                 </div>
                 <p class="landing-plan-description">${escapeHtml(plan.description)}</p>
-                <p class="landing-plan-price">${formatCurrency(plan.price)}<span>/mês</span></p>
+                <p class="landing-plan-price">${plan.price != null ? formatCurrency(plan.price) : plan.priceLabel}<span>${plan.priceSuffix}</span></p>
                 <ul class="landing-plan-features">
                   ${plan.features.map((f) => `<li>${icon('check')}<span>${escapeHtml(f)}</span></li>`).join('')}
                 </ul>
-                <button type="button" class="${plan.highlight ? '' : 'ghost'}" data-action="goto" data-route="cadastro">Testar grátis por 7 dias</button>
+                <button type="button" class="${plan.highlight ? '' : 'ghost'}" data-action="goto" data-route="cadastro">${escapeHtml(plan.cta)}</button>
               </div>`).join('')}
           </div>
         </div>
