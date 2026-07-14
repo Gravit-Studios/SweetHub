@@ -17,11 +17,12 @@
 }
 
 // Cada bloco do resumo (custos, ingredientes usados, preços sugeridos) fica
-// visualmente separado em vez de tudo corrido dentro do mesmo painel.
+// visualmente separado em vez de tudo corrido dentro do mesmo painel — todos
+// com o mesmo título (h3) e o mesmo respiro entre blocos.
 .summary-section {
   &:not(:first-child) {
-    margin-top: 24px;
-    padding-top: 20px;
+    margin-top: 40px;
+    padding-top: 28px;
     border-top: 1px solid $secondary-200;
   }
 
@@ -83,11 +84,8 @@
 
 // Lista compacta com quanto de cada ingrediente entrou na receita —
 // complementa os totais agregados do resultado com o detalhe por item.
+// Espaçamento/borda entre seções já vem de .summary-section (ver acima).
 .ingredient-usage-list {
-  margin-top: 18px;
-  padding-top: 16px;
-  border-top: 1px solid $secondary-200;
-
   ul {
     list-style: none;
     margin: 10px 0 0;
