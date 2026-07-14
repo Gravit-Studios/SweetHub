@@ -43,7 +43,7 @@
   transition: background 0.15s ease;
 
   &:hover {
-    background: $surface-tint;
+    background: $primary-100;
 
     .item-card-link .icon {
       transform: translateX(3px);
