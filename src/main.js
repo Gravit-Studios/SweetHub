@@ -4332,6 +4332,41 @@ app.addEventListener('submit', (event) => {
   if (formType === 'edit-customer') handleEditCustomerSubmit(event.target);
 });
 
+// Links âncora da landing page (Benefícios/Como funciona/Preços) — troca o
+// scroll nativo (scroll-behavior:smooth, meio brusco/curto) por uma animação
+// mais lenta e suave. Intercepta só quando existe mesmo uma seção com esse
+// id na página atual, então não afeta nenhum outro link "#..." por engano.
+// Precisa bater com $navbar-height em src/styles/abstracts/_tokens.scss.
+const NAVBAR_HEIGHT_PX = 61;
+
+function easeInOutCubic(t) {
+  return t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2;
+}
+
+function smoothScrollToId(id, duration = 1100) {
+  const target = document.getElementById(id);
+  if (!target) return;
+  const startY = window.scrollY;
+  const targetY = target.getBoundingClientRect().top + startY - NAVBAR_HEIGHT_PX;
+  const distance = targetY - startY;
+  const startTime = performance.now();
+  function step(now) {
+    const progress = Math.min((now - startTime) / duration, 1);
+    window.scrollTo(0, startY + distance * easeInOutCubic(progress));
+    if (progress < 1) requestAnimationFrame(step);
+  }
+  requestAnimationFrame(step);
+}
+
+app.addEventListener('click', (event) => {
+  const anchor = event.target.closest('a[href^="#"]');
+  if (!anchor) return;
+  const id = anchor.getAttribute('href').slice(1);
+  if (!document.getElementById(id)) return;
+  event.preventDefault();
+  smoothScrollToId(id);
+});
+
 app.addEventListener('click', (event) => {
   const el = event.target.closest('[data-action]');
   if (!el) return;

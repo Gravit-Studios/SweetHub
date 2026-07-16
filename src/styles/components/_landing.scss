@@ -700,9 +700,23 @@
   display: flex;
   flex-direction: column;
 
+  // Cartão do meio (plano recomendado) fica maior que os outros, "estourando"
+  // pra fora da grade em vez de ter a mesma altura esticada pelo grid — reforça
+  // que é o plano em destaque.
   &.is-highlight {
     border-color: $primary-500;
+    border-width: 2px;
     box-shadow: $shadow-md;
+    padding-top: 44px;
+    padding-bottom: 44px;
+    margin-top: -16px;
+    margin-bottom: -16px;
+    z-index: 1;
+
+    @include respond-down($bp-tablet) {
+      margin-top: 0;
+      margin-bottom: 0;
+    }
   }
 
   > button {
@@ -713,6 +727,7 @@
 .landing-plan-head {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 12px;
   margin-bottom: 16px;
 }
