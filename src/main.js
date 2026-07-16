@@ -7,10 +7,12 @@ import * as db from './db.js';
 
 // Verificação de captcha no cadastro (evita contas automatizadas em massa) —
 // a validação de verdade acontece no lado do Supabase (Authentication >
-// Attack protection), que precisa ter a secret key correspondente
-// configurada lá; aqui só renderizamos o widget e mandamos o token junto do
-// signUp.
-const RECAPTCHA_SITE_KEY = '6LdyZlItAAAAAK3jDCs3bvwYVjhFexmQvhNa0ASc';
+// Attack protection), que precisa ter o secret key correspondente
+// configurado lá (provider "Turnstile"); aqui só renderizamos o widget e
+// mandamos o token junto do signUp. Google reCAPTCHA foi trocado por
+// Cloudflare Turnstile porque o Supabase Auth só verifica hCaptcha/Turnstile
+// no servidor — reCAPTCHA nunca teria validação de verdade por lá.
+const TURNSTILE_SITE_KEY = '0x4AAAAAAD3Vi3jhB-xwzA9p';
 
 // ---------------- Helpers de estado / formatação ----------------
 
@@ -2915,7 +2917,7 @@ function authHtml() {
                 <input name="consent" type="checkbox" required />
                 <span>Concordo com o tratamento dos meus dados pessoais para uso do app, conforme a LGPD.</span>
               </label>
-              <div class="g-recaptcha" data-sitekey="${RECAPTCHA_SITE_KEY}"></div>` : ''}
+              <div class="turnstile-widget" data-sitekey="${TURNSTILE_SITE_KEY}"></div>` : ''}
             ${state.authError ? `<p class="auth-error">${escapeHtml(state.authError)}</p>` : ''}
             <button type="submit" class="auth-submit" ${state.authLoading ? 'disabled' : ''}>
               <span>${state.authLoading ? 'Aguarde...' : isSignUp ? (purchasePlan ? 'Continuar para pagamento' : 'Criar conta') : 'Entrar'}</span>${icon('arrow')}
@@ -3160,25 +3162,27 @@ function render() {
   if (isNewPage) app.firstElementChild?.classList.add('page-enter');
   setupScrollReveal();
   hydrateInlineSvgs();
-  renderRecaptchaWidgets();
+  renderCaptchaWidgets();
 }
 
-// O script do reCAPTCHA só auto-renderiza [.g-recaptcha] presentes no DOM
+// O script do Turnstile só auto-renderiza [.cf-turnstile] presentes no DOM
 // quando a página carrega — como o render() troca o innerHTML todo, um
-// widget inserido depois (ex.: ao trocar de "Entrar" pra "Criar conta")
-// nunca apareceria sem chamar grecaptcha.render() manualmente aqui.
-function renderRecaptchaWidgets() {
-  const containers = app.querySelectorAll('.g-recaptcha:not([data-rendered])');
+// widget inserido depois (ex.: ao trocar de "Entrar" pra "Criar conta") nunca
+// apareceria sem chamar turnstile.render() manualmente aqui. Por isso o
+// container usa uma classe própria (turnstile-widget), não a "cf-turnstile"
+// que o script auto-escaneia.
+function renderCaptchaWidgets() {
+  const containers = app.querySelectorAll('.turnstile-widget:not([data-rendered])');
   if (!containers.length) return;
   const tryRender = () => {
-    if (typeof grecaptcha === 'undefined' || !grecaptcha.render) {
+    if (typeof turnstile === 'undefined' || !turnstile.render) {
       setTimeout(tryRender, 200);
       return;
     }
     containers.forEach((el) => {
       if (el.dataset.rendered) return;
       el.dataset.rendered = 'true';
-      grecaptcha.render(el, { sitekey: RECAPTCHA_SITE_KEY });
+      turnstile.render(el, { sitekey: TURNSTILE_SITE_KEY });
     });
   };
   tryRender();
@@ -3292,7 +3296,7 @@ async function handleAuthSubmit(form) {
   const companyName = formData.get('companyName');
 
   if (state.authMode === 'signup') {
-    const captchaToken = typeof grecaptcha !== 'undefined' ? grecaptcha.getResponse() : '';
+    const captchaToken = typeof turnstile !== 'undefined' ? turnstile.getResponse() : '';
     if (!captchaToken) {
       state.authError = 'Confirme que você não é um robô antes de continuar.';
       render();
@@ -3331,7 +3335,7 @@ async function handleAuthSubmit(form) {
       state.authLoading = false;
       // Token de captcha é de uso único — sem resetar, uma segunda tentativa
       // (ex.: após erro de e-mail já cadastrado) reenviaria o mesmo token.
-      if (typeof grecaptcha !== 'undefined') grecaptcha.reset();
+      if (typeof turnstile !== 'undefined') turnstile.reset();
       render();
     }
     return;
