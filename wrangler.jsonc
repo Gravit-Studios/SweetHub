@@ -1,0 +1,14 @@
+{
+  // Config do Cloudflare Workers (static assets) — substitui o Cloudflare
+  // Pages, que a própria Cloudflare recomenda deixar de usar em projetos
+  // novos. "not_found_handling": "single-page-application" serve o
+  // index.html pra qualquer rota que não bata com um arquivo real,
+  // incluindo o link público do cardápio (/loja/:slug) — sem precisar de
+  // um arquivo _redirects separado (isso já era necessário no Pages).
+  "name": "sweethub",
+  "compatibility_date": "2026-07-19",
+  "assets": {
+    "directory": "./dist",
+    "not_found_handling": "single-page-application"
+  }
+}

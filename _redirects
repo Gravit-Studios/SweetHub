@@ -1,3 +1,0 @@
-# Cardápio público do plano Vitrine (sweethub.com.br/loja/:slug) — equivalente
-# ao rewrite de vercel.json, mas no formato que o Cloudflare Pages entende.
-/loja/:slug /index.html 200
