@@ -1,4 +1,4 @@
--- Doce Preço — schema do Supabase
+-- SweetHub — schema do Supabase
 -- Rode este arquivo inteiro no SQL Editor do seu projeto Supabase
 -- (Dashboard -> SQL Editor -> New query -> colar -> Run)
 
@@ -235,9 +235,11 @@ insert into storage.buckets (id, name, public)
 values ('product-photos', 'product-photos', true)
 on conflict (id) do nothing;
 
-create policy "Leitura pública de fotos de produtos" on storage.objects
-  for select using (bucket_id = 'product-photos');
-
+-- Não existe policy de "select" pública aqui de propósito: o bucket já é
+-- público (serve qualquer objeto por URL direta, sem checar RLS — é para
+-- isso que a flag "public" existe), então uma policy de select ampla só
+-- serviria para permitir LISTAR todos os arquivos do bucket (expondo os
+-- IDs de usuário usados como nome de pasta) sem ganhar nada em troca.
 create policy "Usuário gerencia as próprias fotos de produtos" on storage.objects
   for all
   using (bucket_id = 'product-photos' and (storage.foldername(name))[1] = auth.uid()::text)
@@ -304,6 +306,143 @@ create or replace view public.public_products as
 
 grant select on public.public_companies to anon;
 grant select on public.public_products to anon;
+
+-- =========================================================
+-- Limites do plano Gratuito (ver src/planLimits.js) aplicados no banco —
+-- o client já bloqueia a UI antes de chegar aqui, mas sem isso qualquer
+-- pessoa com o próprio token dava pra ignorar os limites chamando a API
+-- do Supabase direto. Fornecedores/clientes são bloqueio total (recurso
+-- exclusivo de Controle/Vitrine, ver CONTROLE_ONLY_ROUTES em main.js); os
+-- demais são contagem (20 receitas, 50 ingredientes, 5 categorias de
+-- despesa, 10 fotos).
+-- =========================================================
+create or replace function public.enforce_recipe_limit()
+returns trigger language plpgsql security definer set search_path = public as $$
+declare
+  current_plan text;
+  current_count integer;
+begin
+  select plan into current_plan from public.profiles where id = new.user_id;
+  if current_plan = 'gratuito' then
+    select count(*) into current_count from public.products where user_id = new.user_id;
+    if current_count >= 20 then
+      raise exception 'Limite de 20 receitas do plano Gratuito atingido. Faça upgrade para o Controle.';
+    end if;
+  end if;
+  return new;
+end;
+$$;
+drop trigger if exists enforce_recipe_limit_trigger on public.products;
+create trigger enforce_recipe_limit_trigger
+before insert on public.products
+for each row execute function public.enforce_recipe_limit();
+
+-- Fotos são um campo do produto (photo_url), não uma tabela à parte — o
+-- gate só entra em ação quando uma foto nova está sendo anexada (transição
+-- de null pra preenchido), pra trocar a foto de uma receita que já tinha
+-- uma não contar como acréscimo.
+create or replace function public.enforce_photo_limit()
+returns trigger language plpgsql security definer set search_path = public as $$
+declare
+  current_plan text;
+  current_count integer;
+  is_new_photo boolean;
+begin
+  is_new_photo := new.photo_url is not null and (tg_op = 'INSERT' or old.photo_url is null);
+  if is_new_photo then
+    select plan into current_plan from public.profiles where id = new.user_id;
+    if current_plan = 'gratuito' then
+      select count(*) into current_count from public.products where user_id = new.user_id and photo_url is not null;
+      if current_count >= 10 then
+        raise exception 'Limite de 10 fotos do plano Gratuito atingido. Faça upgrade para o Controle.';
+      end if;
+    end if;
+  end if;
+  return new;
+end;
+$$;
+drop trigger if exists enforce_photo_limit_trigger on public.products;
+create trigger enforce_photo_limit_trigger
+before insert or update on public.products
+for each row execute function public.enforce_photo_limit();
+
+create or replace function public.enforce_ingredient_limit()
+returns trigger language plpgsql security definer set search_path = public as $$
+declare
+  current_plan text;
+  current_count integer;
+begin
+  select plan into current_plan from public.profiles where id = new.user_id;
+  if current_plan = 'gratuito' then
+    select count(*) into current_count from public.ingredients where user_id = new.user_id;
+    if current_count >= 50 then
+      raise exception 'Limite de 50 ingredientes do plano Gratuito atingido. Faça upgrade para o Controle.';
+    end if;
+  end if;
+  return new;
+end;
+$$;
+drop trigger if exists enforce_ingredient_limit_trigger on public.ingredients;
+create trigger enforce_ingredient_limit_trigger
+before insert on public.ingredients
+for each row execute function public.enforce_ingredient_limit();
+
+create or replace function public.enforce_category_limit()
+returns trigger language plpgsql security definer set search_path = public as $$
+declare
+  current_plan text;
+  current_count integer;
+begin
+  select plan into current_plan from public.profiles where id = new.user_id;
+  if current_plan = 'gratuito' then
+    select count(*) into current_count from public.expense_categories where user_id = new.user_id;
+    if current_count >= 5 then
+      raise exception 'Limite de 5 categorias de despesa do plano Gratuito atingido. Faça upgrade para o Controle.';
+    end if;
+  end if;
+  return new;
+end;
+$$;
+drop trigger if exists enforce_category_limit_trigger on public.expense_categories;
+create trigger enforce_category_limit_trigger
+before insert on public.expense_categories
+for each row execute function public.enforce_category_limit();
+
+create or replace function public.enforce_controle_only()
+returns trigger language plpgsql security definer set search_path = public as $$
+declare
+  current_plan text;
+begin
+  select plan into current_plan from public.profiles where id = new.user_id;
+  if current_plan not in ('controle', 'vitrine') then
+    raise exception 'Este recurso é exclusivo do plano Controle. Faça upgrade para continuar.';
+  end if;
+  return new;
+end;
+$$;
+drop trigger if exists enforce_controle_only_suppliers on public.suppliers;
+create trigger enforce_controle_only_suppliers
+before insert on public.suppliers
+for each row execute function public.enforce_controle_only();
+drop trigger if exists enforce_controle_only_customers on public.customers;
+create trigger enforce_controle_only_customers
+before insert on public.customers
+for each row execute function public.enforce_controle_only();
+
+-- Essas funções só devem rodar como trigger, nunca chamadas direto via
+-- RPC — a invocação de trigger não depende dessa grant (testado: os
+-- triggers continuam funcionando depois do revoke), então isso só fecha a
+-- porta de RPC direto sem quebrar nada. is_admin() fica de fora de
+-- propósito: apesar de também aparecer no advisor de segurança, a policy
+-- "Admin vê todos os perfis" chama is_admin() para QUALQUER select
+-- autenticado em profiles (não só admins), então revogar essa grant
+-- quebraria a leitura do próprio perfil para todo mundo.
+revoke execute on function public.handle_new_user() from anon, authenticated;
+revoke execute on function public.enforce_recipe_limit() from anon, authenticated;
+revoke execute on function public.enforce_photo_limit() from anon, authenticated;
+revoke execute on function public.enforce_ingredient_limit() from anon, authenticated;
+revoke execute on function public.enforce_category_limit() from anon, authenticated;
+revoke execute on function public.enforce_controle_only() from anon, authenticated;
 
 -- Índices
 create index if not exists ingredients_user_id_idx on public.ingredients (user_id);
