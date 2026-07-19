@@ -51,13 +51,35 @@ e `Inter` para texto/formulários (carregadas via Google Fonts no
 
 O passo a passo para autorizar pelo terminal e publicar no GitHub está em [`docs/subir-para-github.md`](docs/subir-para-github.md).
 
-## Deploy na Vercel
+## Deploy no Cloudflare Pages
 
-O projeto tem um `vercel.json` configurado com:
+O projeto está migrando da Vercel pro Cloudflare Pages (plano grátis, sem
+limite de tráfego e com uso comercial permitido — ver `vercel.json` abaixo
+pro histórico). Configuração do projeto no painel do Cloudflare Pages:
+- **Build command**: `npm run build`
+- **Build output directory**: `dist`
+- **Root directory**: `/`
+
+Não há variáveis de ambiente pra configurar — a URL e a chave anon do
+Supabase ficam direto em `src/supabaseClient.js` (a chave anon é pública por
+natureza, ver comentário no arquivo). O rewrite do cardápio público
+(`/loja/:slug`) já sai pronto dentro de `dist/_redirects` a cada build (ver
+`scripts/build.js`) — é o formato que o Cloudflare Pages espera.
+
+Pra apontar o domínio `sweethub.com.br`: em Custom domains no projeto do
+Cloudflare Pages, adicione o domínio. Se o DNS dele já estiver no
+Cloudflare, é só isso; se estiver em outro registrador, use o registro CNAME
+que o painel mostrar.
+
+## Deploy na Vercel (legado)
+
+O projeto ainda tem um `vercel.json` configurado com:
 - `buildCommand`: `npm run build`
 - `outputDirectory`: `dist`
+- rewrite de `/loja/:slug` pro cardápio público
 
-Basta importar o repositório na Vercel; não é necessária nenhuma configuração manual adicional.
+Mantido por enquanto como opção de rollback durante a migração pro
+Cloudflare Pages.
 
 ## Banco de dados (Supabase)
 
