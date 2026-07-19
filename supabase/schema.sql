@@ -110,16 +110,28 @@ create policy "Admin vê todos os perfis" on public.profiles for select using (p
 
 create or replace function public.handle_new_user()
 returns trigger language plpgsql security definer set search_path = public as $$
+declare
+  base_slug text;
+  candidate_slug text;
 begin
+  -- Slug é só o nome da empresa transliterado (ex.: "Delícias da Tai" ->
+  -- "delicias-da-tai"); cai pro sufixo do id apenas se já existir outra
+  -- empresa com o mesmo slug (nomes iguais/muito parecidos).
+  base_slug := trim(both '-' from lower(regexp_replace(
+    public.unaccent(coalesce(nullif(new.raw_user_meta_data ->> 'company_name', ''), split_part(new.email, '@', 1))),
+    '[^a-zA-Z0-9]+', '-', 'g'
+  )));
+  candidate_slug := base_slug;
+  if exists (select 1 from public.profiles where slug = candidate_slug) then
+    candidate_slug := base_slug || '-' || substr(new.id::text, 1, 6);
+  end if;
+
   insert into public.profiles (id, full_name, company_name, slug)
   values (
     new.id,
     new.raw_user_meta_data ->> 'full_name',
     new.raw_user_meta_data ->> 'company_name',
-    lower(regexp_replace(
-      public.unaccent(coalesce(nullif(new.raw_user_meta_data ->> 'company_name', ''), split_part(new.email, '@', 1))),
-      '[^a-zA-Z0-9]+', '-', 'g'
-    )) || '-' || substr(new.id::text, 1, 6)
+    candidate_slug
   );
   return new;
 end;
