@@ -10,8 +10,8 @@ export async function signUp(email, password, fullName, companyName, captchaToke
   return data;
 }
 
-export async function signIn(email, password) {
-  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+export async function signIn(email, password, captchaToken) {
+  const { data, error } = await supabase.auth.signInWithPassword({ email, password, options: { captchaToken } });
   if (error) throw error;
   return data;
 }
@@ -35,9 +35,10 @@ export function onAuthStateChange(callback) {
 // "Esqueci minha senha": manda um e-mail com um link que abre o app já
 // autenticado num evento PASSWORD_RECOVERY (ver onAuthStateChange em
 // main.js), sem exigir a senha atual — diferente de changePassword acima.
-export async function requestPasswordReset(email) {
+export async function requestPasswordReset(email, captchaToken) {
   const { error } = await supabase.auth.resetPasswordForEmail(email, {
     redirectTo: `${window.location.origin}${window.location.pathname}`,
+    captchaToken,
   });
   if (error) throw error;
 }
@@ -49,8 +50,12 @@ export async function confirmPasswordReset(newPassword) {
 
 // Exige a senha atual antes de trocar (evita que uma sessão aberta em outro
 // lugar troque a senha sem o usuário confirmar quem ele é).
-export async function changePassword(email, currentPassword, newPassword) {
-  const { error: verifyError } = await supabase.auth.signInWithPassword({ email, password: currentPassword });
+export async function changePassword(email, currentPassword, newPassword, captchaToken) {
+  const { error: verifyError } = await supabase.auth.signInWithPassword({
+    email,
+    password: currentPassword,
+    options: { captchaToken },
+  });
   if (verifyError) throw new Error('Senha atual incorreta.');
 
   const { error } = await supabase.auth.updateUser({ password: newPassword });

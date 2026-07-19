@@ -1165,6 +1165,7 @@ function changePasswordModal(data) {
         <label>Senha atual<input name="currentPassword" type="password" minlength="6" required /></label>
         <label>Nova senha<input name="newPassword" type="password" minlength="6" required /></label>
         <label>Confirmar nova senha<input name="confirmPassword" type="password" minlength="6" required /></label>
+        <div class="turnstile-widget" data-widget="change-password" data-sitekey="${TURNSTILE_SITE_KEY}"></div>
         <div class="save-actions">
           <button type="submit" ${data.loading ? 'disabled' : ''}>${data.loading ? 'Salvando...' : 'Trocar senha'}</button>
           <button type="button" class="ghost" data-action="close-modal">Cancelar</button>
@@ -1188,6 +1189,7 @@ function forgotPasswordModal(data) {
       ${data.error ? `<p class="auth-error">${escapeHtml(data.error)}</p>` : ''}
       <form data-form="forgot-password" class="modal-form">
         <label>E-mail<input name="email" type="email" placeholder="seuemail@exemplo.com" required /></label>
+        <div class="turnstile-widget" data-widget="forgot-password" data-sitekey="${TURNSTILE_SITE_KEY}"></div>
         <div class="save-actions">
           <button type="submit" ${data.loading ? 'disabled' : ''}>${data.loading ? 'Enviando...' : 'Enviar link'}</button>
           <button type="button" class="ghost" data-action="close-modal">Cancelar</button>
@@ -2895,7 +2897,8 @@ function authHtml() {
                 <input name="consent" type="checkbox" required />
                 <span>Concordo com o tratamento dos meus dados pessoais para uso do app, conforme a LGPD.</span>
               </label>
-              <div class="turnstile-widget" data-sitekey="${TURNSTILE_SITE_KEY}"></div>` : ''}
+              <div class="turnstile-widget" data-widget="signup" data-sitekey="${TURNSTILE_SITE_KEY}"></div>` : `
+              <div class="turnstile-widget" data-widget="login" data-sitekey="${TURNSTILE_SITE_KEY}"></div>`}
             ${state.authError ? `<p class="auth-error">${escapeHtml(state.authError)}</p>` : ''}
             <button type="submit" class="auth-submit" ${state.authLoading ? 'disabled' : ''}>
               <span>${state.authLoading ? 'Aguarde...' : isSignUp ? (purchasePlan ? 'Continuar para pagamento' : 'Criar conta grátis') : 'Entrar'}</span>${icon('arrow')}
@@ -3218,10 +3221,31 @@ function renderCaptchaWidgets() {
     containers.forEach((el) => {
       if (el.dataset.rendered) return;
       el.dataset.rendered = 'true';
-      turnstile.render(el, { sitekey: TURNSTILE_SITE_KEY });
+      // Guarda o id do widget no próprio container — com mais de um widget
+      // na tela ao mesmo tempo (ex.: login atrás do modal de "esqueci minha
+      // senha"), turnstile.getResponse()/reset() sem id operam só no
+      // "último" renderizado, o que pegaria o widget errado.
+      el.dataset.widgetId = turnstile.render(el, { sitekey: TURNSTILE_SITE_KEY });
     });
   };
   tryRender();
+}
+
+// Lê o token de um widget específico pelo seletor do container (ver
+// renderCaptchaWidgets sobre por que precisa do id explícito).
+function captchaTokenFor(containerSelector) {
+  const el = app.querySelector(containerSelector);
+  const widgetId = el?.dataset.widgetId;
+  if (typeof turnstile === 'undefined' || !widgetId) return '';
+  return turnstile.getResponse(widgetId) || '';
+}
+
+// Token de captcha é de uso único — sem resetar depois de cada tentativa,
+// uma segunda tentativa (ex.: senha errada) reenviaria o mesmo token.
+function resetCaptcha(containerSelector) {
+  const el = app.querySelector(containerSelector);
+  const widgetId = el?.dataset.widgetId;
+  if (typeof turnstile !== 'undefined' && widgetId) turnstile.reset(widgetId);
 }
 
 // Busca e injeta o markup de cada [data-inline-svg] ainda vazio (ver
@@ -3332,7 +3356,7 @@ async function handleAuthSubmit(form) {
   const companyName = formData.get('companyName');
 
   if (state.authMode === 'signup') {
-    const captchaToken = typeof turnstile !== 'undefined' ? turnstile.getResponse() : '';
+    const captchaToken = captchaTokenFor('.turnstile-widget[data-widget="signup"]');
     if (!captchaToken) {
       state.authError = 'Confirme que você não é um robô antes de continuar.';
       render();
@@ -3369,23 +3393,28 @@ async function handleAuthSubmit(form) {
       state.authError = error.message;
     } finally {
       state.authLoading = false;
-      // Token de captcha é de uso único — sem resetar, uma segunda tentativa
-      // (ex.: após erro de e-mail já cadastrado) reenviaria o mesmo token.
-      if (typeof turnstile !== 'undefined') turnstile.reset();
+      resetCaptcha('.turnstile-widget[data-widget="signup"]');
       render();
     }
     return;
   }
 
+  const loginCaptchaToken = captchaTokenFor('.turnstile-widget[data-widget="login"]');
+  if (!loginCaptchaToken) {
+    state.authError = 'Confirme que você não é um robô antes de continuar.';
+    render();
+    return;
+  }
   state.authLoading = true;
   state.authError = '';
   render();
   try {
-    await signIn(email, password);
+    await signIn(email, password, loginCaptchaToken);
   } catch (error) {
     state.authError = error.message;
   } finally {
     state.authLoading = false;
+    resetCaptcha('.turnstile-widget[data-widget="login"]');
     render();
   }
 }
@@ -3909,27 +3938,41 @@ async function handleChangePasswordSubmit(form) {
     render();
     return;
   }
+  const captchaToken = captchaTokenFor('.turnstile-widget[data-widget="change-password"]');
+  if (!captchaToken) {
+    state.activeModal.error = 'Confirme que você não é um robô antes de continuar.';
+    render();
+    return;
+  }
   state.activeModal.loading = true;
   state.activeModal.error = '';
   render();
   try {
-    await changePassword(state.session.user.email, currentPassword, newPassword);
+    await changePassword(state.session.user.email, currentPassword, newPassword, captchaToken);
     closeModal();
     showSuccess('Senha alterada com sucesso!');
   } catch (error) {
     state.activeModal.loading = false;
     state.activeModal.error = error.message;
     render();
+  } finally {
+    resetCaptcha('.turnstile-widget[data-widget="change-password"]');
   }
 }
 
 async function handleForgotPasswordSubmit(form) {
   const email = new FormData(form).get('email');
+  const captchaToken = captchaTokenFor('.turnstile-widget[data-widget="forgot-password"]');
+  if (!captchaToken) {
+    state.activeModal.error = 'Confirme que você não é um robô antes de continuar.';
+    render();
+    return;
+  }
   state.activeModal.loading = true;
   state.activeModal.error = '';
   render();
   try {
-    await requestPasswordReset(email);
+    await requestPasswordReset(email, captchaToken);
     state.activeModal.loading = false;
     state.activeModal.successMessage = 'Enviamos um link pro seu e-mail. Clique nele pra definir uma nova senha.';
     render();
@@ -3937,6 +3980,8 @@ async function handleForgotPasswordSubmit(form) {
     state.activeModal.loading = false;
     state.activeModal.error = error.message;
     render();
+  } finally {
+    resetCaptcha('.turnstile-widget[data-widget="forgot-password"]');
   }
 }
 
