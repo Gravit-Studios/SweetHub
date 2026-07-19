@@ -2547,7 +2547,7 @@ const LANDING_PLANS = [
     features: [
       'Até 20 receitas e 50 ingredientes',
       'Ficha técnica e cálculo automático de preço sugerido',
-      'Dashboard básico e backup automático',
+      'Dashboard básico',
     ],
     highlight: false,
     cta: 'Começar grátis',
@@ -2814,7 +2814,7 @@ function landingHtml() {
         </div>
         <div class="landing-section-inner landing-cta-inner reveal">
           <h2>Pronta pra saber o preço certo dos seus doces?</h2>
-          <button type="button" data-action="goto" data-route="cadastro">Testar grátis por 7 dias</button>
+          <button type="button" data-action="goto" data-route="cadastro">Criar minha conta grátis</button>
         </div>
       </section>
 

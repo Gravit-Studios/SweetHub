@@ -730,6 +730,13 @@
   justify-content: center;
   gap: 12px;
   margin-bottom: 16px;
+
+  // O h3 tem margin-bottom global (ver base/_base.scss) que desalinhava o
+  // texto em relação ao ícone dentro do flex — zera aqui pra centralizar de
+  // verdade.
+  h3 {
+    margin-bottom: 0;
+  }
 }
 
 .landing-plan-badge {

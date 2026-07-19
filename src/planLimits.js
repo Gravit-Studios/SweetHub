@@ -17,7 +17,7 @@ export const PLAN_LIMITS = {
 // usado pelo resto do app (relatórios/PDF/histórico não existem hoje) — fica
 // aqui pronto pra quando essas telas forem migradas.
 export const PLAN_FEATURES = {
-  gratuito: ['ingredients', 'recipes', 'pricing', 'tech_sheet', 'dashboard_basic', 'auto_backup'],
+  gratuito: ['ingredients', 'recipes', 'pricing', 'tech_sheet', 'dashboard_basic'],
   controle: [
     'ingredients', 'recipes', 'pricing', 'tech_sheet', 'dashboard_basic', 'auto_backup',
     'reports', 'pdf_export', 'price_history', 'dashboard_full', 'stats', 'suppliers', 'clients', 'company',
