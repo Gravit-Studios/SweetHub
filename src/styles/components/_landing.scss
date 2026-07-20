@@ -659,7 +659,7 @@
 // "cortando" o bloco de texto grande), só que fora do fluxo de leitura.
 .landing-steps-big-photo {
   position: absolute;
-  top: -60px;
+  top: 0;
   right: 0;
   width: 300px;
   height: calc(300px * 4 / 3);
@@ -993,9 +993,34 @@
 }
 
 // A seção anterior já dá bastante respiro por conta própria — somar o
-// margin-top padrão do footer aqui só alongava ainda mais o gap.
+// margin-top padrão do footer aqui só alongava ainda mais o gap. Fundo na
+// cor primária só aqui (não no footer padrão, usado em todo o resto do
+// app) pra emendar visualmente com o arco do CTA final.
 .landing-final-cta + .site-footer {
   margin-top: 0;
+  border-top: 0;
+  background: $primary-500;
+
+  .site-footer-inner {
+    color: rgba(var(--white-rgb), 0.85);
+  }
+
+  .site-footer-links button {
+    color: rgba(var(--white-rgb), 0.85);
+
+    &:hover {
+      color: $white;
+    }
+  }
+
+  .site-footer-badge strong {
+    color: $white;
+  }
+
+  .site-footer-social-icon {
+    background: rgba(var(--white-rgb), 0.16);
+    color: $white;
+  }
 }
 
 // Ícone decorativo no topo do card de plano (estrela no plano em destaque,
