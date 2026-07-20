@@ -198,6 +198,9 @@ const state = {
   authError: '',
   authLoading: false,
   cookieConsent: localStorage.getItem('cookieConsent') === 'accepted',
+  // Toggle Mensal/Anual da seção de preços da landing (ver
+  // landingPlanPriceDisplay) — só afeta o que é exibido antes do cadastro.
+  landingBillingCycle: 'mensal',
   // Plano pago escolhido na landing page antes de criar a conta (Controle
   // ou Vitrine) — ver start-paid-signup/handleAuthSubmit. null = cadastro
   // normal, direto no plano Gratuito.
@@ -2677,7 +2680,7 @@ const LANDING_PLANS = [
   {
     key: 'controle',
     name: 'Controle',
-    price: 39.9,
+    price: 22.9,
     priceSuffix: '/mês',
     description: 'Para quem quer controlar o negócio inteiro.',
     features: [
@@ -2694,7 +2697,7 @@ const LANDING_PLANS = [
     key: 'vitrine',
     icon: 'storefront',
     name: 'Vitrine',
-    price: 59.9,
+    price: 39.9,
     priceSuffix: '/mês',
     description: 'Para quem quer ter seu cardápio online.',
     features: [
@@ -2705,6 +2708,27 @@ const LANDING_PLANS = [
     cta: 'Assinar Vitrine',
   },
 ];
+
+// 5% de desconto no anual — mesma conta usada nos planos de assinatura
+// criados no Mercado Pago (preço anual = mensal x 12 x 0,95).
+const LANDING_ANNUAL_DISCOUNT = 0.05;
+
+// Preço/sufixo/nota exibidos no card conforme o ciclo escolhido no toggle
+// Mensal/Anual (ver state.landingBillingCycle) — planos sem preço (Gratuito)
+// ignoram o ciclo, não têm cobrança recorrente.
+function landingPlanPriceDisplay(plan, cycle) {
+  if (!plan.price) return { price: 'Grátis', suffix: plan.priceSuffix, note: plan.note };
+  if (cycle === 'anual') {
+    const monthlyEquivalent = plan.price * (1 - LANDING_ANNUAL_DISCOUNT);
+    const annualTotal = monthlyEquivalent * 12;
+    return {
+      price: formatCurrency(monthlyEquivalent),
+      suffix: '/mês no anual',
+      note: `Cobrado ${formatCurrency(annualTotal)} por ano (5% de desconto)`,
+    };
+  }
+  return { price: formatCurrency(plan.price), suffix: plan.priceSuffix, note: plan.note };
+}
 
 // Botão que dispara o checkout do Mercado Pago pra uma conta já logada
 // (upgrade/troca dentro de Configurações — ver start-upgrade-checkout). O
@@ -2855,9 +2879,9 @@ function landingFeaturePanel() {
 }
 
 const LANDING_HIGHLIGHTS = [
-  { icon: 'trending', text: 'Custo real calculado' },
-  { icon: 'whisk', text: 'Preço sugerido automático' },
-  { icon: 'shield', text: 'Gestão da sua confeitaria' },
+  { emoji: '📈', text: 'Custo real calculado' },
+  { emoji: '🧮', text: 'Preço sugerido automático' },
+  { emoji: '🛡️', text: 'Gestão da sua confeitaria' },
 ];
 
 function landingHighlightsStrip() {
@@ -2865,7 +2889,7 @@ function landingHighlightsStrip() {
     <div class="landing-highlights">
       <div class="landing-section-inner landing-highlights-inner">
         ${LANDING_HIGHLIGHTS.map((h) => `
-          <div class="landing-highlight">${icon(h.icon)}<span>${escapeHtml(h.text)}</span></div>`).join('')}
+          <div class="landing-highlight"><span class="landing-highlight-emoji" aria-hidden="true">${h.emoji}</span><span>${escapeHtml(h.text)}</span></div>`).join('')}
       </div>
     </div>`;
 }
@@ -2903,8 +2927,14 @@ function landingHtml() {
           <p class="eyebrow-pill">Planos</p>
           <h2><span class="muted-tone">Escolha o plano</span> da sua confeitaria</h2>
           <p class="landing-section-subtitle">O plano Gratuito não tem prazo nem cartão. Cancele quando quiser.</p>
+          <div class="landing-billing-toggle">
+            <button type="button" class="${state.landingBillingCycle === 'mensal' ? 'is-active' : ''}" data-action="set-landing-billing-cycle" data-cycle="mensal">Mensal</button>
+            <button type="button" class="${state.landingBillingCycle === 'anual' ? 'is-active' : ''}" data-action="set-landing-billing-cycle" data-cycle="anual">Anual <span class="landing-billing-toggle-badge">-5%</span></button>
+          </div>
           <div class="landing-pricing-grid">
-            ${LANDING_PLANS.map((plan, index) => `
+            ${LANDING_PLANS.map((plan, index) => {
+              const priceDisplay = landingPlanPriceDisplay(plan, state.landingBillingCycle);
+              return `
               <div class="landing-plan-card reveal ${plan.highlight ? 'is-highlight' : ''}" style="--reveal-delay: ${(index * 0.12).toFixed(2)}s">
                 ${plan.highlight ? '<span class="landing-plan-badge">Mais popular</span>' : ''}
                 <div class="landing-plan-head">
@@ -2912,15 +2942,16 @@ function landingHtml() {
                   <h3>${escapeHtml(plan.name)}</h3>
                 </div>
                 <p class="landing-plan-description">${escapeHtml(plan.description)}</p>
-                <p class="landing-plan-price">${plan.price ? formatCurrency(plan.price) : 'Grátis'}<span>${plan.priceSuffix}</span></p>
-                ${plan.note ? `<p class="landing-plan-note">${escapeHtml(plan.note)}</p>` : ''}
+                <p class="landing-plan-price">${priceDisplay.price}<span>${priceDisplay.suffix}</span></p>
+                ${priceDisplay.note ? `<p class="landing-plan-note">${escapeHtml(priceDisplay.note)}</p>` : ''}
                 <ul class="landing-plan-features">
                   ${plan.features.map((f) => `<li>${icon('check')}<span>${escapeHtml(f)}</span></li>`).join('')}
                 </ul>
                 <button type="button" class="${plan.highlight ? '' : 'ghost'}" ${plan.key === 'gratuito'
                   ? 'data-action="goto" data-route="cadastro"'
-                  : `data-action="start-paid-signup" data-plan="${plan.key}" data-cycle="mensal"`}>${escapeHtml(plan.cta)}</button>
-              </div>`).join('')}
+                  : `data-action="start-paid-signup" data-plan="${plan.key}" data-cycle="${state.landingBillingCycle}"`}>${escapeHtml(plan.cta)}</button>
+              </div>`;
+            }).join('')}
           </div>
         </div>
       </section>
@@ -4754,6 +4785,10 @@ app.addEventListener('click', (event) => {
       state.pendingPurchase = { plan: el.dataset.plan, billingCycle: el.dataset.cycle || 'mensal' };
       state.authMode = 'signup';
       navigate('#/cadastro');
+      render();
+      break;
+    case 'set-landing-billing-cycle':
+      state.landingBillingCycle = el.dataset.cycle;
       render();
       break;
     case 'start-upgrade-checkout':

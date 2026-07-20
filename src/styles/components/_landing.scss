@@ -511,17 +511,16 @@
     }
   }
 
-  .icon {
-    width: 20px;
-    height: 20px;
-    color: $tertiary-200;
-    flex-shrink: 0;
-  }
-
   @include respond-down($bp-tablet) {
     justify-content: center;
     padding: 0;
   }
+}
+
+.landing-highlight-emoji {
+  font-size: 1.2rem;
+  line-height: 1;
+  flex-shrink: 0;
 }
 
 // "Como funciona": lista editorial com números grandes. A seção fica fixa
@@ -775,6 +774,51 @@
 
 .landing-plan-description {
   margin: 0 0 16px;
+}
+
+// Segmentado Mensal/Anual acima dos cartões de preço (ver
+// landingPlanPriceDisplay em main.js) — mesmo espírito visual do .auth-tabs,
+// mas com as cores da seção clara de preços em vez do formulário de login.
+.landing-billing-toggle {
+  display: inline-flex;
+  gap: 4px;
+  margin: 20px 0 0;
+  padding: 4px;
+  background: $secondary-200;
+  border-radius: $radius-pill;
+
+  button {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 18px;
+    background: none;
+    border: 0;
+    border-radius: $radius-pill;
+    font-weight: $fw-bold;
+    color: $ink-700;
+    cursor: pointer;
+
+    &:hover {
+      box-shadow: none;
+      transform: none;
+    }
+
+    &.is-active {
+      background: $surface;
+      color: $ink-900;
+      box-shadow: $shadow-md;
+    }
+  }
+}
+
+.landing-billing-toggle-badge {
+  background: $success-500;
+  color: $white;
+  font-size: 0.68rem;
+  font-weight: $fw-bold;
+  padding: 2px 6px;
+  border-radius: $radius-pill;
 }
 
 .landing-plan-price {
