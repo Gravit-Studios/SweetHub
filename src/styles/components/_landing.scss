@@ -897,11 +897,11 @@
   overflow: hidden;
   padding: clamp(64px, 9vw, 96px) 0 clamp(48px, 6vw, 64px);
   text-align: center;
-  border-radius: 50% 50% 0 0 / clamp(40px, 6vw, 90px) clamp(40px, 6vw, 90px) 0 0;
+  border-radius: 50% 50% 0 0 / clamp(80px, 14vw, 220px) clamp(80px, 14vw, 220px) 0 0;
 
   h2 {
     color: $white;
-    max-width: 20ch;
+    max-width: 38ch;
     margin: 0 auto 24px;
   }
 }
