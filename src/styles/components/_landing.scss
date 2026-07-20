@@ -435,6 +435,7 @@
   border: 1px solid rgba($white, 0.1);
   border-radius: $radius-lg;
   padding: 24px;
+  transition: background 0.25s ease, border-color 0.25s ease, transform 0.25s ease;
 
   h3 {
     color: $white;
@@ -444,6 +445,12 @@
   p {
     color: rgba($white, 0.68);
     margin: 0;
+  }
+
+  &:hover {
+    background: rgba($primary-500, 0.14);
+    border-color: rgba($primary-500, 0.5);
+    transform: translateY(-4px);
   }
 }
 
@@ -798,7 +805,7 @@
   gap: 10px;
   margin: 20px 0 0;
   padding: 4px;
-  background: $secondary-200;
+  background: $primary-500;
   border-radius: $radius-pill;
 
   button {
@@ -810,7 +817,7 @@
     border: 0;
     border-radius: $radius-pill;
     font-weight: $fw-bold;
-    color: $ink-700;
+    color: $white;
     cursor: pointer;
 
     &:hover {
@@ -820,7 +827,7 @@
 
     &.is-active {
       background: $surface;
-      color: $ink-900;
+      color: $secondary-700;
       box-shadow: $shadow-md;
     }
   }

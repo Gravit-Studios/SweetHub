@@ -1,5 +1,5 @@
 import { calculatePricing, calculateIngredientCost, formatCurrency } from './pricing.js';
-import { signUpWithEmailLink, signIn, signOut, getSession, onAuthStateChange, changePassword, updateEmail, requestPasswordReset, confirmPasswordReset } from './auth.js';
+import { signUp, signIn, signOut, getSession, onAuthStateChange, changePassword, updateEmail, requestPasswordReset, confirmPasswordReset } from './auth.js';
 import { parseRoute, navigate, onRouteChange } from './router.js';
 import { compressImageToWebp } from './imageCompression.js';
 import { lookupCep } from './cep.js';
@@ -617,11 +617,10 @@ getSession().then((session) => {
 onAuthStateChange((event, session) => {
   // O link de "esqueci minha senha" volta pro app com uma sessão válida e
   // esse evento — em vez do dashboard normal, mostra a tela de definir nova
-  // senha (ver passwordRecoveryHtml/render()). O mesmo vale pra quem acabou
-  // de clicar no link de cadastro sem senha (ver signUpWithEmailLink em
-  // auth.js): a conta nasce com needs_password_setup=true nos metadados, e
-  // essa flag continua valendo em qualquer novo carregamento até a pessoa
-  // realmente definir uma senha (ver confirmPasswordReset, que a zera).
+  // senha (ver passwordRecoveryHtml/render()). needs_password_setup é um
+  // resquício de uma janela curta em que o cadastro criava conta sem senha
+  // (ver confirmPasswordReset, que zera a flag) — mantido só como rede de
+  // segurança pra quem tiver criado conta nesse período.
   if (event === 'PASSWORD_RECOVERY' || session?.user?.user_metadata?.needs_password_setup) {
     state.passwordRecovery = true;
   }
@@ -3043,7 +3042,7 @@ function authHtml() {
           <p class="eyebrow">${isSignUp ? 'Comece agora' : 'Bem-vindo de volta'}</p>
           <h1 class="auth-title">${isSignUp ? 'Crie sua conta' : 'Acesse sua conta'}</h1>
           <p class="auth-subtitle">${(() => {
-            if (!purchasePlan) return isSignUp ? 'Grátis para sempre, sem cartão de crédito. Enviamos um link por e-mail pra você criar sua senha.' : 'Bem-vinda de volta.';
+            if (!purchasePlan) return isSignUp ? 'Grátis para sempre, sem cartão de crédito. Enviamos um link de confirmação por e-mail pra validar seu acesso.' : 'Bem-vinda de volta.';
             // Preço tem que refletir o ciclo escolhido no toggle da landing
             // (mensal/anual) — usar purchasePlan.price direto (sempre o
             // mensal) mostrava o valor errado pra quem veio do anual.
@@ -3053,8 +3052,7 @@ function authHtml() {
           <form data-form="auth">
             ${isSignUp ? '<label>Seu nome<input name="fullName" type="text" placeholder="Maria Silva" required /></label><label>Nome da confeitaria<input name="companyName" type="text" placeholder="Ateliê da Maria" /></label>' : ''}
             <label>E-mail<input name="email" type="email" placeholder="seuemail@exemplo.com" required /></label>
-            ${!isSignUp || purchasePlan
-              ? `<label>Senha<input name="password" type="password" minlength="6" placeholder="${isSignUp ? 'Mínimo 8 caracteres' : ''}" required /></label>` : ''}
+            <label>Senha<input name="password" type="password" minlength="6" placeholder="${isSignUp ? 'Mínimo 6 caracteres' : ''}" required /></label>
             ${isSignUp ? `
               <label class="consent-field">
                 <input name="consent" type="checkbox" required />
@@ -3548,11 +3546,11 @@ async function handleAuthSubmit(form) {
         window.location.href = initPoint;
         return;
       }
-      await signUpWithEmailLink(email, fullName, companyName, captchaToken);
+      await signUp(email, password, fullName, companyName, captchaToken);
       form.reset();
       state.authLoading = false;
       navigate('#/entrar');
-      showSuccess('Quase lá! Enviamos um link pro seu e-mail — clique nele pra criar sua senha. Depois, é só aguardar a aprovação de um administrador para começar a usar o app.', 3600);
+      showSuccess('Quase lá! Enviamos um link de confirmação pro seu e-mail — clique nele pra validar seu acesso. Depois, é só aguardar a aprovação de um administrador para começar a usar o app.', 3600);
       return;
     } catch (error) {
       state.authError = translateAuthError(error.message);

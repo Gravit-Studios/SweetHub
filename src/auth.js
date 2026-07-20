@@ -1,18 +1,15 @@
 import { supabase } from './supabaseClient.js';
 
-// Cadastro sem senha: manda um "magic link" pro e-mail informado — ao
-// clicar, a pessoa já entra autenticada (evento SIGNED_IN/INITIAL_SESSION
-// com needs_password_setup=true nos metadados) e o app mostra a mesma tela
-// de "definir senha" do fluxo de recuperação (ver onAuthStateChange e
-// passwordRecoveryHtml em main.js), sem nunca existir uma senha temporária
-// que ninguém sabe.
-export async function signUpWithEmailLink(email, fullName, companyName, captchaToken) {
-  const { data, error } = await supabase.auth.signInWithOtp({
+// Cadastro padrão: a senha é criada na hora, e o Supabase manda um e-mail
+// de confirmação com um link — a conta só fica utilizável depois que a
+// pessoa clica nesse link (proteção contra e-mail forjado/errado).
+export async function signUp(email, password, fullName, companyName, captchaToken) {
+  const { data, error } = await supabase.auth.signUp({
     email,
+    password,
     options: {
-      shouldCreateUser: true,
       emailRedirectTo: `${window.location.origin}${window.location.pathname}`,
-      data: { full_name: fullName, company_name: companyName, needs_password_setup: true },
+      data: { full_name: fullName, company_name: companyName },
       captchaToken,
     },
   });
@@ -54,9 +51,10 @@ export async function requestPasswordReset(email, captchaToken) {
 }
 
 export async function confirmPasswordReset(newPassword) {
-  // needs_password_setup: false limpa a flag de quem veio do cadastro sem
-  // senha (ver signUpWithEmailLink) — inofensivo pra quem veio do "esqueci
-  // minha senha" de verdade, que nunca teve essa flag setada.
+  // needs_password_setup: false limpa a flag de quem veio de uma conta
+  // criada sem senha (ver comentário em onAuthStateChange, main.js) —
+  // inofensivo pra quem veio do "esqueci minha senha" de verdade, que nunca
+  // teve essa flag setada.
   const { error } = await supabase.auth.updateUser({
     password: newPassword,
     data: { needs_password_setup: false },
