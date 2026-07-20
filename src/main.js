@@ -402,6 +402,7 @@ async function ensureDetailLoaded(id) {
   try {
     const { product, items } = await db.loadProductWithIngredients(id);
     state.detail = {
+      ...defaultDetail(),
       loading: false,
       productId: product.id,
       productName: product.name,
