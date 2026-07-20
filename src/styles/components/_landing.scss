@@ -421,6 +421,12 @@
   text-align: left;
 
   @include respond-down($bp-tablet) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  // Só empilha em 1 coluna de verdade em telas de celular estreitas —
+  // tablet tem espaço de sobra pra 2 colunas em vez de 1 coluna só.
+  @media (max-width: 560px) {
     grid-template-columns: 1fr;
   }
 }
