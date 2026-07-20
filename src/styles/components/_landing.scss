@@ -70,29 +70,21 @@
   }
 }
 
-// Chip de eyebrow "pill" (fundo sólido arredondado) usado no hero novo e em
-// outras seções que adotaram o mesmo tom mais dinâmico da referência.
+// Chip de eyebrow "pill" (fundo sólido arredondado) usado em todas as
+// seções da landing — fundo na cor primária, texto na secundária (usa
+// $secondary-700, não o 500 puro, pra garantir contraste AA real: primary
+// -500 + secondary-500 dava só ~3.7:1, com o 700 sobe pra ~5.1:1). Uniforme
+// em qualquer seção, clara ou escura — por isso sem override por contexto.
 .eyebrow-pill {
   display: inline-flex;
   padding: 6px 14px;
   border-radius: $radius-pill;
-  background: $surface-tint;
-  color: $ink-700;
+  background: $primary-500;
+  color: $secondary-700;
   font-weight: $fw-bold;
   font-size: $fs-xs;
-  letter-spacing: 0.02em;
-}
-
-// Pill "Planos" (seção de preços, fundo claro) — mesmo formato do
-// .eyebrow-pill genérico, mas na cor primária da marca com o mesmo
-// tratamento "small caps" (maiúsculas + tracking) do .eyebrow (ver
-// "COMO FUNCIONA"/"BENEFÍCIOS"). Escopado só nessa pill de propósito: as
-// outras duas usos de .eyebrow-pill ficam sobre foto/fundo escuro e já são
-// brancas ali (ver overrides mais abaixo) — não fazem parte deste ajuste.
-.landing-plans-eyebrow {
-  color: $primary-600;
-  text-transform: uppercase;
   letter-spacing: 0.1em;
+  text-transform: uppercase;
 }
 
 // Metade do título na cor secundária da marca, o resto no peso/cor normal —
@@ -146,11 +138,6 @@
 .landing-hero-v2-copy {
   max-width: 440px;
   text-align: left;
-
-  .eyebrow-pill {
-    background: rgba($white, 0.15);
-    color: $white;
-  }
 
   h1 {
     margin: 14px 0 0;
@@ -1035,11 +1022,6 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-
-  .eyebrow-pill {
-    background: rgba($white, 0.12);
-    color: $white;
-  }
 
   h2 {
     margin: 14px 0 0;

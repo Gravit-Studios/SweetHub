@@ -2930,7 +2930,7 @@ function landingHtml() {
 
       <section class="landing-section" id="precos">
         <div class="landing-section-inner">
-          <p class="eyebrow-pill landing-plans-eyebrow">Planos</p>
+          <p class="eyebrow-pill">Planos</p>
           <h2><span class="muted-tone">Escolha o plano</span> da sua confeitaria</h2>
           <p class="landing-section-subtitle">O plano Gratuito não tem prazo nem cartão. Cancele quando quiser.</p>
           <div class="landing-billing-toggle">
