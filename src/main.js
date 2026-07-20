@@ -2972,7 +2972,7 @@ function landingHtml() {
           <span class="landing-final-cta-badge-icon">${icon('arrowUpRight')}</span>
         </div>
         <div class="landing-section-inner landing-final-cta-inner">
-          <h2>Ainda adivinhando preço? Deixe sua confeitaria inteligente!</h2>
+          <h2>Ainda adivinhando preço?<br /><em>Deixe sua confeitaria inteligente!</em></h2>
           <button type="button" data-action="goto" data-route="cadastro">Criar conta ${icon('arrow')}</button>
         </div>
       </section>
