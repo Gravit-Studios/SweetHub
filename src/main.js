@@ -2961,18 +2961,19 @@ function landingHtml() {
         </div>
       </section>
 
-      <section class="landing-cta">
-        <img src="/assets/img/pexels-amar-9329437.webp" alt="" class="landing-cta-photo" />
-        <div class="landing-cta-overlay"></div>
-        <div class="landing-cta-marquee" aria-hidden="true">
-          <div class="landing-cta-marquee-track">
-            <span>Comece agora · Comece agora · Comece agora · Comece agora · </span>
-            <span>Comece agora · Comece agora · Comece agora · Comece agora · </span>
-          </div>
+      <section class="landing-final-cta reveal">
+        <img src="/assets/img/pexels-amar-9329437.webp" alt="" class="landing-final-cta-photo" />
+        <div class="landing-final-cta-overlay"></div>
+        <div class="landing-final-cta-badge" aria-hidden="true">
+          <svg viewBox="0 0 200 200">
+            <path id="landingFinalCtaCirclePath" fill="none" d="M100,100 m-78,0 a78,78 0 1,1 156,0 a78,78 0 1,1 -156,0"></path>
+            <text><textPath href="#landingFinalCtaCirclePath">CRIE SUA CONTA · GRÁTIS PRA SEMPRE · </textPath></text>
+          </svg>
+          <span class="landing-final-cta-badge-icon">${icon('arrowUpRight')}</span>
         </div>
-        <div class="landing-section-inner landing-cta-inner reveal">
-          <h2>Pronta pra saber o preço certo dos seus doces?</h2>
-          <button type="button" data-action="goto" data-route="cadastro">Criar minha conta grátis</button>
+        <div class="landing-section-inner landing-final-cta-inner">
+          <h2>Ainda adivinhando preço? Deixe sua confeitaria inteligente!</h2>
+          <button type="button" data-action="goto" data-route="cadastro">Criar conta ${icon('arrow')}</button>
         </div>
       </section>
 

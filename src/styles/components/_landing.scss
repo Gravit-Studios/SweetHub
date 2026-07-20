@@ -887,22 +887,26 @@
   }
 }
 
-// Foto de fundo (com degradê na cor da marca por cima) em vez de verde
-// chapado — o padding de baixo é menor que o de cima pra não deixar um vão
-// grande entre o botão e o footer logo abaixo.
-.landing-cta {
+// Seção final da landing: foto full-bleed com o topo arqueado (recorte
+// elíptico raso, cortando a divisa com a seção anterior) e um selo circular
+// de texto giratório decorativo no canto — o giro fica pausado até a seção
+// entrar na tela (mesmo IntersectionObserver do resto da página, via
+// .reveal/.is-visible) e então gira pra sempre.
+.landing-final-cta {
   position: relative;
   overflow: hidden;
-  padding: clamp(48px, 7vw, 72px) 0 clamp(32px, 5vw, 48px);
+  padding: clamp(64px, 9vw, 96px) 0 clamp(48px, 6vw, 64px);
   text-align: center;
+  border-radius: 50% 50% 0 0 / clamp(40px, 6vw, 90px) clamp(40px, 6vw, 90px) 0 0;
 
   h2 {
     color: $white;
-    margin: 0 0 24px;
+    max-width: 20ch;
+    margin: 0 auto 24px;
   }
 }
 
-.landing-cta-photo {
+.landing-final-cta-photo {
   position: absolute;
   inset: 0;
   width: 100%;
@@ -910,13 +914,13 @@
   object-fit: cover;
 }
 
-.landing-cta-overlay {
+.landing-final-cta-overlay {
   position: absolute;
   inset: 0;
   background: linear-gradient(160deg, rgba(var(--primary-600-rgb), 0.93) 0%, rgba(var(--primary-500-rgb), 0.88) 100%);
 }
 
-.landing-cta-inner {
+.landing-final-cta-inner {
   position: relative;
   z-index: 1;
   display: flex;
@@ -924,6 +928,9 @@
   align-items: center;
 
   button {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
     background: $white;
     color: $primary-600;
     padding: 0.85rem 1.75rem;
@@ -936,43 +943,57 @@
   }
 }
 
-// A seção anterior (verde/foto) já dá bastante respiro por conta própria —
-// somar o margin-top padrão do footer aqui só alongava ainda mais o gap.
-.landing-cta + .site-footer {
-  margin-top: 0;
-}
-
-// Faixa de texto correndo (marquee), atrás do conteúdo do CTA final — puro
-// CSS (duas cópias do texto lado a lado, translateX em loop contínuo).
-.landing-cta-marquee {
+.landing-final-cta-badge {
   position: absolute;
-  inset: 0;
   z-index: 1;
-  display: flex;
-  align-items: center;
-  overflow: hidden;
-  opacity: 0.14;
-  pointer-events: none;
-}
+  top: 24px;
+  left: 24px;
+  width: 88px;
+  height: 88px;
 
-.landing-cta-marquee-track {
-  display: flex;
-  flex-shrink: 0;
-  white-space: nowrap;
-  animation: landing-marquee 22s linear infinite;
+  svg {
+    width: 100%;
+    height: 100%;
+    animation: landing-final-cta-spin 12s linear infinite;
+    animation-play-state: paused;
 
-  span {
-    font-family: $font-heading;
-    font-weight: $fw-black;
-    font-size: clamp(3rem, 10vw, 7rem);
-    color: $white;
-    text-transform: uppercase;
+    text {
+      font-size: 15px;
+      font-weight: $fw-bold;
+      letter-spacing: 0.05em;
+      fill: $white;
+      text-transform: uppercase;
+    }
+  }
+
+  &-icon {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    .icon {
+      width: 22px;
+      height: 22px;
+      color: $white;
+    }
   }
 }
 
-@keyframes landing-marquee {
-  from { transform: translateX(0); }
-  to { transform: translateX(-50%); }
+.landing-final-cta.is-visible .landing-final-cta-badge svg {
+  animation-play-state: running;
+}
+
+@keyframes landing-final-cta-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+// A seção anterior já dá bastante respiro por conta própria — somar o
+// margin-top padrão do footer aqui só alongava ainda mais o gap.
+.landing-final-cta + .site-footer {
+  margin-top: 0;
 }
 
 // Ícone decorativo no topo do card de plano (estrela no plano em destaque,
