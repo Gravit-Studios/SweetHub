@@ -205,6 +205,9 @@ const state = {
   // ou Vitrine) — ver start-paid-signup/handleAuthSubmit. null = cadastro
   // normal, direto no plano Gratuito.
   pendingPurchase: null,
+  // Preenche o e-mail da tela de login quando o cadastro pago (acima) falha
+  // porque o e-mail já tem conta — ver handleAuthSubmit.
+  authPrefillEmail: '',
   checkingPayment: false,
   upgradeCheckoutLoading: false,
   // true quando a sessão veio de um link de "esqueci minha senha" (ver
@@ -3098,7 +3101,7 @@ function authHtml() {
           })()}</p>
           <form data-form="auth">
             ${isSignUp ? '<label>Seu nome<input name="fullName" type="text" placeholder="Maria Silva" required /></label><label>Nome da confeitaria<input name="companyName" type="text" placeholder="Ateliê da Maria" /></label>' : ''}
-            <label>E-mail<input name="email" type="email" placeholder="seuemail@exemplo.com" required /></label>
+            <label>E-mail<input name="email" type="email" placeholder="seuemail@exemplo.com" value="${escapeHtml(state.authPrefillEmail)}" required /></label>
             <label>Senha<input name="password" type="password" minlength="6" placeholder="${isSignUp ? 'Mínimo 6 caracteres' : ''}" required /></label>
             ${isSignUp ? `
               <label class="consent-field">
@@ -3642,7 +3645,17 @@ async function handleAuthSubmit(form) {
       showSuccess('Quase lá! Enviamos um link de confirmação pro seu e-mail — clique nele pra validar seu acesso. Depois, é só aguardar a aprovação de um administrador para começar a usar o app.', 3600);
       return;
     } catch (error) {
-      state.authError = translateAuthError(error.message);
+      // E-mail já cadastrado na etapa de assinatura paga: manda pro login em
+      // vez de só mostrar o erro — mantém pendingPurchase, então ao entrar a
+      // pessoa continua direto pro checkout do plano escolhido (ver abaixo,
+      // no bloco de login).
+      if (purchase && /already registered/i.test(error.message)) {
+        state.authPrefillEmail = email;
+        state.authError = 'Este e-mail já tem uma conta. Faça login para continuar com a assinatura.';
+        navigate('#/entrar');
+      } else {
+        state.authError = translateAuthError(error.message);
+      }
     } finally {
       state.authLoading = false;
       resetCaptcha('.turnstile-widget[data-widget="signup"]');
@@ -3661,7 +3674,17 @@ async function handleAuthSubmit(form) {
   state.authError = '';
   render();
   try {
-    await signIn(email, password, loginCaptchaToken);
+    const { session } = await signIn(email, password, loginCaptchaToken);
+    // Login veio de "e-mail já cadastrado" na etapa de assinatura paga (ver
+    // catch acima) — a conta já existe, então continua pro checkout do plano
+    // escolhido em vez de só abrir o dashboard.
+    if (state.pendingPurchase) {
+      const purchase = state.pendingPurchase;
+      const initPoint = await db.createUpgradeCheckout(session.access_token, purchase);
+      state.pendingPurchase = null;
+      window.location.href = initPoint;
+      return;
+    }
   } catch (error) {
     state.authError = translateAuthError(error.message);
   } finally {
@@ -4908,6 +4931,7 @@ app.addEventListener('click', (event) => {
       break;
     case 'start-paid-signup':
       state.pendingPurchase = { plan: el.dataset.plan, billingCycle: el.dataset.cycle || 'mensal' };
+      state.authPrefillEmail = '';
       state.authMode = 'signup';
       navigate('#/cadastro');
       render();
@@ -4939,6 +4963,7 @@ app.addEventListener('click', (event) => {
       break;
     case 'auth-tab':
       state.authError = '';
+      state.authPrefillEmail = '';
       navigate(`#/${el.dataset.mode === 'signup' ? 'cadastro' : 'entrar'}`);
       break;
     case 'add-ingredient':
