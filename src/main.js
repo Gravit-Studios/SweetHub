@@ -122,6 +122,9 @@ function nameFromEmail(email) {
 // clientes, gestão da empresa, receitas ilimitadas) — Vitrine só acrescenta
 // o cardápio público por cima, então é sempre um superconjunto de Controle.
 const CONTROLE_ONLY_ROUTES = { fornecedores: 'Fornecedores', clientes: 'Clientes', empresa: 'Empresa', relatorio: 'Relatório' };
+// Orçamentos depende do formulário público da vitrine — exclusivo do plano
+// Vitrine, não do Controle (ver CONTROLE_ONLY_ROUTES acima).
+const VITRINE_ONLY_ROUTES = { orcamentos: 'Orçamentos' };
 // Níveis de lucro não fazem parte dos limites de planLimits.js (fora do
 // escopo do PDF de reestruturação) — segue como constante à parte.
 const FREE_PROFIT_TIER_LIMIT = 1;
@@ -260,6 +263,16 @@ const state = {
   cepLookup: { loading: false, error: '' },
   publicMenu: { slug: null, loading: false, company: null, products: [], error: '' },
   menuLightboxUrl: null,
+  // Formulário público de "Solicitar orçamento" (recurso do plano Vitrine,
+  // ver renderBudgetRequestForm) — troca de tela dentro da própria página do
+  // cardápio, sem mudar de rota (o link público usa /loja/:slug como path de
+  // verdade, ver router.js, então uma rota separada por hash não teria
+  // prioridade sobre esse path ao navegar).
+  showBudgetForm: false,
+  budgetForm: { name: '', phone: '', email: '', message: '', loading: false, error: '', submitted: false },
+  // Painel "Gestão → Orçamentos" (ver renderOrcamentosPage) — pedidos
+  // recebidos pela loja logada + o e-mail que recebe o aviso de cada um.
+  budgetRequests: { items: [], notificationEmail: '', savingEmail: false },
   profileMenuOpen: false,
   mobileMenuOpen: false,
   openNavMenu: null,
@@ -363,13 +376,14 @@ async function loadUserData() {
     if (state.profile.role !== 'admin' && state.profile.approvalStatus !== 'approved') {
       return;
     }
-    const [ingredients, products, expenseCategories, profitTiers, suppliers, customers] = await Promise.all([
+    const [ingredients, products, expenseCategories, profitTiers, suppliers, customers, budgetRequests] = await Promise.all([
       db.listIngredients(userId),
       db.listProducts(userId),
       db.ensureDefaultExpenseCategories(userId),
       db.ensureDefaultProfitTiers(userId, isControlePlan(state.profile) ? 3 : FREE_PROFIT_TIER_LIMIT),
       db.listSuppliers(userId),
       db.listCustomers(userId),
+      isVitrinePlan(state.profile) ? db.listBudgetRequests(userId) : Promise.resolve([]),
     ]);
     state.savedIngredients = ingredients;
     state.savedProducts = products;
@@ -377,6 +391,8 @@ async function loadUserData() {
     state.profitTiers = profitTiers;
     state.suppliers = suppliers;
     state.customers = customers;
+    state.budgetRequests.items = budgetRequests;
+    state.budgetRequests.notificationEmail = profile.budget_notification_email || '';
     state.settings = { fullName: state.profile.fullName, email: state.session.user.email };
     state.company = {
       name: profile.company_name || '',
@@ -2114,6 +2130,47 @@ function renderClientesPage() {
     </div>`;
 }
 
+// "Gestão → Orçamentos" (recurso do plano Vitrine): pedidos recebidos pelo
+// formulário público da vitrine (ver renderBudgetRequestForm) + o e-mail que
+// recebe o aviso de cada um novo (em branco = usa o e-mail de login da
+// própria conta, ver submit-budget-request).
+function renderOrcamentosPage() {
+  const list = state.budgetRequests.items.length > 0
+    ? `<div class="table-scroll"><table class="data-table">
+        <thead><tr><th>Nome</th><th>Telefone</th><th>E-mail</th><th>Mensagem</th><th>Data</th><th></th></tr></thead>
+        <tbody>
+          ${state.budgetRequests.items.map((r) => `
+            <tr>
+              <td>${escapeHtml(r.name)}</td>
+              <td>${r.phone ? escapeHtml(r.phone) : '—'}</td>
+              <td>${escapeHtml(r.email)}</td>
+              <td>${escapeHtml(r.message)}</td>
+              <td>${formatDate(r.created_at)}</td>
+              <td class="data-table-actions">
+                <button type="button" class="danger" data-action="delete-budget-request" data-id="${r.id}">Excluir</button>
+              </td>
+            </tr>`).join('')}
+        </tbody>
+      </table></div>`
+    : emptyState('Nenhum pedido de orçamento recebido ainda.', false);
+
+  return `
+    ${pageBanner('Formulário da vitrine', 'Orçamentos')}
+    ${statusBox()}
+    <div class="panel">
+      <h3>E-mail de recebimento</h3>
+      <p class="muted">Pra onde vai o aviso de cada novo pedido de orçamento. Em branco, usa o e-mail de login da sua conta.</p>
+      <div class="field-grid">
+        <label>E-mail<input type="email" placeholder="${escapeHtml(state.session.user.email)}" data-budget-notification-field value="${escapeHtml(state.budgetRequests.notificationEmail)}" /></label>
+      </div>
+      <button type="button" style="margin-top:16px;" data-action="save-budget-notification-email" ${state.budgetRequests.savingEmail ? 'disabled' : ''}>${state.budgetRequests.savingEmail ? 'Salvando...' : 'Salvar e-mail'}</button>
+    </div>
+    <div class="panel">
+      <h3>Pedidos recebidos</h3>
+      ${state.dataLoading ? loadingMsg() : list}
+    </div>`;
+}
+
 // Contas antigas ajustadas manualmente antes do checkout do Mercado Pago
 // existir ainda podem estar sem cobrança/renovação preenchidas — nesse caso
 // mostra que foi ativado manualmente em vez de inventar uma data.
@@ -2358,17 +2415,20 @@ function renderAdminPage() {
     </div>`;
 }
 
-// Recurso exclusivo do plano Controle: em vez da página real, mostra um
-// convite pra upgrade que já leva direto pro checkout do Mercado Pago.
+// Recurso exclusivo do plano Controle ou Vitrine: em vez da página real,
+// mostra um convite pra upgrade que já leva direto pro checkout do Mercado
+// Pago (ver CONTROLE_ONLY_ROUTES/VITRINE_ONLY_ROUTES).
 function renderUpgradeGate(routePath) {
-  const label = CONTROLE_ONLY_ROUTES[routePath];
+  const isVitrineRoute = Boolean(VITRINE_ONLY_ROUTES[routePath]);
+  const label = isVitrineRoute ? VITRINE_ONLY_ROUTES[routePath] : CONTROLE_ONLY_ROUTES[routePath];
+  const planName = isVitrineRoute ? 'Vitrine' : 'Controle';
   return `
     <div class="panel upgrade-gate">
-      <p class="eyebrow">Recurso Controle</p>
-      <h2>${escapeHtml(label)} é exclusivo do plano Controle</h2>
-      <p>Faça upgrade para o plano Controle e desbloqueie ${escapeHtml(label.toLowerCase())}, receitas ilimitadas e todos os outros recursos.</p>
+      <p class="eyebrow">Recurso ${planName}</p>
+      <h2>${escapeHtml(label)} é exclusivo do plano ${planName}</h2>
+      <p>Faça upgrade para o plano ${planName} e desbloqueie ${escapeHtml(label.toLowerCase())}${isVitrineRoute ? '' : ', receitas ilimitadas e todos os outros recursos'}.</p>
       ${statusBox()}
-      ${planCheckoutButton('controle', 'mensal', 'Fazer upgrade')}
+      ${planCheckoutButton(isVitrineRoute ? 'vitrine' : 'controle', 'mensal', 'Fazer upgrade')}
     </div>`;
 }
 
@@ -2381,6 +2441,9 @@ function renderPage() {
   if (CONTROLE_ONLY_ROUTES[state.route.path] && !isControlePlan(state.profile)) {
     return renderUpgradeGate(state.route.path);
   }
+  if (VITRINE_ONLY_ROUTES[state.route.path] && !isVitrinePlan(state.profile)) {
+    return renderUpgradeGate(state.route.path);
+  }
   switch (state.route.path) {
     case 'produtos': return renderProdutosPage();
     case 'produto': return renderProdutoDetalhe(state.route.param);
@@ -2390,6 +2453,7 @@ function renderPage() {
     case 'lucro': return renderLucroPage();
     case 'fornecedores': return renderFornecedoresPage();
     case 'clientes': return renderClientesPage();
+    case 'orcamentos': return renderOrcamentosPage();
     case 'admin': return renderAdminPage();
     case 'relatorio': return renderRelatorioPage();
     case 'configuracoes': return renderConfiguracoesPage();
@@ -2419,8 +2483,9 @@ const NAV_GROUPS = [
 // aponta pro link público da própria empresa (depende do slug carregado).
 function gestaoGroup() {
   const items = [{ route: 'clientes', label: 'Clientes' }, { route: 'empresa', label: 'Empresa' }, { route: 'relatorio', label: 'Relatório' }];
-  if (isVitrinePlan(state.profile) && state.company.slug) {
-    items.push({ label: 'Site', external: true, href: publicMenuUrl(state.company.slug) });
+  if (isVitrinePlan(state.profile)) {
+    items.push({ route: 'orcamentos', label: 'Orçamentos' });
+    if (state.company.slug) items.push({ label: 'Site', external: true, href: publicMenuUrl(state.company.slug) });
   }
   return { key: 'gestao', label: 'Gestão', items };
 }
@@ -3328,6 +3393,7 @@ function publicMenuHeader(company, categories) {
             ? `<img src="${escapeHtml(company.logo_url)}" alt="${escapeHtml(company.company_name || 'Cardápio')}" class="menu-logo" />`
             : `<span>${escapeHtml(company.company_name || 'Cardápio')}</span>`}
         </a>
+        <button type="button" class="ghost menu-budget-cta" data-action="open-budget-form">Solicitar orçamento</button>
         ${hasNav ? `<button type="button" class="navbar-menu-toggle" data-action="toggle-mobile-menu" aria-label="Abrir categorias">${icon('menu')}</button>` : ''}
       </div>
     </header>
@@ -3381,6 +3447,7 @@ function publicMenuHtml() {
   if (!state.publicMenu.company) {
     return `<div class="menu-empty-page"><h1>Cardápio não encontrado</h1><p>Verifique se o link está correto.</p></div>`;
   }
+  if (state.showBudgetForm) return renderBudgetRequestForm(state.publicMenu.company);
   return renderPublicMenuList(state.publicMenu);
 }
 
@@ -3439,6 +3506,73 @@ function renderPublicMenuList(menu) {
           <img src="${escapeHtml(state.menuLightboxUrl)}" alt="" />
         </div>` : ''}
     </div>`;
+}
+
+// Formulário público de "Solicitar orçamento" (ver showBudgetForm) — troca
+// de tela dentro da mesma página do cardápio, sem sair da vitrine nem mudar
+// de rota. Some do fluxo normal (categorias, produtos) enquanto ativo.
+function renderBudgetRequestForm(company) {
+  const form = state.budgetForm;
+  if (form.submitted) {
+    return `
+      <div class="menu-page">
+        ${publicMenuHeader(company, [])}
+        <div class="menu-body">
+          <div class="menu-content budget-form-page">
+            <div class="empty-state">
+              ${inlineSvgPlaceholder('div', 'empty-state-illustration', '/assets/icons/cooking-illustration.svg')}
+              <p>Pedido enviado! ${escapeHtml(company.company_name || 'A loja')} vai entrar em contato em breve.</p>
+              <button type="button" data-action="close-budget-form">Voltar pro cardápio</button>
+            </div>
+          </div>
+        </div>
+        ${publicMenuFooter(company)}
+      </div>`;
+  }
+  return `
+    <div class="menu-page">
+      ${publicMenuHeader(company, [])}
+      <div class="menu-body">
+        <div class="menu-content budget-form-page">
+          <button type="button" class="ghost" data-action="close-budget-form">← Voltar pro cardápio</button>
+          <h1>Solicitar orçamento</h1>
+          <p class="muted">Preencha seus dados e conte o que você precisa — ${escapeHtml(company.company_name || 'a loja')} recebe seu pedido e retorna por e-mail ou telefone.</p>
+          <form data-form="budget-request">
+            <label>Nome<input name="name" type="text" required value="${escapeHtml(form.name)}" /></label>
+            <label>Telefone<input name="phone" type="tel" placeholder="(00) 00000-0000" value="${escapeHtml(form.phone)}" /></label>
+            <label>E-mail<input name="email" type="email" required value="${escapeHtml(form.email)}" /></label>
+            <label>Mensagem<textarea name="message" rows="5" required placeholder="Conte o que você precisa: tipo de doce, quantidade, data do evento...">${escapeHtml(form.message)}</textarea></label>
+            ${form.error ? `<p class="form-error">${escapeHtml(form.error)}</p>` : ''}
+            <div class="form-actions">
+              <button type="button" class="ghost" data-action="close-budget-form">Cancelar</button>
+              <button type="submit" ${form.loading ? 'disabled' : ''}>${form.loading ? 'Enviando...' : 'Enviar pedido'}</button>
+            </div>
+          </form>
+        </div>
+      </div>
+      ${publicMenuFooter(company)}
+    </div>`;
+}
+
+async function handleBudgetRequestSubmit(formEl) {
+  const formData = new FormData(formEl);
+  const form = state.budgetForm;
+  form.name = String(formData.get('name') || '').trim();
+  form.phone = String(formData.get('phone') || '').trim();
+  form.email = String(formData.get('email') || '').trim();
+  form.message = String(formData.get('message') || '').trim();
+  form.loading = true;
+  form.error = '';
+  render();
+  try {
+    await db.submitBudgetRequest({ slug: state.route.param, ...form });
+    form.submitted = true;
+  } catch (error) {
+    form.error = error.message;
+  } finally {
+    form.loading = false;
+    render();
+  }
 }
 
 // Chave da "página atual" pra decidir quando tocar a animação de entrada
@@ -4492,6 +4626,7 @@ async function handleConfirmDelete() {
   if (modal.kind === 'tier') await handleDeleteTier(modal.id);
   if (modal.kind === 'supplier') await handleDeleteSupplier(modal.id);
   if (modal.kind === 'customer') await handleDeleteCustomer(modal.id);
+  if (modal.kind === 'budget-request') await handleDeleteBudgetRequest(modal.id);
   if (modal.kind === 'admin-suspend') await handleAdminAction('suspend', modal.id);
   if (modal.kind === 'admin-delete') await handleAdminAction('delete', modal.id);
   if (modal.kind === 'recipe-ingredient') handleRemoveIngredient(modal.editorKey, modal.id);
@@ -4703,6 +4838,41 @@ function openConfirmDeleteCustomer(id, name) {
   });
 }
 
+async function handleDeleteBudgetRequest(id) {
+  try {
+    await db.deleteBudgetRequest(id);
+    await loadUserData();
+  } catch (error) {
+    state.statusMessage = `Erro ao excluir pedido de orçamento: ${error.message}`;
+    render();
+  }
+}
+
+function openConfirmDeleteBudgetRequest(id, name) {
+  openModal('confirm-delete', {
+    kind: 'budget-request',
+    id,
+    title: 'Excluir pedido de orçamento',
+    message: `Tem certeza que deseja excluir o pedido de "${name || 'este contato'}"? Essa ação não pode ser desfeita.`,
+  });
+}
+
+async function handleSaveBudgetNotificationEmail() {
+  state.budgetRequests.savingEmail = true;
+  render();
+  try {
+    await db.updateProfile(state.session.user.id, {
+      budget_notification_email: state.budgetRequests.notificationEmail,
+    });
+    showSuccess('E-mail de recebimento atualizado!');
+  } catch (error) {
+    state.statusMessage = `Erro ao salvar e-mail: ${error.message}`;
+  } finally {
+    state.budgetRequests.savingEmail = false;
+    render();
+  }
+}
+
 // ---------------- Listeners globais ----------------
 
 app.addEventListener('change', async (event) => {
@@ -4869,6 +5039,11 @@ app.addEventListener('input', (event) => {
     render();
     return;
   }
+  if (target.dataset.budgetNotificationField !== undefined) {
+    state.budgetRequests.notificationEmail = target.value;
+    render();
+    return;
+  }
   if (target.dataset.companyField) {
     const field = target.dataset.companyField;
     state.company[field] = target.value;
@@ -4929,6 +5104,7 @@ app.addEventListener('submit', (event) => {
   if (formType === 'edit-customer') handleEditCustomerSubmit(event.target);
   if (formType === 'forgot-password') handleForgotPasswordSubmit(event.target);
   if (formType === 'password-recovery') handlePasswordRecoverySubmit(event.target);
+  if (formType === 'budget-request') handleBudgetRequestSubmit(event.target);
 });
 
 // Links âncora da landing page (Benefícios/Como funciona/Preços) — troca o
@@ -5259,6 +5435,23 @@ app.addEventListener('click', (event) => {
       state.menuLightboxUrl = null;
       render();
       break;
+    case 'open-budget-form':
+      state.showBudgetForm = true;
+      render();
+      break;
+    case 'close-budget-form':
+      state.showBudgetForm = false;
+      state.budgetForm = { name: '', phone: '', email: '', message: '', loading: false, error: '', submitted: false };
+      render();
+      break;
+    case 'save-budget-notification-email':
+      handleSaveBudgetNotificationEmail();
+      break;
+    case 'delete-budget-request': {
+      const request = state.budgetRequests.items.find((r) => r.id === id);
+      openConfirmDeleteBudgetRequest(id, request?.name);
+      break;
+    }
     case 'open-change-password':
       state.profileMenuOpen = false;
       openModal('change-password');

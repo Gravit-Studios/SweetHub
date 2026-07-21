@@ -85,7 +85,12 @@ create table if not exists public.profiles (
   -- Recurso do plano Controle: aviso a cada 30 dias pra revisar os preços
   -- das receitas (ver pricesNeedReview no client). Nulo até a primeira
   -- revisão marcada; nesse caso o client usa created_at como referência.
-  last_price_review_at timestamptz
+  last_price_review_at timestamptz,
+  -- E-mail que recebe o aviso de novo pedido de orçamento (recurso do plano
+  -- Vitrine, ver budget_requests abaixo). Vazio = usa o e-mail de login da
+  -- própria conta (ver submit-budget-request, que busca em auth.users
+  -- quando este campo está em branco).
+  budget_notification_email text not null default ''
 );
 alter table public.profiles enable row level security;
 create policy "Usuário vê o próprio perfil" on public.profiles for select using (auth.uid() = id);
@@ -334,6 +339,28 @@ create table if not exists public.product_photos (
 alter table public.product_photos enable row level security;
 create policy "Usuário gerencia as próprias fotos extras de produto" on public.product_photos for all
   using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+-- =========================================================
+-- budget_requests — pedidos de orçamento vindos do formulário público da
+-- vitrine (recurso do plano Vitrine, ver submit-budget-request). Sem policy
+-- de insert pro anon nem pro usuário de propósito: a inserção só acontece
+-- via Edge Function com service role, que valida os dados e dispara o
+-- e-mail de aviso — evita inserção livre direto na tabela.
+-- =========================================================
+create table if not exists public.budget_requests (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users (id) on delete cascade,
+  name text not null,
+  phone text not null default '',
+  email text not null default '',
+  message text not null default '',
+  created_at timestamptz not null default now()
+);
+alter table public.budget_requests enable row level security;
+create policy "Usuário vê os próprios pedidos de orçamento" on public.budget_requests for select
+  using (auth.uid() = user_id);
+create policy "Usuário exclui os próprios pedidos de orçamento" on public.budget_requests for delete
+  using (auth.uid() = user_id);
 
 -- =========================================================
 -- pricing_history — snapshot de cada cálculo (com os 3 cenários de lucro)

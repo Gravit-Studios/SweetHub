@@ -89,6 +89,37 @@ export async function updateProfile(userId, fields) {
   return data;
 }
 
+// ---------- Orçamentos (recurso do plano Vitrine) ----------
+
+// Público (sem sessão) — quem envia é um visitante da vitrine, não a conta
+// dona da loja. A Edge Function valida os dados, confirma que a loja existe
+// e é do plano Vitrine, grava o pedido e dispara o e-mail de aviso.
+export async function submitBudgetRequest({ slug, name, phone, email, message }) {
+  const response = await fetch(`${FUNCTIONS_URL}/submit-budget-request`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ slug, name, phone, email, message }),
+  });
+  const body = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(body.error || 'Falha ao enviar o pedido de orçamento.');
+  return body;
+}
+
+export async function listBudgetRequests(userId) {
+  const { data, error } = await supabase
+    .from('budget_requests')
+    .select('*')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false });
+  if (error) throw error;
+  return data;
+}
+
+export async function deleteBudgetRequest(id) {
+  const { error } = await supabase.from('budget_requests').delete().eq('id', id);
+  if (error) throw error;
+}
+
 export async function uploadCompanyLogo(userId, file) {
   const extension = file.name.split('.').pop() || 'jpg';
   const path = `${userId}/logo-${crypto.randomUUID()}.${extension}`;

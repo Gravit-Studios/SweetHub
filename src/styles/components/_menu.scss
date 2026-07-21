@@ -26,10 +26,22 @@
   padding: 16px 24px;
   display: flex;
   align-items: center;
+  gap: 12px;
 
   @include respond-down($bp-tablet) {
     padding: 14px 16px;
   }
+}
+
+// Empurra o CTA (e o toggle de categorias, quando existe) pra direita do
+// logotipo — margin-left: auto no primeiro item depois da marca já consome
+// todo o espaço livre da linha, então o toggle (que também tem seu próprio
+// margin-left: auto em _navbar.scss) fica coladinho a ele, só com o gap
+// acima entre os dois.
+.menu-budget-cta {
+  margin-left: auto;
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 
 .menu-brand {
@@ -372,5 +384,39 @@
   .photo-preview {
     object-fit: contain;
     background: $surface-tint;
+  }
+}
+
+// Página de "Solicitar orçamento" (recurso do plano Vitrine): reaproveita a
+// mesma casca .menu-page/.menu-header/.menu-body do cardápio público, só
+// trocando o conteúdo — sem sidebar de categorias, formulário centralizado
+// com largura de leitura confortável.
+.budget-form-page {
+  max-width: 480px;
+  margin: 0 auto;
+  width: 100%;
+
+  h1 {
+    margin: 16px 0 4px;
+  }
+
+  > .muted {
+    margin: 0 0 24px;
+  }
+
+  form {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .form-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+  }
+
+  .empty-state {
+    padding: 48px 0;
   }
 }
