@@ -83,20 +83,33 @@ async function cancelPreapproval(id: string) {
   }
 }
 
-async function updatePreapprovalPlan(id: string, planId: string) {
+// Espelha os valores de AUTO_RECURRING em mercadopago-checkout/index.ts —
+// as assinaturas são ad hoc (sem preapproval_plan_id, ver comentário lá),
+// então trocar de plano numa assinatura já ativa é atualizar auto_recurring
+// nela mesma, não trocar uma referência de plano.
+const AUTO_RECURRING: Record<string, { frequency: number; frequency_type: string; transaction_amount: number; currency_id: string }> = {
+  CONTROLE_MENSAL: { frequency: 1, frequency_type: 'months', transaction_amount: 22.9, currency_id: 'BRL' },
+  CONTROLE_ANUAL: { frequency: 12, frequency_type: 'months', transaction_amount: 261.06, currency_id: 'BRL' },
+  VITRINE_MENSAL: { frequency: 1, frequency_type: 'months', transaction_amount: 39.9, currency_id: 'BRL' },
+  VITRINE_ANUAL: { frequency: 12, frequency_type: 'months', transaction_amount: 454.86, currency_id: 'BRL' },
+};
+
+async function updatePreapprovalAmount(id: string, autoRecurring: { transaction_amount: number; currency_id: string }) {
   try {
     await fetch(`https://api.mercadopago.com/preapproval/${id}`, {
       method: 'PUT',
       headers: { Authorization: `Bearer ${MP_ACCESS_TOKEN}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ preapproval_plan_id: planId }),
+      body: JSON.stringify({
+        auto_recurring: { transaction_amount: autoRecurring.transaction_amount, currency_id: autoRecurring.currency_id },
+      }),
     });
   } catch {
     // Best-effort (ver comentário no topo do arquivo sobre downgrade agendado).
   }
 }
 
-function planIdFor(plan: string, cycle: string): string | null {
-  return Deno.env.get(`MERCADOPAGO_PLAN_${plan.toUpperCase()}_${cycle.toUpperCase()}`) ?? null;
+function autoRecurringFor(plan: string, cycle: string) {
+  return AUTO_RECURRING[`${plan.toUpperCase()}_${cycle.toUpperCase()}`] ?? null;
 }
 
 // A resposta do GET /preapproval nem sempre traz a próxima data de cobrança
@@ -184,8 +197,7 @@ Deno.serve(async (req) => {
       // um downgrade agendado (ver scheduled_plan), se houver.
       if (profile.scheduled_plan === 'gratuito') {
         // Gratuito não tem cobrança — cancela a assinatura no Mercado Pago
-        // em vez de trocar de plano pago (não existe
-        // MERCADOPAGO_PLAN_GRATUITO_* pra updatePreapprovalPlan usar).
+        // em vez de trocar o valor (não existe AUTO_RECURRING.GRATUITO).
         await cancelPreapproval(subscription.id);
         await admin
           .from('profiles')
@@ -205,8 +217,8 @@ Deno.serve(async (req) => {
         if (profile.scheduled_plan) {
           updates.plan = profile.scheduled_plan;
           updates.scheduled_plan = null;
-          const newPlanId = planIdFor(profile.scheduled_plan, profile.plan_billing_cycle || 'mensal');
-          if (newPlanId) await updatePreapprovalPlan(subscription.id, newPlanId);
+          const newAutoRecurring = autoRecurringFor(profile.scheduled_plan, profile.plan_billing_cycle || 'mensal');
+          if (newAutoRecurring) await updatePreapprovalAmount(subscription.id, newAutoRecurring);
         }
         await admin.from('profiles').update(updates).eq('id', profileId);
       }

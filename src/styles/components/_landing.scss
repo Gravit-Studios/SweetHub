@@ -4,6 +4,23 @@
 // tokens/cores do resto do app, mas com seções full-bleed próprias em vez
 // do layout de painel (.panel) usado dentro do produto.
 
+// Só no hero da landing principal (ver landingNav(true) em main.js): tira o
+// navbar do fluxo pra ele flutuar por cima da foto do hero, com fundo
+// translúcido + blur (glassmorphism) em vez do branco sólido padrão. Nas
+// páginas públicas sem foto atrás (vitrine, termos etc.) o navbar continua
+// normal, sólido e no fluxo — só essa variante muda.
+.landing-nav-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 20;
+  background: rgba(255, 255, 255, 0.16);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.25);
+}
+
 .landing-nav-links {
   margin: 0;
   padding: 0;
@@ -140,13 +157,16 @@
   // landingHeroV2 em main.js), e o shorthand zerava o padding horizontal de
   // 24px herdado dali — o conteúdo do hero ficava colado na borda em vez de
   // alinhado com o resto das seções (ver .landing-section-inner).
-  padding-top: 40px;
+  // padding-top maior que o das outras seções de propósito: o navbar aqui
+  // flutua por cima do hero (.landing-nav-overlay, position: absolute), então
+  // precisa desse respiro extra pro conteúdo não ficar embaixo dele.
+  padding-top: 104px;
   padding-bottom: 40px;
 
   @include respond-down($bp-tablet) {
     flex-direction: column;
     text-align: center;
-    padding-top: 40px;
+    padding-top: 96px;
     padding-bottom: 56px;
   }
 }

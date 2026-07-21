@@ -2786,9 +2786,9 @@ function planCheckoutButton(planKey, billingCycle = 'mensal', label) {
   return `<button type="button" class="ghost" data-action="start-upgrade-checkout" data-plan="${planKey}" data-cycle="${billingCycle}" ${state.upgradeCheckoutLoading ? 'disabled' : ''}>${escapeHtml(text)}</button>`;
 }
 
-function landingNav() {
+function landingNav(overlay = false) {
   return `
-    <header class="navbar landing-nav">
+    <header class="navbar landing-nav${overlay ? ' landing-nav-overlay' : ''}">
       <div class="navbar-inner">
         <button type="button" class="brand" data-action="landing-home">
           <img src="/assets/logotipo/SVG/logotipo-original.png" alt="SweetHub" class="brand-logo" />
@@ -2864,7 +2864,7 @@ function landingHeroV2() {
         <div class="landing-hero-v2-copy">
           <p class="eyebrow-pill">Facilite a gestão da sua confeitaria</p>
           <h1>Sua confeitaria <em>no lucro certo</em></h1>
-          <p class="landing-hero-v2-subtitle">Adicione ingredientes, crie receitas e saiba o quanto cobrar!</p>
+          <p class="landing-hero-v2-subtitle">A gestão da sua confeitaria de forma inteligente e integrada com a sua vitrine</p>
           <div class="landing-hero-actions">
             <button type="button" data-action="goto" data-route="cadastro">Começar grátis</button>
             <a href="#precos" class="landing-link-cta">Ver planos e preços</a>
@@ -2943,7 +2943,7 @@ function landingHighlightsStrip() {
 function landingHtml() {
   return `
     <div class="landing">
-      ${landingNav()}
+      ${landingNav(true)}
       ${landingHeroV2()}
 
       <section class="landing-section landing-section-dark" id="beneficios">

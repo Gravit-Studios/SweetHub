@@ -17,17 +17,20 @@
 //                                pending_billing_cycle guardam o que vai
 //                                valer quando confirmar.
 //
-// O ID do plano no Mercado Pago (preapproval_plan_id) vem primeiro de uma
-// secret no formato MERCADOPAGO_PLAN_<PLANO>_<CICLO> (ex.:
-// MERCADOPAGO_PLAN_CONTROLE_MENSAL, configurável em Project Settings → Edge
-// Functions → Secrets, pra trocar sem precisar reimplantar a função) e cai
-// pro mapa PLAN_IDS abaixo — os 4 planos já criados no Mercado Pago (ver
-// link de "Compartilhar" de cada um no painel deles).
-const PLAN_IDS: Record<string, string> = {
-  CONTROLE_MENSAL: '676a0774f5fa4afb834695faa80c6151',
-  CONTROLE_ANUAL: '5ef7486d59254f57bb6e8b1978696c4e',
-  VITRINE_MENSAL: 'dd343ebc880c4f22b8028852e83393ab',
-  VITRINE_ANUAL: 'b29eb1351cb54b7890cdef30cc721b67',
+// Assinatura SEM plano associado (ad hoc): o Mercado Pago exige
+// card_token_id (cartão tokenizado no front) sempre que a criação da
+// assinatura referencia um preapproval_plan_id — como não temos
+// tokenização de cartão no front, a assinatura é criada com os dados de
+// cobrança direto em auto_recurring, o que aceita payer_email sem cartão
+// e devolve um init_point de checkout hospedado (ver createPreapproval).
+// Os valores abaixo espelham os planos criados no painel do Mercado Pago
+// (Suas integrações → Assinaturas), sem o teste grátis e o dia de
+// cobrança fixo que só existem pra assinaturas com plano associado.
+const AUTO_RECURRING: Record<string, { frequency: number; frequency_type: 'months' | 'days'; transaction_amount: number; currency_id: string }> = {
+  CONTROLE_MENSAL: { frequency: 1, frequency_type: 'months', transaction_amount: 22.9, currency_id: 'BRL' },
+  CONTROLE_ANUAL: { frequency: 12, frequency_type: 'months', transaction_amount: 261.06, currency_id: 'BRL' },
+  VITRINE_MENSAL: { frequency: 1, frequency_type: 'months', transaction_amount: 39.9, currency_id: 'BRL' },
+  VITRINE_ANUAL: { frequency: 12, frequency_type: 'months', transaction_amount: 454.86, currency_id: 'BRL' },
 };
 
 import { createClient } from 'npm:@supabase/supabase-js@2';
@@ -50,13 +53,14 @@ function json(body: unknown, status = 200) {
   });
 }
 
-function planIdFor(plan: string, cycle: string): string | null {
+function autoRecurringFor(plan: string, cycle: string) {
   const key = `${plan.toUpperCase()}_${cycle.toUpperCase()}`;
-  return Deno.env.get(`MERCADOPAGO_PLAN_${key}`) || PLAN_IDS[key] || null;
+  return AUTO_RECURRING[key] || null;
 }
 
 async function createPreapproval(options: {
-  planId: string;
+  autoRecurring: { frequency: number; frequency_type: string; transaction_amount: number; currency_id: string };
+  reason: string;
   payerEmail: string;
   externalReference: string;
   backUrl: string;
@@ -68,11 +72,11 @@ async function createPreapproval(options: {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      preapproval_plan_id: options.planId,
-      reason: 'Assinatura SweetHub',
+      reason: options.reason,
       external_reference: options.externalReference,
       payer_email: options.payerEmail,
       back_url: options.backUrl,
+      auto_recurring: options.autoRecurring,
     }),
   });
   const data = await response.json();
@@ -105,10 +109,11 @@ Deno.serve(async (req) => {
   if (!siteUrl) return json({ error: 'siteUrl é obrigatório.' }, 400);
   const backUrl = `${siteUrl}/#/assinatura/retorno`;
 
-  const planId = planIdFor(plan, billingCycle);
-  if (!planId) {
+  const autoRecurring = autoRecurringFor(plan, billingCycle);
+  if (!autoRecurring) {
     return json({ error: `Plano do Mercado Pago ainda não configurado para ${plan}/${billingCycle}.` }, 500);
   }
+  const reason = `SweetHub ${plan === 'controle' ? 'Controle' : 'Vitrine'} ${billingCycle === 'mensal' ? 'Mensal' : 'Anual'}`;
 
   const admin = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
     auth: { autoRefreshToken: false, persistSession: false },
@@ -145,7 +150,8 @@ Deno.serve(async (req) => {
 
     try {
       const subscription = await createPreapproval({
-        planId,
+        autoRecurring,
+        reason,
         payerEmail: email,
         externalReference: userId,
         backUrl,
@@ -183,7 +189,8 @@ Deno.serve(async (req) => {
 
     try {
       const subscription = await createPreapproval({
-        planId,
+        autoRecurring,
+        reason,
         payerEmail: caller.email,
         externalReference: caller.id,
         backUrl,
