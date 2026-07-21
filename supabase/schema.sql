@@ -129,7 +129,9 @@ declare
 begin
   -- Slug é só o nome da empresa transliterado (ex.: "Delícias da Tai" ->
   -- "delicias-da-tai"); cai pro sufixo do id apenas se já existir outra
-  -- empresa com o mesmo slug (nomes iguais/muito parecidos).
+  -- empresa com o mesmo slug (nomes iguais/muito parecidos) — a unique
+  -- constraint em profiles.slug garante que nunca duas contas fiquem com o
+  -- mesmo link de vitrine.
   base_slug := trim(both '-' from lower(regexp_replace(
     extensions.unaccent(coalesce(nullif(new.raw_user_meta_data ->> 'company_name', ''), split_part(new.email, '@', 1))),
     '[^a-zA-Z0-9]+', '-', 'g'
@@ -139,13 +141,25 @@ begin
     candidate_slug := base_slug || '-' || substr(new.id::text, 1, 6);
   end if;
 
-  insert into public.profiles (id, full_name, company_name, slug)
-  values (
-    new.id,
-    new.raw_user_meta_data ->> 'full_name',
-    new.raw_user_meta_data ->> 'company_name',
-    candidate_slug
-  );
+  -- Fallback pra corrida rara (dois cadastros com o mesmo nome de empresa
+  -- no mesmíssimo instante, ambos passando pelo "exists" acima antes de
+  -- qualquer um commitar): em vez de deixar o cadastro falhar com um erro
+  -- cru de chave duplicada, tenta de novo com um sufixo aleatório até
+  -- conseguir gravar.
+  loop
+    begin
+      insert into public.profiles (id, full_name, company_name, slug)
+      values (
+        new.id,
+        new.raw_user_meta_data ->> 'full_name',
+        new.raw_user_meta_data ->> 'company_name',
+        candidate_slug
+      );
+      exit;
+    exception when unique_violation then
+      candidate_slug := base_slug || '-' || substr(md5(random()::text), 1, 6);
+    end;
+  end loop;
   return new;
 end;
 $$;
