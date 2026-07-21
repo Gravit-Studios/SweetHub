@@ -43,11 +43,15 @@
   text-decoration: none;
 }
 
+// Sem altura/largura fixas iguais: logotipos vêm em proporções bem
+// diferentes (quadrado, wordmark largo, vertical...) — object-fit: cover
+// numa caixa quadrada cortava qualquer logo que não fosse quadrado. Só
+// limita a altura e deixa a largura livre (contain preserva a proporção).
 .menu-logo {
-  width: 36px;
-  height: 36px;
-  border-radius: $radius-sm;
-  object-fit: cover;
+  height: 40px;
+  max-width: 160px;
+  width: auto;
+  object-fit: contain;
   flex-shrink: 0;
 }
 
