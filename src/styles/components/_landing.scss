@@ -130,12 +130,19 @@
   align-items: center;
   justify-content: space-between;
   gap: clamp(24px, 5vw, 64px);
-  padding: 40px 0;
+  // padding-top/bottom (não o shorthand "padding") de propósito: essa classe
+  // é combinada com .landing-section-inner no mesmo elemento (ver
+  // landingHeroV2 em main.js), e o shorthand zerava o padding horizontal de
+  // 24px herdado dali — o conteúdo do hero ficava colado na borda em vez de
+  // alinhado com o resto das seções (ver .landing-section-inner).
+  padding-top: 40px;
+  padding-bottom: 40px;
 
   @include respond-down($bp-tablet) {
     flex-direction: column;
     text-align: center;
-    padding: 40px 0 56px;
+    padding-top: 40px;
+    padding-bottom: 56px;
   }
 }
 
