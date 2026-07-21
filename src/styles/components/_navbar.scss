@@ -8,6 +8,18 @@
   z-index: 10;
 }
 
+// Some ao rolar pra baixo e reaparece ao rolar pra cima (ver
+// updateHeaderVisibility em main.js) — o transform não interfere no
+// position: sticky, só desloca visualmente o header pra fora da tela.
+.navbar,
+.menu-header {
+  transition: transform 0.25s ease;
+
+  &.is-hidden {
+    transform: translateY(-100%);
+  }
+}
+
 .navbar-inner {
   width: min(1200px, 100%);
   margin: 0 auto;

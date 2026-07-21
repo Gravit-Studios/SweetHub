@@ -37,11 +37,15 @@
   flex-shrink: 0;
 }
 
-// Container padrão de conteúdo: a largura acompanha a tela em vez de travar
-// num max-width fixo — mais estreito (%) em telas bem largas, mais largo em
-// telas médias, quase full-bleed no mobile.
+// Container padrão de conteúdo: a largura acompanha a tela em telas médias e
+// estreitas (%, quase full-bleed no mobile), mas trava em 1200px nas mais
+// largas — o mesmo teto de .navbar-inner/.site-footer-inner (min(1200px,
+// 100%)). Sem esse teto, o conteúdo das seções (70% da tela) ficava mais
+// largo que o navbar/footer em qualquer tela acima de ~1715px, desalinhando
+// as bordas esquerda/direita entre o header e o resto da página.
 .landing-section-inner {
   width: 70%;
+  max-width: 1200px;
   margin: 0 auto;
   padding: 0 24px;
 

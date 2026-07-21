@@ -3552,6 +3552,34 @@ window.addEventListener('scroll', () => {
   });
 }, { passive: true });
 
+// Esconde o header (navbar do sistema/landing ou o da vitrine pública) ao
+// rolar pra baixo e revela ao rolar pra cima — mesma ideia de mexer direto
+// no DOM (classList) em vez de passar por state+render(), que refaz o
+// innerHTML inteiro a cada chamada.
+let lastHeaderScrollY = 0;
+let headerScrollRaf = null;
+const HEADER_HIDE_THRESHOLD = 80;
+
+function updateHeaderVisibility() {
+  const header = app.querySelector('.navbar, .menu-header');
+  if (!header) return;
+  const currentY = window.scrollY;
+  if (currentY <= HEADER_HIDE_THRESHOLD || currentY < lastHeaderScrollY) {
+    header.classList.remove('is-hidden');
+  } else if (currentY > lastHeaderScrollY) {
+    header.classList.add('is-hidden');
+  }
+  lastHeaderScrollY = currentY;
+}
+
+window.addEventListener('scroll', () => {
+  if (headerScrollRaf) return;
+  headerScrollRaf = requestAnimationFrame(() => {
+    headerScrollRaf = null;
+    updateHeaderVisibility();
+  });
+}, { passive: true });
+
 // ---------------- Ações: autenticação ----------------
 
 async function handleAuthSubmit(form) {
