@@ -17,10 +17,18 @@
 //                                pending_billing_cycle guardam o que vai
 //                                valer quando confirmar.
 //
-// O ID do plano no Mercado Pago (preapproval_plan_id) vem de secrets no
-// formato MERCADOPAGO_PLAN_<PLANO>_<CICLO>, ex.: MERCADOPAGO_PLAN_CONTROLE_MENSAL.
-// Preencha essas secrets no painel do Supabase (Project Settings → Edge
-// Functions → Secrets) assim que os planos existirem no Mercado Pago.
+// O ID do plano no Mercado Pago (preapproval_plan_id) vem primeiro de uma
+// secret no formato MERCADOPAGO_PLAN_<PLANO>_<CICLO> (ex.:
+// MERCADOPAGO_PLAN_CONTROLE_MENSAL, configurável em Project Settings → Edge
+// Functions → Secrets, pra trocar sem precisar reimplantar a função) e cai
+// pro mapa PLAN_IDS abaixo — os 4 planos já criados no Mercado Pago (ver
+// link de "Compartilhar" de cada um no painel deles).
+const PLAN_IDS: Record<string, string> = {
+  CONTROLE_MENSAL: '676a0774f5fa4afb834695faa80c6151',
+  CONTROLE_ANUAL: '5ef7486d59254f57bb6e8b1978696c4e',
+  VITRINE_MENSAL: 'dd343ebc880c4f22b8028852e83393ab',
+  VITRINE_ANUAL: 'b29eb1351cb54b7890cdef30cc721b67',
+};
 
 import { createClient } from 'npm:@supabase/supabase-js@2';
 
@@ -43,7 +51,8 @@ function json(body: unknown, status = 200) {
 }
 
 function planIdFor(plan: string, cycle: string): string | null {
-  return Deno.env.get(`MERCADOPAGO_PLAN_${plan.toUpperCase()}_${cycle.toUpperCase()}`) ?? null;
+  const key = `${plan.toUpperCase()}_${cycle.toUpperCase()}`;
+  return Deno.env.get(`MERCADOPAGO_PLAN_${key}`) || PLAN_IDS[key] || null;
 }
 
 async function createPreapproval(options: {
