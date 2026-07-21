@@ -3591,11 +3591,18 @@ function updateHeaderVisibility() {
   const header = app.querySelector('.navbar, .menu-header');
   if (!header) return;
   const currentY = window.scrollY;
+  let hidden = header.classList.contains('is-hidden');
   if (currentY <= HEADER_HIDE_THRESHOLD || currentY < lastHeaderScrollY) {
-    header.classList.remove('is-hidden');
+    hidden = false;
   } else if (currentY > lastHeaderScrollY) {
-    header.classList.add('is-hidden');
+    hidden = true;
   }
+  header.classList.toggle('is-hidden', hidden);
+  // O cabeçalho sticky de página (Voltar/Excluir/Salvar, ver
+  // .section-header-sticky) gruda logo abaixo do navbar — quando o navbar
+  // some ao rolar pra baixo, sobe pro topo de verdade em vez de deixar
+  // vazio o espaço que ele ocupava.
+  app.querySelector('.section-header-sticky')?.classList.toggle('navbar-collapsed', hidden);
   lastHeaderScrollY = currentY;
 }
 

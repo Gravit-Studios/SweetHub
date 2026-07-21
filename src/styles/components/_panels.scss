@@ -49,7 +49,11 @@
 // No desktop, o cabeçalho da página (título + ações) gruda logo abaixo do
 // navbar ao rolar, em vez de sumir pra cima — só faz sentido acima do
 // tablet, onde o header é uma única linha horizontal.
-@media (min-width: $bp-tablet) {
+// $bp-tablet + 1 (não $bp-tablet) de propósito: respond-down($bp-tablet) usa
+// max-width: $bp-tablet (inclusivo) — com o mesmo valor aqui, exatamente em
+// 900px as duas faixas bateriam ao mesmo tempo (botões do header E a barra
+// fixa do mobile aparecendo juntos, duplicados).
+@media (min-width: $bp-tablet + 1) {
   .section-header-sticky {
     position: sticky;
     top: $navbar-height;
@@ -57,6 +61,18 @@
     background: $white;
     padding: 12px 0;
     margin: -12px 0 8px;
+    transition: top 0.25s ease, box-shadow 0.25s ease;
+
+    // Ao rolar pra baixo o navbar some (translateY, ver .navbar.is-hidden em
+    // _navbar.scss) — sem isso esse cabeçalho ficava "flutuando" com um vão
+    // vazio em cima, exatamente do tamanho do navbar que sumiu. Sobe pro
+    // topo de verdade (top: 0) e ganha uma sombra pra não colar sem
+    // separação nenhuma do conteúdo abaixo (ver updateHeaderVisibility em
+    // main.js).
+    &.navbar-collapsed {
+      top: 0;
+      box-shadow: $shadow-sm;
+    }
   }
 }
 
@@ -97,10 +113,17 @@
 // pendente), essa fica sempre visível no mobile: Voltar e Excluir valem a
 // qualquer momento, não só quando há algo pra salvar (ver
 // detailMobileActionBar em main.js).
-.detail-mobile-actions {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
+// display:flex precisa estar dentro do respond-down abaixo (não solto) —
+// sem isso ele ganhava do display:none padrão de .mobile-save-bar em
+// QUALQUER largura (mesma especificidade, regra mais recente no CSS
+// compilado vence), fazendo essa barra aparecer sempre, duplicando os
+// botões junto com o cabeçalho normal no desktop/tablet.
+@include respond-down($bp-tablet) {
+  .detail-mobile-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
 }
 
 // A barra de 3 botões é mais alta que o .mobile-save-bar genérico (1 botão
