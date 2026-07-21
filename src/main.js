@@ -3501,7 +3501,7 @@ function renderPublicMenuList(menu) {
                       ${product.photo_url
                         ? `<button type="button" class="menu-item-photo-btn" data-action="open-menu-lightbox" data-url="${escapeHtml(product.photo_url)}" aria-label="Ampliar foto de ${escapeHtml(product.name)}"><img src="${escapeHtml(product.photo_url)}" alt="" class="menu-item-photo" /></button>`
                         : '<span class="menu-item-photo menu-item-photo-empty"></span>'}
-                      ${product.photos?.length ? `
+                      ${MENU_GALLERY_ENABLED && product.photos?.length ? `
                         <div class="menu-item-gallery">
                           ${product.photos.map((url) => `<button type="button" class="menu-item-gallery-thumb-btn" data-action="open-menu-lightbox" data-url="${escapeHtml(url)}" aria-label="Ampliar foto de ${escapeHtml(product.name)}"><img src="${escapeHtml(url)}" alt="" /></button>`).join('')}
                         </div>` : ''}
