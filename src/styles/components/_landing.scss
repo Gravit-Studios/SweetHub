@@ -201,16 +201,14 @@
 }
 
 // Chip de eyebrow "pill" (fundo sólido arredondado) usado em todas as
-// seções da landing — fundo na cor primária, texto na secundária (usa
-// $secondary-700, não o 500 puro, pra garantir contraste AA real: primary
-// -500 + secondary-500 dava só ~3.7:1, com o 700 sobe pra ~5.1:1). Uniforme
-// em qualquer seção, clara ou escura — por isso sem override por contexto.
+// seções da landing — fundo na cor primária, texto branco. Uniforme em
+// qualquer seção, clara ou escura — por isso sem override por contexto.
 .eyebrow-pill {
   display: inline-flex;
   padding: 6px 14px;
   border-radius: $radius-pill;
   background: $primary-500;
-  color: $secondary-700;
+  color: $white;
   font-weight: $fw-bold;
   font-size: $fs-xs;
   letter-spacing: 0.1em;
