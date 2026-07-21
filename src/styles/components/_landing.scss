@@ -9,6 +9,11 @@
 // translúcido + blur (glassmorphism) em vez do branco sólido padrão. Nas
 // páginas públicas sem foto atrás (vitrine, termos etc.) o navbar continua
 // normal, sólido e no fluxo — só essa variante muda.
+@keyframes landing-nav-slide-in {
+  from { transform: translateY(-100%); }
+  to { transform: translateY(0); }
+}
+
 .landing-nav-overlay {
   position: absolute;
   top: 0;
@@ -40,7 +45,9 @@
 
   // Ao rolar (ver updateLandingNavScrolled em main.js), volta a ficar sólido
   // e com o texto na cor padrão — só fica transparente/translúcido com texto
-  // branco enquanto está no topo, sobre a foto do hero.
+  // branco enquanto está no topo, sobre a foto do hero. A troca desliza de
+  // cima pra baixo (slide-in) em vez de só trocar o fundo na hora, pra não
+  // parecer que o navbar sólido só "aparece" do nada.
   &.is-scrolled {
     // Enquanto no topo, position: absolute deixa a foto do hero aparecer por
     // trás (ver comentário da classe base); ao rolar, precisa voltar a ser
@@ -50,6 +57,7 @@
     backdrop-filter: none;
     -webkit-backdrop-filter: none;
     border-bottom: 1px solid $border;
+    animation: landing-nav-slide-in 0.35s cubic-bezier(0.16, 1, 0.3, 1);
 
     .landing-nav-links a {
       color: $ink-700;
@@ -678,6 +686,10 @@
 
   @include respond-down($bp-tablet) {
     padding-right: 0;
+  }
+
+  h2 {
+    margin-bottom: 40px;
   }
 }
 

@@ -3523,7 +3523,11 @@ function setupScrollReveal() {
 // próprio aqui já foi tentado e deixava a foto visivelmente atrasada em
 // relação ao scroll de verdade, o oposto do que se queria.
 let stepsPhotoRaf = null;
-const STEPS_PHOTO_TRAVEL = 160;
+// Distância percorrida pela foto do início (alinhada ao passo 01) até o fim
+// do scroll (alinhada ao último passo) — recalculada pra bater com a altura
+// real da lista de 4 passos (medida via Playwright), não um valor arbitrário;
+// precisa reajustar se a quantidade de passos ou o texto deles mudar bastante.
+const STEPS_PHOTO_TRAVEL = 422;
 
 function updateStepsBigPhoto() {
   const track = app.querySelector('.landing-steps-big-track');
