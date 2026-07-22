@@ -1406,6 +1406,27 @@
 // são os mesmos da landing atual (funções compartilhadas).
 // =========================================================
 
+// Fundo opaco + z-index acima do footer fixo (ver .landing-v2-footer-fixed
+// mais abaixo) — é esse fundo que esconde o footer atrás da página durante
+// a rolagem normal, revelando só no .landing-v2-footer-spacer no final.
+.landing-v2 {
+  position: relative;
+  z-index: 1;
+  background: $white;
+}
+
+// Sem altura própria (o footer fixo não ocupa espaço no fluxo), a página
+// terminaria assim que o conteúdo acabasse e o footer nunca apareceria —
+// a altura vem do JS (syncLandingV2Footer), igual à altura real do footer.
+// pointer-events: none é essencial aqui: o spacer é transparente mas ainda
+// fica "por cima" do footer fixo no empilhamento (mesmo z-index do resto
+// de .landing-v2) — sem isso, cliques nos botões/links do footer revelado
+// seriam capturados pelo spacer vazio em vez de chegarem ao footer.
+.landing-v2-footer-spacer {
+  display: block;
+  pointer-events: none;
+}
+
 // Variações direcionais do .reveal (entrada pelo lado/escala em vez de só
 // de baixo) — o mesmo observer adiciona .is-visible, e .reveal.is-visible
 // (duas classes) ganha destas (uma classe) pra zerar o transform no final.
@@ -1934,19 +1955,17 @@
   }
 }
 
-// Footer V2 (efeito cortina, ver landingV2Footer em main.js): o wrapper com
-// clip-path recorta o filho fixo — clip-path não cria containing block,
-// então o footer continua preso à viewport, mas só pinta dentro do
-// retângulo do wrapper no fim do documento: chegar ao final da página
-// "revela" o footer parado atrás do conteúdo. A altura do wrapper vem do
-// JS (syncLandingV2Footer).
-.landing-v2-footer {
-  position: relative;
-  clip-path: inset(0 0 0 0);
-}
-
+// Footer V2 (efeito cortina, ver landingV2Footer/landingV2Html em main.js):
+// o footer é position: fixed com z-index abaixo do conteúdo principal
+// (.landing-v2, que tem fundo opaco e z-index maior) — fica sempre parado
+// atrás da página, escondido pelo conteúdo por cima dele durante a
+// rolagem normal. O .landing-v2-footer-spacer, sem fundo, é o único trecho
+// do documento sem nada opaco sobrepondo o footer; sua altura vem do JS
+// (syncLandingV2Footer) igual à altura real do footer, então rolar até o
+// fim do spacer é exatamente rolar até o footer ficar totalmente visível.
 .landing-v2-footer-fixed {
   position: fixed;
+  z-index: 0;
   bottom: 0;
   left: 0;
   right: 0;

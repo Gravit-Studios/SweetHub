@@ -3401,35 +3401,34 @@ function landingV2Steps() {
 }
 
 // Footer V2 (só na #/lp2): CTA de cadastro + barra de links num único bloco
-// rosa que fica fixo ATRÁS da página e vai sendo revelado conforme o
-// conteúdo termina — truque do clip-path no wrapper: clip-path não cria
-// containing block, então o filho position: fixed continua preso à
-// viewport, mas só pinta dentro do retângulo do wrapper (que está no fim
-// do documento). Um filho fixo não estica o pai, então a altura do wrapper
-// é sincronizada por JS com a altura real do conteúdo (syncLandingV2Footer).
+// rosa position: fixed, com z-index abaixo do resto da página (ver
+// .landing-v2 e .landing-v2-footer-fixed em _landing.scss) — fica sempre
+// "atrás" da página, então o conteúdo normal (com fundo opaco) o esconde
+// durante a rolagem. Só no fim, o .landing-v2-footer-spacer (sem fundo,
+// com a altura real do footer sincronizada via JS em syncLandingV2Footer)
+// deixa de ter conteúdo opaco por cima e revela o footer, que já estava
+// parado ali o tempo todo.
 function landingV2Footer() {
   const year = new Date().getFullYear();
   return `
-    <div class="landing-v2-footer">
-      <footer class="landing-v2-footer-fixed">
-        <div class="landing-v2-footer-cta">
-          <h2>Ainda adivinhando preço?<br /><em>Deixe sua confeitaria inteligente!</em></h2>
-          <button type="button" data-action="goto" data-route="cadastro">Começar grátis</button>
+    <footer class="landing-v2-footer-fixed">
+      <div class="landing-v2-footer-cta">
+        <h2>Ainda adivinhando preço?<br /><em>Deixe sua confeitaria inteligente!</em></h2>
+        <button type="button" data-action="goto" data-route="cadastro">Começar grátis</button>
+      </div>
+      <div class="landing-v2-footer-bar">
+        <span>&copy; ${year} SweetHub. Todos os direitos reservados.</span>
+        <nav class="landing-v2-footer-links">
+          <button type="button" data-action="goto" data-route="termos">Termos de uso</button>
+          <button type="button" data-action="goto" data-route="privacidade">Política de privacidade</button>
+        </nav>
+        <div class="landing-v2-footer-social">
+          <span aria-label="Instagram">${icon('instagram')}</span>
+          <span aria-label="Facebook">${icon('facebook')}</span>
         </div>
-        <div class="landing-v2-footer-bar">
-          <span>&copy; ${year} SweetHub. Todos os direitos reservados.</span>
-          <nav class="landing-v2-footer-links">
-            <button type="button" data-action="goto" data-route="termos">Termos de uso</button>
-            <button type="button" data-action="goto" data-route="privacidade">Política de privacidade</button>
-          </nav>
-          <div class="landing-v2-footer-social">
-            <span aria-label="Instagram">${icon('instagram')}</span>
-            <span aria-label="Facebook">${icon('facebook')}</span>
-          </div>
-          <span>Powered by: <strong>Gravit</strong></span>
-        </div>
-      </footer>
-    </div>`;
+        <span>Powered by: <strong>Gravit</strong></span>
+      </div>
+    </footer>`;
 }
 
 function landingV2Html() {
@@ -3441,8 +3440,9 @@ function landingV2Html() {
       ${landingV2Steps()}
       ${landingFeaturePanel()}
       ${landingPlansSection()}
-      ${landingV2Footer()}
     </div>
+    <div class="landing-v2-footer-spacer"></div>
+    ${landingV2Footer()}
     ${cookieBar()}`;
 }
 
@@ -4068,15 +4068,15 @@ function updateStepsBigPhoto() {
   });
 }
 
-// O rodapé da V2 é um filho position: fixed dentro de um wrapper com
-// clip-path (efeito cortina, ver landingV2Footer) — fixo não estica o pai,
-// então o wrapper precisa ganhar a altura real do conteúdo via JS, senão a
-// página termina sem o espaço do footer e ele nunca é revelado.
+// O rodapé da V2 é position: fixed (ver landingV2Footer/.landing-v2-footer-fixed)
+// e não ocupa espaço no fluxo do documento — o spacer no fim do conteúdo
+// principal precisa da altura real do footer via JS, senão a página termina
+// cedo demais e o footer nunca aparece por trás do fundo opaco do conteúdo.
 function syncLandingV2Footer() {
-  const wrap = app.querySelector('.landing-v2-footer');
-  const inner = wrap?.querySelector('.landing-v2-footer-fixed');
-  if (!wrap || !inner) return;
-  wrap.style.height = `${inner.offsetHeight}px`;
+  const spacer = app.querySelector('.landing-v2-footer-spacer');
+  const footer = app.querySelector('.landing-v2-footer-fixed');
+  if (!spacer || !footer) return;
+  spacer.style.height = `${footer.offsetHeight}px`;
 }
 
 window.addEventListener('resize', () => syncLandingV2Footer());
