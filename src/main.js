@@ -1821,6 +1821,7 @@ function renderProdutosPage() {
           : filtered.length ? productsTable(filtered) : emptyState('Nenhuma receita encontrada.', false)
       )}
     </div>
+    ${!state.dataLoading && state.savedProducts.length >= limitFor(state.profile.plan, 'recipes') ? limitUpgradeBanner('receitas') : ''}
   `;
 }
 
@@ -2032,7 +2033,8 @@ function renderIngredientesPage() {
         <button type="button" data-action="add-ingredient-modal">Adicionar novo</button>
       </div>
       ${state.dataLoading ? loadingMsg() : list}
-    </div>`;
+    </div>
+    ${!state.dataLoading && state.savedIngredients.length >= limitFor(state.profile.plan, 'ingredients') ? limitUpgradeBanner('ingredientes') : ''}`;
 }
 
 function renderDespesasPage() {
@@ -2798,6 +2800,22 @@ function upgradeBanner() {
         <p class="eyebrow">Desbloqueie mais recursos</p>
         <h3>Pronto para saber o preço certo dos seus doces?</h3>
         <p>Vitrine online, fornecedores e gestão completa da sua confeitaria.</p>
+      </div>
+      <button type="button" data-action="goto" data-route="configuracoes">Ver planos</button>
+    </div>`;
+}
+
+// Banner promocional inline (não fixo, diferente do upgradeBanner acima) —
+// só aparece no plano Gratuito, e só quando a lista em questão (receitas ou
+// ingredientes) já bateu o limite do plano, logo abaixo dela.
+function limitUpgradeBanner(resourceLabel) {
+  if (isControlePlan(state.profile)) return '';
+  return `
+    <div class="limit-upgrade-banner">
+      <div class="upgrade-banner-content">
+        <p class="eyebrow">Limite do plano Gratuito atingido</p>
+        <h3>Você chegou ao limite de ${escapeHtml(resourceLabel)} do plano Gratuito</h3>
+        <p>Faça upgrade para o Controle e cadastre sem limites.</p>
       </div>
       <button type="button" data-action="goto" data-route="configuracoes">Ver planos</button>
     </div>`;

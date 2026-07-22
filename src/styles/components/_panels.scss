@@ -217,18 +217,18 @@
 
 // Banner fixo no rodapé da tela convidando contas Gratuito a virar
 // Controle/Vitrine (ver upgradeBanner em main.js) — some pra quem já é Vitrine.
-.upgrade-banner {
-  position: fixed;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  z-index: 40;
+//
+// .limit-upgrade-banner (ver limitUpgradeBanner em main.js) reaproveita o
+// mesmo visual (fundo escuro com foto, texto branco), mas não é fixo — é um
+// bloco normal do fluxo da página, mostrado logo abaixo da lista de
+// receitas/ingredientes só quando o limite do plano Gratuito é atingido.
+.upgrade-banner,
+.limit-upgrade-banner {
   display: flex;
   align-items: center;
   gap: clamp(16px, 3vw, 32px);
   padding: 14px clamp(16px, 4vw, 32px);
   background: $ink-900 url('/assets/upgrade/bg-banner-upgrade.jpg') center/cover no-repeat;
-  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.18);
 
   .eyebrow {
     color: $secondary-300;
@@ -250,13 +250,28 @@
   }
 }
 
+.upgrade-banner {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 40;
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.18);
+}
+
+.limit-upgrade-banner {
+  border-radius: $radius-lg;
+  margin-top: 24px;
+}
+
 .upgrade-banner-content {
   flex: 1;
   min-width: 0;
 }
 
 @include respond-down($bp-tablet) {
-  .upgrade-banner {
+  .upgrade-banner,
+  .limit-upgrade-banner {
     flex-wrap: wrap;
 
     p:not(.eyebrow) {
