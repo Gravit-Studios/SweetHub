@@ -1597,10 +1597,14 @@
   }
 }
 
+// Pista mais alta que a tela (150vh): o texto fica sticky (preso, centrado
+// verticalmente) enquanto a coluna de fotos rola por baixo dele — a
+// diferença de velocidade entre os dois é o parallax; o JS ainda soma uma
+// deriva lenta no próprio texto (ver updateLandingV2Parallax em main.js).
 .landing-v2-step {
-  min-height: 100vh;
+  min-height: 150vh;
   display: flex;
-  align-items: center;
+  align-items: stretch;
 
   @include respond-down($bp-tablet) {
     min-height: auto;
@@ -1614,11 +1618,27 @@
   display: grid;
   grid-template-columns: 1.1fr 1fr;
   gap: clamp(32px, 6vw, 80px);
-  align-items: center;
+  align-items: start;
 
   @include respond-down($bp-tablet) {
     grid-template-columns: 1fr;
     gap: 40px;
+  }
+}
+
+.landing-v2-step-copy {
+  position: sticky;
+  top: 0;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  will-change: transform;
+
+  @include respond-down($bp-tablet) {
+    position: static;
+    min-height: auto;
+    display: block;
   }
 }
 
@@ -1650,7 +1670,7 @@
   gap: 18px;
 
   h3 {
-    font-size: clamp(1.9rem, 3.6vw, 2.8rem);
+    font-size: clamp(2.3rem, 4.6vw, 3.6rem);
     line-height: 1.05;
     color: $ink-900;
 
@@ -1663,34 +1683,64 @@
 .landing-v2-step-num {
   font-family: $font-heading;
   font-weight: $fw-black;
-  font-size: clamp(2.4rem, 4.4vw, 3.4rem);
+  font-size: clamp(2.8rem, 5.4vw, 4.2rem);
   line-height: 1;
   color: $ink-900;
   flex-shrink: 0;
 }
 
 .landing-v2-step-copy p {
-  margin: 18px 0 0;
+  margin: 20px 0 0;
   max-width: 42ch;
+  font-size: 1.1rem;
   color: $ink-700;
 }
 
+// Coluna (não linha): com o texto sticky ao lado, as fotos maiores entram
+// uma por vez de baixo pra cima conforme a seção rola — o padding-top alto
+// faz a primeira foto só aparecer depois que o texto já está preso.
 .landing-v2-step-photos {
   display: flex;
-  justify-content: center;
+  flex-direction: column;
   align-items: flex-start;
-  gap: clamp(20px, 3vw, 36px);
+  gap: clamp(32px, 6vh, 64px);
+  padding: 32vh 0 12vh;
+
+  @include respond-down($bp-tablet) {
+    padding: 0;
+    gap: 28px;
+  }
 }
 
-// O deslocamento diagonal do segundo cartão é margin (não transform): o
-// .reveal do próprio cartão anima transform, e os dois no mesmo elemento
-// se sobrescreveriam.
+// O zigue-zague é align-self (não transform): o .reveal do próprio cartão
+// anima transform, e os dois no mesmo elemento se sobrescreveriam. Nos
+// passos invertidos (.is-flipped) a diagonal espelha.
 .landing-v2-photo-card {
-  width: clamp(150px, 15vw, 230px);
+  width: clamp(220px, 24vw, 380px);
   flex-shrink: 0;
 
   &:nth-child(2) {
-    margin-top: clamp(48px, 7vw, 110px);
+    align-self: flex-end;
+  }
+}
+
+.landing-v2-step.is-flipped .landing-v2-photo-card {
+  align-self: flex-end;
+
+  &:nth-child(2) {
+    align-self: flex-start;
+  }
+}
+
+// Entrada das fotos: sobem de baixo com zoom-in mais pronunciado (e mais
+// lento) que o reveal padrão — sobrescreve o transform inicial do
+// .reveal/.reveal-scale genérico só nesses cartões.
+.landing-v2-photo-card.reveal {
+  transform: translateY(110px) scale(0.8);
+  transition-duration: 0.9s, 0.9s;
+
+  &.is-visible {
+    transform: none;
   }
 }
 

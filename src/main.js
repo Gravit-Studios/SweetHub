@@ -3947,6 +3947,7 @@ function setupScrollReveal() {
     if (!el.classList.contains('is-visible')) scrollRevealObserver.observe(el);
   });
   updateStepsBigPhoto();
+  updateLandingV2Parallax();
 }
 
 // "Como funciona" fica fixa na tela (position: sticky) enquanto a pista alta
@@ -3992,11 +3993,40 @@ function updateStepsBigPhoto() {
   });
 }
 
+// Parallax do texto nos passos da landing V2 (#/lp2): o bloco de texto é
+// sticky (fica preso enquanto a seção de 150vh rola por baixo) e ainda
+// deriva devagar no sentido contrário do scroll — a diferença de velocidade
+// entre ele e as fotos subindo é o efeito pedido. Só no desktop (no mobile
+// o sticky é desligado no CSS e a deriva ficaria estranha) e nunca com
+// preferência por movimento reduzido.
+function updateLandingV2Parallax() {
+  const steps = app.querySelectorAll('.landing-v2-step');
+  if (!steps.length) return;
+  const disabled = window.innerWidth <= 900
+    || window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  steps.forEach((step) => {
+    const copy = step.querySelector('.landing-v2-step-copy');
+    if (!copy) return;
+    // Se a tela virou mobile (ou movimento reduzido) no meio do caminho,
+    // zera a deriva — sem isso o último translateY ficava congelado no
+    // layout empilhado, onde o sticky já nem existe.
+    if (disabled) {
+      copy.style.transform = '';
+      return;
+    }
+    const rect = step.getBoundingClientRect();
+    const total = rect.height + window.innerHeight;
+    const progress = Math.min(1, Math.max(0, (window.innerHeight - rect.top) / total));
+    copy.style.transform = `translateY(${((0.5 - progress) * 110).toFixed(1)}px)`;
+  });
+}
+
 window.addEventListener('scroll', () => {
   if (stepsPhotoRaf) return;
   stepsPhotoRaf = requestAnimationFrame(() => {
     stepsPhotoRaf = null;
     updateStepsBigPhoto();
+    updateLandingV2Parallax();
   });
 }, { passive: true });
 
