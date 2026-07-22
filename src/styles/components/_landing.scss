@@ -1392,3 +1392,341 @@
     }
   }
 }
+
+// =========================================================
+// Landing V2 (em teste na rota #/lp2 — ver landingV2Html em main.js).
+// Hero rosa sólido centralizado, benefícios em cartões claros e "Como
+// funciona" com um passo por seção de altura de tela, fotos + etiqueta de
+// preço simulando produtos cadastrados. Planos/praticidade/CTA final/footer
+// são os mesmos da landing atual (funções compartilhadas).
+// =========================================================
+
+// Variações direcionais do .reveal (entrada pelo lado/escala em vez de só
+// de baixo) — o mesmo observer adiciona .is-visible, e .reveal.is-visible
+// (duas classes) ganha destas (uma classe) pra zerar o transform no final.
+.reveal-left {
+  transform: translateX(-44px);
+}
+
+.reveal-right {
+  transform: translateX(44px);
+}
+
+.reveal-scale {
+  transform: translateY(26px) scale(0.9);
+}
+
+.landing-v2-hero {
+  position: relative;
+  overflow: hidden;
+  min-height: 92vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  padding: calc($navbar-height + 48px) 0 40px;
+}
+
+.landing-v2-hero-photo {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+// Lavagem rosa por cima da foto (mais densa embaixo, onde ficam os chips) —
+// é ela que dá o "banner rosa sólido" da referência sem perder a textura
+// da foto por completo.
+.landing-v2-hero-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    170deg,
+    rgba(var(--primary-500-rgb), 0.86),
+    rgba(var(--primary-700-rgb), 0.94)
+  );
+}
+
+.landing-v2-hero-inner {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+
+  h1 {
+    color: $white;
+    font-size: clamp(2.4rem, 5.2vw, 3.8rem);
+    line-height: 1.05;
+
+    em {
+      display: block;
+    }
+  }
+}
+
+.landing-v2-hero-subtitle {
+  margin: 0;
+  max-width: 44ch;
+  color: rgba(var(--white-rgb), 0.92);
+}
+
+.landing-v2-hero-note {
+  margin: 0;
+  color: rgba(var(--white-rgb), 0.7);
+  font-size: 0.85rem;
+}
+
+.landing-v2-cta-solid {
+  background: $white;
+  color: $primary-600;
+
+  &:hover {
+    filter: brightness(0.96);
+  }
+}
+
+.landing-v2-cta-outline {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.6rem 1rem;
+  border: 1px solid rgba(var(--white-rgb), 0.7);
+  border-radius: $radius-sm;
+  color: $white;
+  font-weight: $fw-bold;
+  font-size: 0.9rem;
+  text-decoration: none;
+  transition: background 0.15s ease;
+
+  &:hover {
+    background: rgba(var(--white-rgb), 0.12);
+  }
+}
+
+.landing-v2-hero-chips {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 12px;
+  margin-top: clamp(40px, 9vh, 96px);
+  padding: 0 24px;
+}
+
+.landing-v2-hero-chip {
+  padding: 10px 20px;
+  border: 1px solid rgba(var(--white-rgb), 0.55);
+  border-radius: $radius-pill;
+  color: $white;
+  font-size: $fs-sm;
+  font-weight: $fw-medium;
+  white-space: nowrap;
+}
+
+// Benefícios V2: fundo claro, cartões rosa suave com título rosa em sans
+// (sem ícone, como na referência) — mesmo conteúdo da landing atual.
+.landing-v2-benefits h2 em {
+  display: block;
+}
+
+.landing-v2-benefits-grid {
+  margin-top: 40px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  text-align: left;
+
+  @include respond-down($bp-tablet) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  @media (max-width: 560px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.landing-v2-benefit-card {
+  background: rgba(var(--primary-500-rgb), 0.07);
+  border: 1px solid rgba(var(--primary-500-rgb), 0.16);
+  border-radius: $radius-lg;
+  padding: 24px;
+  transition: transform 0.25s ease, border-color 0.25s ease;
+
+  h3 {
+    font-family: $font-body;
+    font-weight: $fw-bold;
+    font-size: 1rem;
+    color: $primary-600;
+    margin: 0 0 8px;
+  }
+
+  p {
+    margin: 0;
+    color: $ink-700;
+    font-size: $fs-sm;
+  }
+
+  &:hover {
+    transform: translateY(-4px);
+    border-color: rgba(var(--primary-500-rgb), 0.45);
+  }
+}
+
+// "Como funciona" V2: fundo rosa clarinho contínuo; cada passo ocupa a
+// altura da tela no desktop (min-height: 100vh) com texto de um lado e as
+// fotos com etiqueta de preço do outro, alternando os lados (.is-flipped).
+.landing-v2-steps {
+  background: rgba(var(--primary-500-rgb), 0.06);
+  padding: clamp(48px, 7vw, 80px) 0 clamp(32px, 5vw, 64px);
+  scroll-margin-top: $navbar-height;
+}
+
+.landing-v2-steps-intro {
+  text-align: center;
+
+  h2 {
+    margin: 8px 0 0;
+
+    em {
+      display: block;
+    }
+  }
+}
+
+.landing-v2-step {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+
+  @include respond-down($bp-tablet) {
+    min-height: auto;
+    padding: 56px 0;
+  }
+}
+
+// Largura/centralização vêm do .landing-section-inner no mesmo elemento —
+// aqui só o grid de duas colunas.
+.landing-v2-step-inner {
+  display: grid;
+  grid-template-columns: 1.1fr 1fr;
+  gap: clamp(32px, 6vw, 80px);
+  align-items: center;
+
+  @include respond-down($bp-tablet) {
+    grid-template-columns: 1fr;
+    gap: 40px;
+  }
+}
+
+.landing-v2-step.is-flipped .landing-v2-step-inner {
+  .landing-v2-step-copy {
+    order: 2;
+  }
+
+  .landing-v2-step-photos {
+    order: 1;
+  }
+
+  // No mobile (uma coluna) o texto volta pra cima em todos os passos —
+  // alternância de lado só faz sentido com as duas colunas lado a lado.
+  @include respond-down($bp-tablet) {
+    .landing-v2-step-copy {
+      order: 1;
+    }
+
+    .landing-v2-step-photos {
+      order: 2;
+    }
+  }
+}
+
+.landing-v2-step-heading {
+  display: flex;
+  align-items: flex-start;
+  gap: 18px;
+
+  h3 {
+    font-size: clamp(1.9rem, 3.6vw, 2.8rem);
+    line-height: 1.05;
+    color: $ink-900;
+
+    em {
+      color: $primary-600;
+    }
+  }
+}
+
+.landing-v2-step-num {
+  font-family: $font-heading;
+  font-weight: $fw-black;
+  font-size: clamp(2.4rem, 4.4vw, 3.4rem);
+  line-height: 1;
+  color: $ink-900;
+  flex-shrink: 0;
+}
+
+.landing-v2-step-copy p {
+  margin: 18px 0 0;
+  max-width: 42ch;
+  color: $ink-700;
+}
+
+.landing-v2-step-photos {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  gap: clamp(20px, 3vw, 36px);
+}
+
+// O deslocamento diagonal do segundo cartão é margin (não transform): o
+// .reveal do próprio cartão anima transform, e os dois no mesmo elemento
+// se sobrescreveriam.
+.landing-v2-photo-card {
+  width: clamp(150px, 15vw, 230px);
+  flex-shrink: 0;
+
+  &:nth-child(2) {
+    margin-top: clamp(48px, 7vw, 110px);
+  }
+}
+
+.landing-v2-photo-bob {
+  position: relative;
+  animation: hero-floater-bob 5s ease-in-out infinite;
+  animation-delay: var(--bob-delay, 0s);
+
+  img {
+    display: block;
+    width: 100%;
+    aspect-ratio: 1;
+    object-fit: cover;
+    border-radius: $radius-lg;
+    box-shadow: $shadow-lift;
+  }
+}
+
+// Etiqueta de preço "pendurada" no canto da foto — é ela que vende a ideia
+// de produto sendo cadastrado com preço.
+.landing-v2-price-tag {
+  position: absolute;
+  left: -16px;
+  bottom: 16px;
+  background: $white;
+  color: $ink-900;
+  font-family: $font-heading;
+  font-weight: $fw-bold;
+  font-size: 1.05rem;
+  padding: 8px 14px;
+  border-radius: $radius-md;
+  box-shadow: $shadow-sm;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .landing-v2-photo-bob {
+    animation: none;
+  }
+}

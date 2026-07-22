@@ -3134,6 +3134,65 @@ function landingHighlightsStrip() {
     </div>`;
 }
 
+// Planos e CTA final viraram funções próprias pra serem reaproveitados
+// entre a landing atual e a versão 2 em teste (ver landingV2Html) sem
+// duplicar os ~60 blocos de template.
+function landingPlansSection() {
+  return `
+    <section class="landing-section" id="precos">
+      <div class="landing-section-inner">
+        <p class="eyebrow-pill">Planos</p>
+        <h2><span class="muted-tone">Escolha o plano</span> <em class="accent-tone">da sua confeitaria</em></h2>
+        <p class="landing-section-subtitle">O plano Gratuito não tem prazo nem cartão. Cancele quando quiser.</p>
+        <div class="landing-billing-toggle">
+          <button type="button" class="${state.landingBillingCycle === 'mensal' ? 'is-active' : ''}" data-action="set-landing-billing-cycle" data-cycle="mensal">Mensal</button>
+          <button type="button" class="${state.landingBillingCycle === 'anual' ? 'is-active' : ''}" data-action="set-landing-billing-cycle" data-cycle="anual">Anual <span class="landing-billing-toggle-badge">-5%</span></button>
+        </div>
+        <div class="landing-pricing-grid">
+          ${LANDING_PLANS.map((plan, index) => {
+            const priceDisplay = landingPlanPriceDisplay(plan, state.landingBillingCycle);
+            return `
+            <div class="landing-plan-card reveal ${plan.highlight ? 'is-highlight' : ''}" style="--reveal-delay: ${(index * 0.12).toFixed(2)}s">
+              ${plan.highlight ? '<span class="landing-plan-badge">Mais popular</span>' : ''}
+              <div class="landing-plan-head">
+                <span class="landing-plan-icon">${icon(plan.icon || (plan.highlight ? 'star' : 'cupcake'))}</span>
+                <h3>${escapeHtml(plan.name)}</h3>
+              </div>
+              <p class="landing-plan-description">${escapeHtml(plan.description)}</p>
+              <p class="landing-plan-price">${priceDisplay.price}<span>${priceDisplay.suffix}</span></p>
+              ${priceDisplay.note ? `<p class="landing-plan-note">${escapeHtml(priceDisplay.note)}</p>` : ''}
+              <ul class="landing-plan-features">
+                ${plan.features.map((f) => `<li>${icon('check')}<span>${escapeHtml(f)}</span></li>`).join('')}
+              </ul>
+              <button type="button" class="${plan.highlight ? '' : 'ghost'}" ${plan.key === 'gratuito'
+                ? 'data-action="goto" data-route="cadastro"'
+                : `data-action="start-paid-signup" data-plan="${plan.key}" data-cycle="${state.landingBillingCycle}"`}>${escapeHtml(plan.cta)}</button>
+            </div>`;
+          }).join('')}
+        </div>
+      </div>
+    </section>`;
+}
+
+function landingFinalCtaSection() {
+  return `
+    <section class="landing-final-cta reveal">
+      <img src="/assets/img/banner-cadastro.webp" alt="" class="landing-final-cta-photo" />
+      <div class="landing-final-cta-overlay"></div>
+      <div class="landing-final-cta-badge" aria-hidden="true">
+        <svg viewBox="0 0 200 200">
+          <path id="landingFinalCtaCirclePath" fill="none" d="M100,100 m-78,0 a78,78 0 1,1 156,0 a78,78 0 1,1 -156,0"></path>
+          <text><textPath href="#landingFinalCtaCirclePath">CRIE SUA CONTA · GRÁTIS PRA SEMPRE · </textPath></text>
+        </svg>
+        <span class="landing-final-cta-badge-icon">${icon('arrowUpRight')}</span>
+      </div>
+      <div class="landing-section-inner landing-final-cta-inner">
+        <h2>Ainda adivinhando preço?<br /><em>Deixe sua confeitaria inteligente!</em></h2>
+        <button type="button" data-action="goto" data-route="cadastro">Criar conta ${icon('arrow')}</button>
+      </div>
+    </section>`;
+}
+
 function landingHtml() {
   return `
     <div class="landing">
@@ -3162,56 +3221,151 @@ function landingHtml() {
 
       ${landingFeaturePanel()}
 
-      <section class="landing-section" id="precos">
-        <div class="landing-section-inner">
-          <p class="eyebrow-pill">Planos</p>
-          <h2><span class="muted-tone">Escolha o plano</span> <em class="accent-tone">da sua confeitaria</em></h2>
-          <p class="landing-section-subtitle">O plano Gratuito não tem prazo nem cartão. Cancele quando quiser.</p>
-          <div class="landing-billing-toggle">
-            <button type="button" class="${state.landingBillingCycle === 'mensal' ? 'is-active' : ''}" data-action="set-landing-billing-cycle" data-cycle="mensal">Mensal</button>
-            <button type="button" class="${state.landingBillingCycle === 'anual' ? 'is-active' : ''}" data-action="set-landing-billing-cycle" data-cycle="anual">Anual <span class="landing-billing-toggle-badge">-5%</span></button>
-          </div>
-          <div class="landing-pricing-grid">
-            ${LANDING_PLANS.map((plan, index) => {
-              const priceDisplay = landingPlanPriceDisplay(plan, state.landingBillingCycle);
-              return `
-              <div class="landing-plan-card reveal ${plan.highlight ? 'is-highlight' : ''}" style="--reveal-delay: ${(index * 0.12).toFixed(2)}s">
-                ${plan.highlight ? '<span class="landing-plan-badge">Mais popular</span>' : ''}
-                <div class="landing-plan-head">
-                  <span class="landing-plan-icon">${icon(plan.icon || (plan.highlight ? 'star' : 'cupcake'))}</span>
-                  <h3>${escapeHtml(plan.name)}</h3>
-                </div>
-                <p class="landing-plan-description">${escapeHtml(plan.description)}</p>
-                <p class="landing-plan-price">${priceDisplay.price}<span>${priceDisplay.suffix}</span></p>
-                ${priceDisplay.note ? `<p class="landing-plan-note">${escapeHtml(priceDisplay.note)}</p>` : ''}
-                <ul class="landing-plan-features">
-                  ${plan.features.map((f) => `<li>${icon('check')}<span>${escapeHtml(f)}</span></li>`).join('')}
-                </ul>
-                <button type="button" class="${plan.highlight ? '' : 'ghost'}" ${plan.key === 'gratuito'
-                  ? 'data-action="goto" data-route="cadastro"'
-                  : `data-action="start-paid-signup" data-plan="${plan.key}" data-cycle="${state.landingBillingCycle}"`}>${escapeHtml(plan.cta)}</button>
-              </div>`;
-            }).join('')}
-          </div>
-        </div>
-      </section>
+      ${landingPlansSection()}
 
-      <section class="landing-final-cta reveal">
-        <img src="/assets/img/banner-cadastro.webp" alt="" class="landing-final-cta-photo" />
-        <div class="landing-final-cta-overlay"></div>
-        <div class="landing-final-cta-badge" aria-hidden="true">
-          <svg viewBox="0 0 200 200">
-            <path id="landingFinalCtaCirclePath" fill="none" d="M100,100 m-78,0 a78,78 0 1,1 156,0 a78,78 0 1,1 -156,0"></path>
-            <text><textPath href="#landingFinalCtaCirclePath">CRIE SUA CONTA · GRÁTIS PRA SEMPRE · </textPath></text>
-          </svg>
-          <span class="landing-final-cta-badge-icon">${icon('arrowUpRight')}</span>
-        </div>
-        <div class="landing-section-inner landing-final-cta-inner">
-          <h2>Ainda adivinhando preço?<br /><em>Deixe sua confeitaria inteligente!</em></h2>
-          <button type="button" data-action="goto" data-route="cadastro">Criar conta ${icon('arrow')}</button>
-        </div>
-      </section>
+      ${landingFinalCtaSection()}
 
+      ${siteFooter()}
+    </div>
+    ${cookieBar()}`;
+}
+
+// ---------------- Landing V2 (em teste, rota #/lp2) ----------------
+// Segunda versão da landing pra teste A/B manual: hero rosa sólido com
+// texto centralizado, benefícios em cartões claros e "Como funciona" com
+// um passo por seção de altura cheia, com fotos + etiqueta de preço
+// simulando produtos sendo cadastrados. Planos, painel de praticidade,
+// CTA final e footer são os mesmos da landing atual (funções
+// compartilhadas) — footer muda depois, a pedido.
+
+// Cada passo: título quebrado em parte normal + parte de destaque (rosa,
+// itálico serifado), e 2 fotos com etiqueta de preço penduradas ao lado.
+const LANDING_V2_STEPS = [
+  {
+    num: '01',
+    title: 'Cadastre ingredientes',
+    accent: 'e despesas',
+    text: 'Preço de compra, quantidade e as despesas fixas do seu negócio — uma vez só, tudo num só lugar.',
+    photos: [
+      { src: '/assets/img/pexels-anntarazevich-6035994.webp', alt: 'Confeiteira preparando uma receita', price: 'R$ 16,00' },
+      { src: '/assets/img/pexels-anntarazevich-6036020.webp', alt: 'Calda de chocolate sendo derramada', price: 'R$ 21,00' },
+    ],
+  },
+  {
+    num: '02',
+    title: 'Monte',
+    accent: 'suas receitas',
+    text: 'Utilize as bases para saber o custo real e a precificação de cada receita.',
+    photos: [
+      { src: '/assets/img/pexels-amar-9329437.webp', alt: 'Doces prontos para servir', price: 'R$ 12,50' },
+      { src: '/assets/img/pexels-anntarazevich-6035994.webp', alt: 'Confeiteira preparando uma receita', price: 'R$ 34,00' },
+    ],
+  },
+  {
+    num: '03',
+    title: 'Veja o preço',
+    accent: 'sugerido',
+    text: 'Com a margem de lucro que você escolher, calculado na hora, sem planilha.',
+    photos: [
+      { src: '/assets/img/pexels-anntarazevich-6036020.webp', alt: 'Calda de chocolate sendo derramada', price: 'R$ 8,90' },
+      { src: '/assets/img/pexels-handmrts-19347074.webp', alt: 'Vitrine com doces prontos para venda', price: 'R$ 21,00' },
+    ],
+  },
+  {
+    num: '04',
+    title: 'Vitrine',
+    accent: 'atualizada',
+    text: 'Suas receitas sempre atualizadas na sua vitrine de forma automática.',
+    photos: [
+      { src: '/assets/img/pexels-handmrts-19347074.webp', alt: 'Vitrine com doces prontos para venda', price: 'R$ 16,00' },
+      { src: '/assets/img/pexels-amar-9329437.webp', alt: 'Doces prontos para servir', price: 'R$ 25,00' },
+    ],
+  },
+];
+
+function landingV2Hero() {
+  return `
+    <section class="landing-v2-hero">
+      <img src="/assets/background/bg-banner-02.webp" alt="" class="landing-v2-hero-photo" />
+      <div class="landing-v2-hero-overlay"></div>
+      <div class="landing-section-inner landing-v2-hero-inner">
+        <h1 class="reveal">Sua confeitaria<br /><em>no lucro certo</em></h1>
+        <p class="landing-v2-hero-subtitle reveal" style="--reveal-delay: 0.12s">A gestão da sua confeitaria de forma inteligente e integrada com a sua vitrine</p>
+        <div class="landing-hero-actions reveal" style="--reveal-delay: 0.24s">
+          <button type="button" class="landing-v2-cta-solid" data-action="goto" data-route="cadastro">Começar grátis</button>
+          <a href="#precos" class="landing-v2-cta-outline">Ver planos e preços</a>
+        </div>
+        <p class="landing-v2-hero-note reveal" style="--reveal-delay: 0.34s">Sem cartão de crédito para começar. Cancele quando quiser.</p>
+      </div>
+      <div class="landing-v2-hero-chips reveal" style="--reveal-delay: 0.44s">
+        ${LANDING_HIGHLIGHTS.map((h) => `<span class="landing-v2-hero-chip">${escapeHtml(h.text)}</span>`).join('')}
+      </div>
+    </section>`;
+}
+
+function landingV2Benefits() {
+  return `
+    <section class="landing-section landing-v2-benefits" id="beneficios">
+      <div class="landing-section-inner">
+        <p class="eyebrow-pill reveal">Benefícios</p>
+        <h2 class="reveal" style="--reveal-delay: 0.1s">A gestão inteligente<br /><em class="accent-tone">que sua confeitaria precisa</em></h2>
+        <div class="landing-v2-benefits-grid">
+          ${LANDING_BENEFITS.map((b, index) => `
+            <div class="landing-v2-benefit-card reveal" style="--reveal-delay: ${(index * 0.08).toFixed(2)}s">
+              <h3>${escapeHtml(b.title)}</h3>
+              <p>${escapeHtml(b.text)}</p>
+            </div>`).join('')}
+        </div>
+      </div>
+    </section>`;
+}
+
+// Um passo por seção de altura de tela: texto de um lado, fotos com
+// etiqueta de preço do outro (lados alternam a cada passo via .is-flipped).
+// O bob contínuo fica num wrapper interno (.landing-v2-photo-bob) porque o
+// .reveal do cartão também anima transform — no mesmo elemento, um dos dois
+// sobrescreveria o outro.
+function landingV2Steps() {
+  return `
+    <section class="landing-v2-steps" id="como-funciona">
+      <div class="landing-section-inner landing-v2-steps-intro">
+        <p class="eyebrow-pill reveal">Como funciona</p>
+        <h2 class="reveal" style="--reveal-delay: 0.1s">Do ingrediente<br /><em class="accent-tone">à precificação certa</em></h2>
+      </div>
+      ${LANDING_V2_STEPS.map((step, i) => `
+        <div class="landing-v2-step ${i % 2 === 1 ? 'is-flipped' : ''}">
+          <div class="landing-section-inner landing-v2-step-inner">
+            <div class="landing-v2-step-copy">
+              <div class="landing-v2-step-heading reveal ${i % 2 === 1 ? 'reveal-right' : 'reveal-left'}">
+                <span class="landing-v2-step-num">${escapeHtml(step.num)}</span>
+                <h3>${escapeHtml(step.title)}<br /><em>${escapeHtml(step.accent)}</em></h3>
+              </div>
+              <p class="reveal" style="--reveal-delay: 0.18s">${escapeHtml(step.text)}</p>
+            </div>
+            <div class="landing-v2-step-photos">
+              ${step.photos.map((photo, j) => `
+                <div class="landing-v2-photo-card reveal reveal-scale" style="--reveal-delay: ${(0.15 + j * 0.15).toFixed(2)}s">
+                  <div class="landing-v2-photo-bob" style="--bob-delay: ${(j * 1.1).toFixed(1)}s">
+                    <img src="${photo.src}" alt="${escapeHtml(photo.alt)}" />
+                    <span class="landing-v2-price-tag">${escapeHtml(photo.price)}</span>
+                  </div>
+                </div>`).join('')}
+            </div>
+          </div>
+        </div>`).join('')}
+    </section>`;
+}
+
+function landingV2Html() {
+  return `
+    <div class="landing landing-v2">
+      ${landingNav(true)}
+      ${landingV2Hero()}
+      ${landingV2Benefits()}
+      ${landingV2Steps()}
+      ${landingFeaturePanel()}
+      ${landingPlansSection()}
+      ${landingFinalCtaSection()}
       ${siteFooter()}
     </div>
     ${cookieBar()}`;
@@ -3680,12 +3834,15 @@ function render() {
   lastPageKey = pageKey;
   // O cardápio público é sempre a mesma página, esteja o visitante logado
   // ou não (ex.: o próprio lojista pré-visualizando o link) — por isso vem
-  // antes do shellHtml()/publicHtml() de sempre.
+  // antes do shellHtml()/publicHtml() de sempre. Idem #/lp2: a landing V2
+  // em teste, acessível também logado pra facilitar a comparação.
   app.innerHTML = state.passwordRecovery
     ? passwordRecoveryHtml()
     : state.route.path === 'cardapio'
       ? publicMenuHtml()
-      : (state.session ? shellHtml() : publicHtml());
+      : state.route.path === 'lp2'
+        ? landingV2Html()
+        : (state.session ? shellHtml() : publicHtml());
   restoreFocus(restore);
   // O primeiro filho é sempre o wrapper principal da página (.shell/.landing/
   // .auth-page/...); os demais irmãos (modal, cookie bar, banner de upgrade)
