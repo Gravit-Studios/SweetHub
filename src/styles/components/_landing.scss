@@ -1429,11 +1429,6 @@
 .landing-v2 #precos {
   background: $white;
   border-radius: 0 0 32px 32px;
-  // Espaço visível da cor do footer entre o cartão arredondado e o footer
-  // de verdade — sem essa margem, o canto arredondado encostava direto no
-  // topo do footer (mesma cor), sem separação nenhuma pra "ler" como um
-  // cartão flutuando sobre o fundo, e o corte ficava estranho.
-  margin-bottom: clamp(16px, 2.5vw, 32px);
 }
 
 // Sem altura própria (o footer fixo não ocupa espaço no fluxo), a página
