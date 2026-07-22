@@ -134,42 +134,15 @@ export async function uploadCompanyLogo(userId, file) {
 
 // ---------- Cardápio público (sem login — plano Pro, ver views no schema.sql) ----------
 
-export async function getPublicCompany(slug) {
-  const { data, error } = await supabase
-    .from('public_companies')
-    .select('*')
-    .eq('slug', slug)
-    .maybeSingle();
-  if (error) throw error;
-  return data;
-}
-
-export async function getPublicProducts(userId) {
-  const { data, error } = await supabase
-    .from('public_products')
-    .select('*')
-    .eq('user_id', userId)
-    .order('category', { ascending: true });
-  if (error) throw error;
-
-  // Fotos extras da galeria (ver product_photos/public_product_photos):
-  // uma consulta só pra todos os produtos da loja, agrupada em memória —
-  // evita N+1 consultas (uma por produto) na página do cardápio público.
-  const productIds = data.map((product) => product.id);
-  if (productIds.length === 0) return data.map((product) => ({ ...product, photos: [] }));
-  const { data: photos, error: photosError } = await supabase
-    .from('public_product_photos')
-    .select('*')
-    .in('product_id', productIds)
-    .order('position', { ascending: true });
-  if (photosError) throw photosError;
-  const photosByProduct = new Map();
-  photos.forEach((photo) => {
-    const list = photosByProduct.get(photo.product_id) || [];
-    list.push(photo.photo_url);
-    photosByProduct.set(photo.product_id, list);
-  });
-  return data.map((product) => ({ ...product, photos: photosByProduct.get(product.id) || [] }));
+// Uma única chamada pra Edge Function get-public-menu (empresa + produtos +
+// fotos já combinados, com um cache curto do lado do servidor) em vez de
+// bater direto no Postgres 2-3 vezes a cada visita à vitrine — ver
+// supabase/functions/get-public-menu.
+export async function getPublicMenu(slug) {
+  const response = await fetch(`${FUNCTIONS_URL}/get-public-menu?slug=${encodeURIComponent(slug)}`);
+  const body = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(body.error || 'Falha ao carregar o cardápio.');
+  return body;
 }
 
 // ---------- Administração de usuários (via Edge Function, service role no servidor) ----------

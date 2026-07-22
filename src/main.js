@@ -3431,13 +3431,12 @@ async function ensurePublicMenuLoaded(slug) {
   state.publicMenu = { slug, loading: true, company: null, products: [], error: '' };
   render();
   try {
-    const company = await db.getPublicCompany(slug);
+    const { company, products } = await db.getPublicMenu(slug);
     if (!company) {
       state.publicMenu = { slug, loading: false, company: null, products: [], error: 'not-found' };
       render();
       return;
     }
-    const products = await db.getPublicProducts(company.id);
     state.publicMenu = { slug, loading: false, company, products, error: '' };
   } catch (error) {
     state.publicMenu = { slug, loading: false, company: null, products: [], error: error.message };
