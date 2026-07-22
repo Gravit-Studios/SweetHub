@@ -7,6 +7,18 @@
   }
 }
 
+// Como respond-down, mas TAMBÉM em qualquer tela portrait (altura maior
+// que largura), não só abaixo do breakpoint — usado nos grids de duas
+// colunas da Landing V2 (hero e "Como funciona"): alguns tablets/2-em-1
+// relatam uma largura CSS enorme mesmo em pé (retrato), maior que
+// qualquer breakpoint razoável, e duas colunas lado a lado não fazem
+// sentido nesse formato de tela de qualquer jeito, então empilha sempre.
+@mixin stack-below($breakpoint) {
+  @media (max-width: $breakpoint), (orientation: portrait) {
+    @content;
+  }
+}
+
 // $name é o sufixo da custom property (ver mapa $colors em _colors.scss),
 // não a variável Sass — precisa do nome como string pra montar a versão
 // "-rgb" usada na sombra (rgba($cor, ..) não aceita mais um var() como

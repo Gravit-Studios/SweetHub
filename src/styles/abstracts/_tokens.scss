@@ -25,7 +25,11 @@ $bp-tablet: 900px;
 // (hero e "Como funciona") que precisam de bem mais espaço que $bp-tablet
 // pra não espremer — abaixo dele, tablets em paisagem (ex.: iPad ~1024px)
 // ainda caíam no layout de duas colunas apertado, com texto e fotos
-// espremidos, em vez de empilhar como no celular.
+// espremidos, em vez de empilhar como no celular. Complementado por
+// stack-below() (ver _mixins.scss), que também empilha em qualquer tela
+// portrait (retrato) independente da largura — alguns tablets/2-em-1
+// relatam uma largura CSS enorme mesmo em pé, maior que esse breakpoint,
+// onde duas colunas lado a lado não fazem sentido de qualquer forma.
 $bp-tablet-lg: 1180px;
 
 // Altura real do .navbar (padding 14px + conteúdo ~32px + borda 1px) — usada
