@@ -2136,7 +2136,11 @@
   display: flex;
   gap: 10px;
 
-  span {
+  // O Instagram já tem link de verdade (<a>, ver landingV2Footer em
+  // main.js) — sem incluir "a" aqui ele ficava sem essa estilização
+  // (a regra só pegava span), caindo no azul padrão de link do navegador.
+  span,
+  a {
     width: 34px;
     height: 34px;
     border-radius: $radius-pill;
