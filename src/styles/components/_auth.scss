@@ -24,6 +24,12 @@
   flex-direction: column;
   padding: 40px clamp(24px, 5vw, 64px);
 
+  // Cadastro tem mais campos por etapa (endereço em duas colunas, etc.) que
+  // o login — dá mais espaço pra essa coluna às custas da foto ao lado.
+  &.auth-form-side-signup {
+    flex-basis: 62%;
+  }
+
   @include respond-down($bp-tablet) {
     position: relative;
     z-index: 1;
@@ -58,7 +64,7 @@
 // 420px — precisa da mesma sobrescrita aqui pra não ficar mais estreita
 // que o resto do formulário.
 .auth-form-inner-signup {
-  width: min(640px, 100%);
+  width: min(720px, 100%);
 
   .auth-tabs {
     width: 100%;
@@ -74,7 +80,16 @@
 // Mesmo teto largo do formulário de cadastro (ver .auth-form-inner-signup)
 // — sem isso o logotipo ficava mais estreito que os campos abaixo dele.
 .auth-brand-signup {
-  width: min(640px, 100%);
+  width: min(720px, 100%);
+}
+
+// Campos de cada etapa do wizard de cadastro (ver authSignupWizardHtml) não
+// ficam dentro de um <form> como o login — sem essa regra os labels ficavam
+// colados uns nos outros, já que o gap do .auth-form-inner form (abaixo) só
+// se aplica a um elemento <form>.
+.auth-step-body {
+  display: grid;
+  gap: 18px;
 }
 
 // O botão de avançar/criar conta reaproveita o visual do .auth-submit
@@ -110,6 +125,12 @@
   position: relative;
   flex: 1 1 54%;
   overflow: hidden;
+
+  // Contrapartida do .auth-form-side-signup (ver acima): cede espaço pra
+  // coluna do formulário no cadastro.
+  &.auth-visual-signup {
+    flex-basis: 38%;
+  }
 
   @include respond-down($bp-tablet) {
     position: fixed;

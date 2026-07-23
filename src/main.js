@@ -3537,7 +3537,7 @@ function authHtml() {
   const isSignUp = state.authMode === 'signup';
   return `
     <div class="auth-page">
-      <div class="auth-form-side">
+      <div class="auth-form-side ${isSignUp ? 'auth-form-side-signup' : ''}">
         <button type="button" class="auth-brand ${isSignUp ? 'auth-brand-signup' : ''}" data-action="goto" data-route="inicio"><img src="/assets/logotipo/SVG/logotipo-original.png" alt="SweetHub" class="brand-logo" /></button>
         <div class="auth-form-inner ${isSignUp ? 'auth-form-inner-signup' : ''}">
           <div class="auth-tabs" role="tablist">
@@ -3547,7 +3547,7 @@ function authHtml() {
           ${isSignUp ? authSignupWizardHtml() : authSignInHtml()}
         </div>
       </div>
-      <div class="auth-visual">
+      <div class="auth-visual ${isSignUp ? 'auth-visual-signup' : ''}">
         <img src="/assets/img/pexels-anntarazevich-6036020.webp" alt="" class="auth-visual-photo" />
         <div class="auth-visual-overlay"></div>
       </div>
@@ -3574,10 +3574,10 @@ function authSignInHtml() {
 }
 
 // Passos do cadastro (ver defaultSignup/authSignupWizardHtml): dados
-// pessoais primeiro (inclui e-mail/senha, precisa existir antes de tudo),
-// depois endereço (autopreenchido por CEP, ver handleSignupCepLookup), e só
-// no fim a confeitaria + consentimento LGPD/captcha — é nessa última etapa
-// que a conta é criada de verdade (ver handleSignupSubmit).
+// pessoais primeiro (nome/e-mail/telefone), depois endereço (autopreenchido
+// por CEP, ver handleSignupCepLookup), e só no fim a confeitaria + senha +
+// consentimento LGPD/captcha — é nessa última etapa que a conta é criada de
+// verdade (ver handleSignupSubmit).
 const AUTH_SIGNUP_STEPS = [
   { label: 'Dados', icon: 'pencil' },
   { label: 'Endereço', icon: 'home' },
@@ -3620,10 +3620,6 @@ function authSignupWizardHtml() {
         ${errorAfter('email')}
         <label>Telefone<input data-editor="signup" data-field="phone" type="tel" class="${errors.phone ? 'is-invalid' : ''}" placeholder="(00) 00000-0000" value="${escapeHtml(s.phone)}" /></label>
         ${errorAfter('phone')}
-        <label>Senha<input data-editor="signup" data-field="password" type="password" minlength="6" class="${errors.password ? 'is-invalid' : ''}" placeholder="Mínimo 6 caracteres" value="${escapeHtml(s.password)}" /></label>
-        ${errorAfter('password')}
-        <label>Confirmar senha<input data-editor="signup" data-field="confirmPassword" type="password" minlength="6" class="${errors.confirmPassword ? 'is-invalid' : ''}" value="${escapeHtml(s.confirmPassword)}" /></label>
-        ${errorAfter('confirmPassword')}
       ` : ''}
       ${s.step === 2 ? `
         <label>CEP<input data-editor="signup" data-field="cep" type="text" class="${errors.cep ? 'is-invalid' : ''}" placeholder="00000-000" maxlength="9" value="${escapeHtml(s.cep)}" /></label>
@@ -3649,6 +3645,10 @@ function authSignupWizardHtml() {
         <label>Nome da confeitaria<input data-editor="signup" data-field="companyName" type="text" class="${errors.companyName ? 'is-invalid' : ''}" placeholder="Ateliê da Maria" value="${escapeHtml(s.companyName)}" /></label>
         ${errorAfter('companyName')}
         <label>CNPJ (se tiver)<input data-editor="signup" data-field="cnpj" type="text" placeholder="00.000.000/0000-00" value="${escapeHtml(s.cnpj)}" /></label>
+        <label>Senha<input data-editor="signup" data-field="password" type="password" minlength="6" class="${errors.password ? 'is-invalid' : ''}" placeholder="Mínimo 6 caracteres" value="${escapeHtml(s.password)}" /></label>
+        ${errorAfter('password')}
+        <label>Confirmar senha<input data-editor="signup" data-field="confirmPassword" type="password" minlength="6" class="${errors.confirmPassword ? 'is-invalid' : ''}" value="${escapeHtml(s.confirmPassword)}" /></label>
+        ${errorAfter('confirmPassword')}
         <label class="consent-field">
           <input type="checkbox" data-action="toggle-signup-consent" ${s.consent ? 'checked' : ''} />
           <span>Concordo com o tratamento dos meus dados pessoais para uso do app, conforme a LGPD.</span>
@@ -4345,8 +4345,6 @@ function signupWizardNext() {
     if (!s.email.trim()) s.errors.email = 'Informe seu e-mail.';
     else if (!SIGNUP_EMAIL_RE.test(s.email.trim())) s.errors.email = 'E-mail inválido.';
     if (!s.phone.trim()) s.errors.phone = 'Informe seu telefone.';
-    if (!s.password || s.password.length < 6) s.errors.password = 'Mínimo de 6 caracteres.';
-    else if (s.password !== s.confirmPassword) s.errors.confirmPassword = 'A confirmação não bate com a senha.';
     if (Object.keys(s.errors).length) { render(); return; }
   }
   if (s.step === 2) {
@@ -4366,6 +4364,8 @@ async function handleSignupSubmit() {
   const s = state.signup;
   s.errors = {};
   if (!s.companyName.trim()) s.errors.companyName = 'Informe o nome da sua confeitaria.';
+  if (!s.password || s.password.length < 6) s.errors.password = 'Mínimo de 6 caracteres.';
+  else if (s.password !== s.confirmPassword) s.errors.confirmPassword = 'A confirmação não bate com a senha.';
   if (!s.consent) s.errors.consent = 'Você precisa concordar com o tratamento dos seus dados para continuar.';
   if (Object.keys(s.errors).length) { render(); return; }
 
