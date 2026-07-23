@@ -51,6 +51,42 @@
   }
 }
 
+// Cadastro em etapas (ver authSignupWizardHtml): mais largo que o login —
+// campos de endereço em duas colunas (.field-grid) ficavam espremidos no
+// mesmo teto de 420px do formulário de entrar. .auth-tabs herda o teto do
+// pai por padrão (ver regra acima), mas tem sua própria largura fixa de
+// 420px — precisa da mesma sobrescrita aqui pra não ficar mais estreita
+// que o resto do formulário.
+.auth-form-inner-signup {
+  width: min(640px, 100%);
+
+  .auth-tabs {
+    width: 100%;
+  }
+
+  .field-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+  }
+}
+
+// Mesmo teto largo do formulário de cadastro (ver .auth-form-inner-signup)
+// — sem isso o logotipo ficava mais estreito que os campos abaixo dele.
+.auth-brand-signup {
+  width: min(640px, 100%);
+}
+
+// O botão de avançar/criar conta reaproveita o visual do .auth-submit
+// (pílula branca com seta), mas ao lado do "Voltar" dentro de
+// .wizard-actions não pode ocupar 100% da linha — flex: 1 deixa os dois
+// dividirem o espaço, "Voltar" do tamanho do próprio texto (largura
+// automática por padrão) e o de avançar preenchendo o resto.
+.wizard-actions .auth-submit {
+  width: auto;
+  flex: 1;
+}
+
 // Mesma largura/centralização do .auth-form-inner, pra ficar alinhado com o
 // resto do conteúdo em vez de colado na borda do padding do .auth-form-side.
 .auth-brand {

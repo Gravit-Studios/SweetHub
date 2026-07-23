@@ -169,6 +169,33 @@ function defaultWizard() {
   };
 }
 
+// Cadastro em etapas (ver authSignupWizardHtml) — mesma ideia do wizard de
+// receita acima, só que pra criar a conta: dados pessoais, endereço
+// (com autopreenchimento por CEP) e por último a confeitaria + consentimento
+// LGPD/captcha, que é quando a conta é criada de verdade.
+function defaultSignup() {
+  return {
+    step: 1,
+    fullName: '',
+    email: '',
+    phone: '',
+    password: '',
+    confirmPassword: '',
+    cep: '',
+    street: '',
+    number: '',
+    complement: '',
+    neighborhood: '',
+    city: '',
+    state: '',
+    companyName: '',
+    cnpj: '',
+    consent: false,
+    errors: {},
+    cepLookup: { loading: false, error: '' },
+  };
+}
+
 function defaultDetail() {
   return {
     loading: false,
@@ -290,12 +317,13 @@ const state = {
 
   wizard: defaultWizard(),
   detail: defaultDetail(),
+  signup: defaultSignup(),
 };
 
 const app = document.querySelector('#root');
 
 function getEditor(key) {
-  return key === 'wizard' ? state.wizard : state.detail;
+  return key === 'wizard' ? state.wizard : key === 'signup' ? state.signup : state.detail;
 }
 
 function pricingFor(editor) {
@@ -515,7 +543,14 @@ function handleRouteChange(route) {
   // aparecendo depois que o usuário já navegou pra outro lugar.
   state.statusMessage = '';
   if (!state.session) {
-    if (route.path === 'cadastro') state.authMode = 'signup';
+    // Só reseta o wizard ao ENTRAR no modo cadastro vindo de outro lugar
+    // (login, ou primeira visita) — re-navegações pra #/cadastro enquanto
+    // já está no meio do wizard (ex.: algo chama handleRouteChange de novo
+    // pro mesmo path) não podem apagar o progresso já preenchido.
+    if (route.path === 'cadastro') {
+      if (state.authMode !== 'signup') state.signup = defaultSignup();
+      state.authMode = 'signup';
+    }
     if (route.path === 'entrar') state.authMode = 'signin';
   }
   if (route.path === 'produto' && route.param && state.detail.productId !== route.param) {
@@ -3500,46 +3535,16 @@ function renderPrivacidadePage() {
 
 function authHtml() {
   const isSignUp = state.authMode === 'signup';
-  const purchase = isSignUp ? state.pendingPurchase : null;
-  const purchasePlan = purchase && LANDING_PLANS.find((p) => p.key === purchase.plan);
   return `
     <div class="auth-page">
       <div class="auth-form-side">
-        <button type="button" class="auth-brand" data-action="goto" data-route="inicio"><img src="/assets/logotipo/SVG/logotipo-original.png" alt="SweetHub" class="brand-logo" /></button>
-        <div class="auth-form-inner">
+        <button type="button" class="auth-brand ${isSignUp ? 'auth-brand-signup' : ''}" data-action="goto" data-route="inicio"><img src="/assets/logotipo/SVG/logotipo-original.png" alt="SweetHub" class="brand-logo" /></button>
+        <div class="auth-form-inner ${isSignUp ? 'auth-form-inner-signup' : ''}">
           <div class="auth-tabs" role="tablist">
             <button type="button" role="tab" aria-selected="${!isSignUp}" class="auth-tab ${!isSignUp ? 'is-active' : ''}" data-action="auth-tab" data-mode="signin">Entrar</button>
             <button type="button" role="tab" aria-selected="${isSignUp}" class="auth-tab ${isSignUp ? 'is-active' : ''}" data-action="auth-tab" data-mode="signup">Criar conta</button>
           </div>
-          <p class="eyebrow">${isSignUp ? 'Comece agora' : 'Bem-vindo de volta'}</p>
-          <h1 class="auth-title">${isSignUp ? 'Crie sua conta' : 'Acesse sua conta'}</h1>
-          <p class="auth-subtitle">${(() => {
-            if (!purchasePlan) return isSignUp ? 'Grátis para sempre, sem cartão de crédito. Enviamos um link de confirmação por e-mail pra validar seu acesso.' : 'Bem-vinda de volta.';
-            // Preço tem que refletir o ciclo escolhido no toggle da landing
-            // (mensal/anual) — usar purchasePlan.price direto (sempre o
-            // mensal) mostrava o valor errado pra quem veio do anual.
-            const priceDisplay = landingPlanPriceDisplay(purchasePlan, purchase.billingCycle);
-            return `Assinando o plano ${escapeHtml(purchasePlan.name)} (${priceDisplay.price}${priceDisplay.suffix}). Depois de criar a conta você será levado ao pagamento.`;
-          })()}</p>
-          <form data-form="auth">
-            ${isSignUp ? '<label>Seu nome<input name="fullName" type="text" placeholder="Maria Silva" required /></label><label>Nome da confeitaria<input name="companyName" type="text" placeholder="Ateliê da Maria" /></label>' : ''}
-            <label>E-mail<input name="email" type="email" placeholder="seuemail@exemplo.com" value="${escapeHtml(state.authPrefillEmail)}" required /></label>
-            <label>Senha<input name="password" type="password" minlength="6" placeholder="${isSignUp ? 'Mínimo 6 caracteres' : ''}" required /></label>
-            ${isSignUp ? `
-              <label class="consent-field">
-                <input name="consent" type="checkbox" required />
-                <span>Concordo com o tratamento dos meus dados pessoais para uso do app, conforme a LGPD.</span>
-              </label>
-              <div class="turnstile-widget" data-widget="signup" data-sitekey="${TURNSTILE_SITE_KEY}"></div>` : `
-              <div class="turnstile-widget" data-widget="login" data-sitekey="${TURNSTILE_SITE_KEY}"></div>`}
-            ${state.authError ? `<p class="auth-error">${escapeHtml(state.authError)}</p>` : ''}
-            <button type="submit" class="auth-submit" ${state.authLoading ? 'disabled' : ''}>
-              <span>${state.authLoading ? 'Aguarde...' : isSignUp ? (purchasePlan ? 'Continuar para pagamento' : 'Criar conta grátis') : 'Entrar'}</span>${icon('arrow')}
-            </button>
-          </form>
-          ${isSignUp
-            ? '<p class="auth-switch">Ao continuar, você concorda com os <button type="button" data-action="goto" data-route="termos">Termos de uso</button> e <button type="button" data-action="goto" data-route="privacidade">Privacidade</button>.</p>'
-            : '<p class="auth-switch"><button type="button" data-action="open-forgot-password">Esqueci minha senha</button></p>'}
+          ${isSignUp ? authSignupWizardHtml() : authSignInHtml()}
         </div>
       </div>
       <div class="auth-visual">
@@ -3549,6 +3554,117 @@ function authHtml() {
     </div>
     ${cookieBar()}
     ${modalOverlay()}`;
+}
+
+function authSignInHtml() {
+  return `
+    <p class="eyebrow">Bem-vindo de volta</p>
+    <h1 class="auth-title">Acesse sua conta</h1>
+    <p class="auth-subtitle">Bem-vinda de volta.</p>
+    <form data-form="auth">
+      <label>E-mail<input name="email" type="email" placeholder="seuemail@exemplo.com" value="${escapeHtml(state.authPrefillEmail)}" required /></label>
+      <label>Senha<input name="password" type="password" minlength="6" required /></label>
+      <div class="turnstile-widget" data-widget="login" data-sitekey="${TURNSTILE_SITE_KEY}"></div>
+      ${state.authError ? `<p class="auth-error">${escapeHtml(state.authError)}</p>` : ''}
+      <button type="submit" class="auth-submit" ${state.authLoading ? 'disabled' : ''}>
+        <span>${state.authLoading ? 'Aguarde...' : 'Entrar'}</span>${icon('arrow')}
+      </button>
+    </form>
+    <p class="auth-switch"><button type="button" data-action="open-forgot-password">Esqueci minha senha</button></p>`;
+}
+
+// Passos do cadastro (ver defaultSignup/authSignupWizardHtml): dados
+// pessoais primeiro (inclui e-mail/senha, precisa existir antes de tudo),
+// depois endereço (autopreenchido por CEP, ver handleSignupCepLookup), e só
+// no fim a confeitaria + consentimento LGPD/captcha — é nessa última etapa
+// que a conta é criada de verdade (ver handleSignupSubmit).
+const AUTH_SIGNUP_STEPS = [
+  { label: 'Dados', icon: 'pencil' },
+  { label: 'Endereço', icon: 'home' },
+  { label: 'Confeitaria', icon: 'storefront' },
+];
+
+function authSignupWizardHtml() {
+  const s = state.signup;
+  const errors = s.errors || {};
+  const purchase = state.pendingPurchase;
+  const purchasePlan = purchase && LANDING_PLANS.find((p) => p.key === purchase.plan);
+  const lastStep = AUTH_SIGNUP_STEPS.length;
+  const errorAfter = (field) => (errors[field] ? `<p class="form-error">${escapeHtml(errors[field])}</p>` : '');
+  return `
+    <p class="eyebrow">Comece agora</p>
+    <h1 class="auth-title">Crie sua conta</h1>
+    <p class="auth-subtitle">${(() => {
+      if (!purchasePlan) return 'Grátis para sempre, sem cartão de crédito. Enviamos um link de confirmação por e-mail pra validar seu acesso.';
+      // Preço tem que refletir o ciclo escolhido no toggle da landing
+      // (mensal/anual) — usar purchasePlan.price direto (sempre o mensal)
+      // mostrava o valor errado pra quem veio do anual.
+      const priceDisplay = landingPlanPriceDisplay(purchasePlan, purchase.billingCycle);
+      return `Assinando o plano ${escapeHtml(purchasePlan.name)} (${priceDisplay.price}${priceDisplay.suffix}). Depois de criar a conta você será levado ao pagamento.`;
+    })()}</p>
+    <div class="stepper auth-stepper">
+      ${AUTH_SIGNUP_STEPS.map((step, i) => {
+        const stepNum = i + 1;
+        const status = stepNum < s.step ? 'done' : stepNum === s.step ? 'active' : 'upcoming';
+        return `<div class="stepper-item ${status}">
+          <span class="stepper-dot">${icon(status === 'done' ? 'check' : step.icon)}</span>
+          <span class="stepper-label">${escapeHtml(step.label)}</span>
+        </div>`;
+      }).join('')}
+    </div>
+    <div class="auth-step-body">
+      ${s.step === 1 ? `
+        <label>Nome completo<input data-editor="signup" data-field="fullName" type="text" class="${errors.fullName ? 'is-invalid' : ''}" placeholder="Maria Silva" value="${escapeHtml(s.fullName)}" /></label>
+        ${errorAfter('fullName')}
+        <label>E-mail<input data-editor="signup" data-field="email" type="email" class="${errors.email ? 'is-invalid' : ''}" placeholder="seuemail@exemplo.com" value="${escapeHtml(s.email)}" /></label>
+        ${errorAfter('email')}
+        <label>Telefone<input data-editor="signup" data-field="phone" type="tel" class="${errors.phone ? 'is-invalid' : ''}" placeholder="(00) 00000-0000" value="${escapeHtml(s.phone)}" /></label>
+        ${errorAfter('phone')}
+        <label>Senha<input data-editor="signup" data-field="password" type="password" minlength="6" class="${errors.password ? 'is-invalid' : ''}" placeholder="Mínimo 6 caracteres" value="${escapeHtml(s.password)}" /></label>
+        ${errorAfter('password')}
+        <label>Confirmar senha<input data-editor="signup" data-field="confirmPassword" type="password" minlength="6" class="${errors.confirmPassword ? 'is-invalid' : ''}" value="${escapeHtml(s.confirmPassword)}" /></label>
+        ${errorAfter('confirmPassword')}
+      ` : ''}
+      ${s.step === 2 ? `
+        <label>CEP<input data-editor="signup" data-field="cep" type="text" class="${errors.cep ? 'is-invalid' : ''}" placeholder="00000-000" maxlength="9" value="${escapeHtml(s.cep)}" /></label>
+        ${s.cepLookup.loading ? '<p class="form-hint">Buscando endereço...</p>' : ''}
+        ${s.cepLookup.error ? `<p class="form-error">${escapeHtml(s.cepLookup.error)}</p>` : ''}
+        ${errorAfter('cep')}
+        <label>Logradouro<input data-editor="signup" data-field="street" type="text" class="${errors.street ? 'is-invalid' : ''}" value="${escapeHtml(s.street)}" /></label>
+        ${errorAfter('street')}
+        <div class="field-grid">
+          <label>Número<input data-editor="signup" data-field="number" type="text" class="${errors.number ? 'is-invalid' : ''}" value="${escapeHtml(s.number)}" /></label>
+          <label>Complemento<input data-editor="signup" data-field="complement" type="text" value="${escapeHtml(s.complement)}" /></label>
+        </div>
+        ${errorAfter('number')}
+        <label>Bairro<input data-editor="signup" data-field="neighborhood" type="text" class="${errors.neighborhood ? 'is-invalid' : ''}" value="${escapeHtml(s.neighborhood)}" /></label>
+        ${errorAfter('neighborhood')}
+        <div class="field-grid">
+          <label>Cidade<input data-editor="signup" data-field="city" type="text" class="${errors.city ? 'is-invalid' : ''}" value="${escapeHtml(s.city)}" /></label>
+          <label>Estado (UF)<input data-editor="signup" data-field="state" type="text" class="${errors.state ? 'is-invalid' : ''}" maxlength="2" value="${escapeHtml(s.state)}" /></label>
+        </div>
+        ${errorAfter('city')}${errorAfter('state')}
+      ` : ''}
+      ${s.step === 3 ? `
+        <label>Nome da confeitaria<input data-editor="signup" data-field="companyName" type="text" class="${errors.companyName ? 'is-invalid' : ''}" placeholder="Ateliê da Maria" value="${escapeHtml(s.companyName)}" /></label>
+        ${errorAfter('companyName')}
+        <label>CNPJ (se tiver)<input data-editor="signup" data-field="cnpj" type="text" placeholder="00.000.000/0000-00" value="${escapeHtml(s.cnpj)}" /></label>
+        <label class="consent-field">
+          <input type="checkbox" data-action="toggle-signup-consent" ${s.consent ? 'checked' : ''} />
+          <span>Concordo com o tratamento dos meus dados pessoais para uso do app, conforme a LGPD.</span>
+        </label>
+        ${errorAfter('consent')}
+        <div class="turnstile-widget" data-widget="signup" data-sitekey="${TURNSTILE_SITE_KEY}"></div>
+      ` : ''}
+      ${state.authError ? `<p class="auth-error">${escapeHtml(state.authError)}</p>` : ''}
+    </div>
+    <div class="wizard-actions">
+      ${s.step > 1 ? '<button type="button" class="ghost" data-action="signup-back">Voltar</button>' : '<span></span>'}
+      ${s.step < lastStep
+        ? `<button type="button" class="auth-submit" data-action="signup-next"><span>Continuar</span>${icon('arrow')}</button>`
+        : `<button type="button" class="auth-submit" data-action="signup-submit" ${state.authLoading ? 'disabled' : ''}><span>${state.authLoading ? 'Aguarde...' : (purchasePlan ? 'Continuar para pagamento' : 'Criar conta grátis')}</span>${icon('arrow')}</button>`}
+    </div>
+    <p class="auth-switch">Ao continuar, você concorda com os <button type="button" data-action="goto" data-route="termos">Termos de uso</button> e <button type="button" data-action="goto" data-route="privacidade">Privacidade</button>.</p>`;
 }
 
 // Tela mostrada no lugar do app normal quando a sessão veio de um link de
@@ -4023,6 +4139,7 @@ function setupScrollReveal() {
   });
   updateStepsBigPhoto();
   updateLandingV2StepWordParallax();
+  updateLandingV2PhotoParallax();
   syncLandingV2Footer();
 }
 
@@ -4095,6 +4212,40 @@ function updateLandingV2StepWordParallax() {
   });
 }
 
+// Parallax nas fotos de cada passo do "Como funciona" (#/lp2): cada foto da
+// coluna desloca a uma taxa diferente (rate cresce com o índice) — de
+// propósito, pra dar mais movimento entre elas, mesmo que isso deixe uma
+// levemente atrás/na frente da outra durante a rolagem. Só depois que o
+// cartão já revelou (.is-visible): antes disso o próprio .reveal ainda
+// está controlando transform/opacity pra animar a entrada (ver comentário
+// em .landing-v2-photo-bob), e um JS mexendo nisso no meio cortaria essa
+// animação pela metade. transition: none evita que o transition-duration
+// do .reveal (pensado só pra entrada) suavize/atrase o parallax, que
+// precisa acompanhar o scroll 1:1.
+function updateLandingV2PhotoParallax() {
+  const steps = app.querySelectorAll('.landing-v2-step');
+  if (!steps.length) return;
+  const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  steps.forEach((step) => {
+    const cards = step.querySelectorAll('.landing-v2-photo-card');
+    if (!cards.length) return;
+    const rect = step.getBoundingClientRect();
+    const total = rect.height + window.innerHeight;
+    const progress = Math.min(1, Math.max(0, (window.innerHeight - rect.top) / total));
+    cards.forEach((card, index) => {
+      if (!card.classList.contains('is-visible')) return;
+      if (reduced) {
+        card.style.transform = '';
+        card.style.transition = '';
+        return;
+      }
+      card.style.transition = 'none';
+      const rate = (index + 1) * 55;
+      card.style.transform = `translateY(${((progress - 0.5) * rate).toFixed(1)}px)`;
+    });
+  });
+}
+
 // O rodapé da V2 é position: fixed (ver landingV2Footer/.landing-v2-footer-fixed)
 // e não ocupa espaço no fluxo do documento — o spacer no fim do conteúdo
 // principal precisa da altura real do footer via JS, senão a página termina
@@ -4114,6 +4265,7 @@ window.addEventListener('scroll', () => {
     stepsPhotoRaf = null;
     updateStepsBigPhoto();
     updateLandingV2StepWordParallax();
+    updateLandingV2PhotoParallax();
   });
 }, { passive: true });
 
@@ -4180,66 +4332,111 @@ window.addEventListener('scroll', () => {
 
 // ---------------- Ações: autenticação ----------------
 
+// Cadastro em etapas (ver authSignupWizardHtml/defaultSignup): valida só os
+// campos da etapa atual antes de avançar — os de etapas já visitadas ficam
+// guardados em state.signup entre uma etapa e outra.
+const SIGNUP_EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+function signupWizardNext() {
+  const s = state.signup;
+  s.errors = {};
+  if (s.step === 1) {
+    if (!s.fullName.trim()) s.errors.fullName = 'Informe seu nome completo.';
+    if (!s.email.trim()) s.errors.email = 'Informe seu e-mail.';
+    else if (!SIGNUP_EMAIL_RE.test(s.email.trim())) s.errors.email = 'E-mail inválido.';
+    if (!s.phone.trim()) s.errors.phone = 'Informe seu telefone.';
+    if (!s.password || s.password.length < 6) s.errors.password = 'Mínimo de 6 caracteres.';
+    else if (s.password !== s.confirmPassword) s.errors.confirmPassword = 'A confirmação não bate com a senha.';
+    if (Object.keys(s.errors).length) { render(); return; }
+  }
+  if (s.step === 2) {
+    if (!s.cep.trim()) s.errors.cep = 'Informe o CEP.';
+    if (!s.street.trim()) s.errors.street = 'Informe o logradouro.';
+    if (!s.number.trim()) s.errors.number = 'Informe o número.';
+    if (!s.neighborhood.trim()) s.errors.neighborhood = 'Informe o bairro.';
+    if (!s.city.trim()) s.errors.city = 'Informe a cidade.';
+    if (!s.state.trim()) s.errors.state = 'Informe o estado.';
+    if (Object.keys(s.errors).length) { render(); return; }
+  }
+  s.step = Math.min(3, s.step + 1);
+  render();
+}
+
+async function handleSignupSubmit() {
+  const s = state.signup;
+  s.errors = {};
+  if (!s.companyName.trim()) s.errors.companyName = 'Informe o nome da sua confeitaria.';
+  if (!s.consent) s.errors.consent = 'Você precisa concordar com o tratamento dos seus dados para continuar.';
+  if (Object.keys(s.errors).length) { render(); return; }
+
+  const captchaToken = captchaTokenFor('.turnstile-widget[data-widget="signup"]');
+  if (!captchaToken) {
+    state.authError = 'Confirme que você não é um robô antes de continuar.';
+    render();
+    return;
+  }
+  state.authLoading = true;
+  state.authError = '';
+  render();
+  const purchase = state.pendingPurchase;
+  const fields = {
+    email: s.email,
+    password: s.password,
+    fullName: s.fullName,
+    companyName: s.companyName,
+    phone: s.phone,
+    cnpj: s.cnpj,
+    cep: s.cep,
+    street: s.street,
+    neighborhood: s.neighborhood,
+    city: s.city,
+    state: s.state,
+    addressNumber: s.number,
+    complement: s.complement,
+  };
+  try {
+    if (purchase) {
+      // Controle/Vitrine escolhidos direto na landing page: cria a conta
+      // já represada (payment_status = 'pending', ver planStatus) e manda
+      // direto pro checkout do Mercado Pago — sai do app de propósito.
+      const initPoint = await db.createSignupCheckout({
+        plan: purchase.plan,
+        billingCycle: purchase.billingCycle,
+        captchaToken,
+        ...fields,
+      });
+      window.location.href = initPoint;
+      return;
+    }
+    await signUp({ ...fields, captchaToken });
+    state.signup = defaultSignup();
+    state.authLoading = false;
+    navigate('#/entrar');
+    showSuccess('Quase lá! Enviamos um link de confirmação pro seu e-mail — clique nele pra validar seu acesso. Depois, é só aguardar a aprovação de um administrador para começar a usar o app.', 3600);
+    return;
+  } catch (error) {
+    // E-mail já cadastrado na etapa de assinatura paga: manda pro login em
+    // vez de só mostrar o erro — mantém pendingPurchase, então ao entrar a
+    // pessoa continua direto pro checkout do plano escolhido (ver abaixo,
+    // no bloco de login).
+    if (purchase && /already registered/i.test(error.message)) {
+      state.authPrefillEmail = s.email;
+      state.authError = 'Este e-mail já tem uma conta. Faça login para continuar com a assinatura.';
+      navigate('#/entrar');
+    } else {
+      state.authError = translateAuthError(error.message);
+    }
+  } finally {
+    state.authLoading = false;
+    resetCaptcha('.turnstile-widget[data-widget="signup"]');
+    render();
+  }
+}
+
 async function handleAuthSubmit(form) {
   const formData = new FormData(form);
   const email = formData.get('email');
   const password = formData.get('password');
-  const fullName = formData.get('fullName');
-  const companyName = formData.get('companyName');
-
-  if (state.authMode === 'signup') {
-    const captchaToken = captchaTokenFor('.turnstile-widget[data-widget="signup"]');
-    if (!captchaToken) {
-      state.authError = 'Confirme que você não é um robô antes de continuar.';
-      render();
-      return;
-    }
-    state.authLoading = true;
-    state.authError = '';
-    render();
-    const purchase = state.pendingPurchase;
-    try {
-      if (purchase) {
-        // Controle/Vitrine escolhidos direto na landing page: cria a conta
-        // já represada (payment_status = 'pending', ver planStatus) e manda
-        // direto pro checkout do Mercado Pago — sai do app de propósito.
-        const initPoint = await db.createSignupCheckout({
-          plan: purchase.plan,
-          billingCycle: purchase.billingCycle,
-          email,
-          password,
-          fullName,
-          companyName,
-          captchaToken,
-        });
-        window.location.href = initPoint;
-        return;
-      }
-      await signUp(email, password, fullName, companyName, captchaToken);
-      form.reset();
-      state.authLoading = false;
-      navigate('#/entrar');
-      showSuccess('Quase lá! Enviamos um link de confirmação pro seu e-mail — clique nele pra validar seu acesso. Depois, é só aguardar a aprovação de um administrador para começar a usar o app.', 3600);
-      return;
-    } catch (error) {
-      // E-mail já cadastrado na etapa de assinatura paga: manda pro login em
-      // vez de só mostrar o erro — mantém pendingPurchase, então ao entrar a
-      // pessoa continua direto pro checkout do plano escolhido (ver abaixo,
-      // no bloco de login).
-      if (purchase && /already registered/i.test(error.message)) {
-        state.authPrefillEmail = email;
-        state.authError = 'Este e-mail já tem uma conta. Faça login para continuar com a assinatura.';
-        navigate('#/entrar');
-      } else {
-        state.authError = translateAuthError(error.message);
-      }
-    } finally {
-      state.authLoading = false;
-      resetCaptcha('.turnstile-widget[data-widget="signup"]');
-      render();
-    }
-    return;
-  }
 
   const loginCaptchaToken = captchaTokenFor('.turnstile-widget[data-widget="login"]');
   if (!loginCaptchaToken) {
@@ -4826,6 +5023,24 @@ async function handleCepLookup(cepDigits) {
   render();
 }
 
+// Mesmo lookupCep da página Empresa, só que gravando em state.signup em vez
+// de state.company — etapa 2 do cadastro (ver authSignupWizardHtml).
+async function handleSignupCepLookup(cepDigits) {
+  state.signup.cepLookup = { loading: true, error: '' };
+  render();
+  try {
+    const result = await lookupCep(cepDigits);
+    state.signup.street = result.street;
+    state.signup.neighborhood = result.neighborhood;
+    state.signup.city = result.city;
+    state.signup.state = result.state;
+    state.signup.cepLookup = { loading: false, error: '' };
+  } catch (error) {
+    state.signup.cepLookup = { loading: false, error: error.message };
+  }
+  render();
+}
+
 async function handleChangePasswordSubmit(form) {
   const formData = new FormData(form);
   const currentPassword = formData.get('currentPassword');
@@ -5370,6 +5585,13 @@ app.addEventListener('input', (event) => {
     render();
     return;
   }
+  if (target.dataset.editor === 'signup' && target.dataset.field === 'cep') {
+    state.signup.cep = target.value;
+    render();
+    const digits = target.value.replace(/\D/g, '');
+    if (digits.length === 8) handleSignupCepLookup(digits);
+    return;
+  }
   if (target.dataset.field) {
     getEditor(target.dataset.editor)[target.dataset.field] = target.value;
     if (target.dataset.field === 'menuCategory') state.openMenuCategoryCombobox = true;
@@ -5578,6 +5800,10 @@ app.addEventListener('click', (event) => {
       state.pendingPurchase = { plan: el.dataset.plan, billingCycle: el.dataset.cycle || 'mensal' };
       state.authPrefillEmail = '';
       state.authMode = 'signup';
+      // authMode já é 'signup' aqui (linha acima), então o reset condicional
+      // de handleRouteChange não dispararia — reseta direto, já que entrar
+      // por um botão de plano é sempre um início novo do wizard.
+      state.signup = defaultSignup();
       navigate('#/cadastro');
       render();
       break;
@@ -5632,6 +5858,21 @@ app.addEventListener('click', (event) => {
       break;
     case 'wizard-save':
       handleWizardSave();
+      break;
+    case 'signup-next':
+      signupWizardNext();
+      break;
+    case 'signup-back':
+      state.signup.errors = {};
+      state.signup.step = Math.max(1, state.signup.step - 1);
+      render();
+      break;
+    case 'signup-submit':
+      handleSignupSubmit();
+      break;
+    case 'toggle-signup-consent':
+      state.signup.consent = !state.signup.consent;
+      render();
       break;
     case 'save-detail':
       handleSaveDetail();

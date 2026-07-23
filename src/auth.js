@@ -3,13 +3,34 @@ import { supabase } from './supabaseClient.js';
 // Cadastro padrão: a senha é criada na hora, e o Supabase manda um e-mail
 // de confirmação com um link — a conta só fica utilizável depois que a
 // pessoa clica nesse link (proteção contra e-mail forjado/errado).
-export async function signUp(email, password, fullName, companyName, captchaToken) {
+//
+// Cadastro em etapas (ver authSignupWizardHtml/handleSignupSubmit em
+// main.js): telefone/endereço/cnpj vão em user_metadata do mesmo jeito que
+// full_name/company_name já iam — handle_new_user (ver schema.sql) lê tudo
+// isso ao criar a linha em profiles, então nada precisa de um UPDATE
+// separado depois do signUp.
+export async function signUp({
+  email, password, fullName, companyName, captchaToken,
+  phone = '', cnpj = '', cep = '', street = '', neighborhood = '', city = '', state = '', addressNumber = '', complement = '',
+}) {
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
     options: {
       emailRedirectTo: `${window.location.origin}${window.location.pathname}`,
-      data: { full_name: fullName, company_name: companyName },
+      data: {
+        full_name: fullName,
+        company_name: companyName,
+        phone,
+        cnpj,
+        cep,
+        street,
+        neighborhood,
+        city,
+        state,
+        address_number: addressNumber,
+        complement,
+      },
       captchaToken,
     },
   });

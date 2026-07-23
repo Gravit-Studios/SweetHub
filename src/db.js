@@ -16,7 +16,10 @@ function toNumber(value) {
 // landing page: cria a conta e já devolve o link do checkout do Mercado
 // Pago — a liberação de verdade do plano acontece no webhook, depois do
 // pagamento confirmar (ver planStatus/payment_status).
-export async function createSignupCheckout({ plan, billingCycle, email, password, fullName, companyName, captchaToken }) {
+export async function createSignupCheckout({
+  plan, billingCycle, email, password, fullName, companyName, captchaToken,
+  phone, cnpj, cep, street, neighborhood, city, state, addressNumber, complement,
+}) {
   const response = await fetch(`${FUNCTIONS_URL}/mercadopago-checkout`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -29,6 +32,15 @@ export async function createSignupCheckout({ plan, billingCycle, email, password
       fullName,
       companyName,
       captchaToken,
+      phone,
+      cnpj,
+      cep,
+      street,
+      neighborhood,
+      city,
+      state,
+      addressNumber,
+      complement,
       siteUrl: `${window.location.origin}${window.location.pathname}`,
     }),
   });

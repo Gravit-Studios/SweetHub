@@ -16,6 +16,10 @@ create table if not exists public.profiles (
   id uuid primary key references auth.users (id) on delete cascade,
   full_name text,
   company_name text,
+  -- Coletado no cadastro em etapas (ver handle_new_user abaixo) — os campos
+  -- de endereço/cnpj já existiam (preenchidos antes só em Configurações),
+  -- phone é novo.
+  phone text not null default '',
   cnpj text,
   cep text,
   street text,
@@ -148,12 +152,29 @@ begin
   -- conseguir gravar.
   loop
     begin
-      insert into public.profiles (id, full_name, company_name, slug)
+      -- Cadastro em etapas manda telefone/endereço/cnpj em raw_user_meta_data
+      -- do mesmo jeito que full_name/company_name — coalesce porque quem se
+      -- cadastra sem esses campos (ex.: fluxo antigo, se algum link ficar em
+      -- cache) não pode gerar um raw_user_meta_data ->> null e quebrar a
+      -- constraint not null de phone.
+      insert into public.profiles (
+        id, full_name, company_name, slug,
+        phone, cnpj, cep, street, neighborhood, city, state, address_number, complement
+      )
       values (
         new.id,
         new.raw_user_meta_data ->> 'full_name',
         new.raw_user_meta_data ->> 'company_name',
-        candidate_slug
+        candidate_slug,
+        coalesce(new.raw_user_meta_data ->> 'phone', ''),
+        coalesce(new.raw_user_meta_data ->> 'cnpj', ''),
+        coalesce(new.raw_user_meta_data ->> 'cep', ''),
+        coalesce(new.raw_user_meta_data ->> 'street', ''),
+        coalesce(new.raw_user_meta_data ->> 'neighborhood', ''),
+        coalesce(new.raw_user_meta_data ->> 'city', ''),
+        coalesce(new.raw_user_meta_data ->> 'state', ''),
+        coalesce(new.raw_user_meta_data ->> 'address_number', ''),
+        coalesce(new.raw_user_meta_data ->> 'complement', '')
       );
       exit;
     exception when unique_violation then
