@@ -733,9 +733,21 @@ document.addEventListener('visibilitychange', () => {
 });
 setInterval(checkIdleTimeout, IDLE_CHECK_INTERVAL_MS);
 
+// getSession() (checagem única no carregamento da página) e
+// onAuthStateChange (que também dispara uma vez sozinho com a sessão atual,
+// além de a cada mudança real) corriam em paralelo — sem essa trava, os
+// dois chamavam loadUserData() ao mesmo tempo pra sessão inicial, e duas
+// chamadas concorrentes de ensureDefaultExpenseCategories/
+// ensureDefaultProfitTiers tentavam semear as categorias/níveis padrão ao
+// mesmo tempo. A segunda sempre esbarrava no limite do plano Gratuito
+// (exatamente o nº de itens padrão) e quebrava o carregamento inteiro dos
+// dados pra quem tivesse acabado de criar a conta.
+let sessionDataLoaded = false;
+
 getSession().then((session) => {
   state.session = session;
-  if (session) {
+  if (session && !sessionDataLoaded) {
+    sessionDataLoaded = true;
     loadUserData();
     markActivity();
   }
@@ -754,11 +766,13 @@ onAuthStateChange((event, session) => {
   }
   const hadSession = Boolean(state.session);
   state.session = session;
-  if (session && !hadSession) {
+  if (session && !hadSession && !sessionDataLoaded) {
+    sessionDataLoaded = true;
     loadUserData();
     markActivity();
   }
   if (!session) {
+    sessionDataLoaded = false;
     state.savedIngredients = [];
     state.savedProducts = [];
     state.selectedProducts = new Set();
@@ -1741,7 +1755,7 @@ function confirmDeleteModal(data) {
       <p>${escapeHtml(data.message)}</p>
       ${needsTypedConfirm ? `
       <label style="margin-top:16px;">Digite "${escapeHtml(data.confirmText)}" para confirmar
-        <input data-modal-field="confirmInput" value="${escapeHtml(data.confirmInput || '')}" autocomplete="off" />
+        <input name="confirmInput" data-modal-field="confirmInput" value="${escapeHtml(data.confirmInput || '')}" autocomplete="off" />
       </label>` : ''}
       <div class="save-actions">
         <button type="button" class="danger" data-action="confirm-delete" ${data.loading || !typedMatches ? 'disabled' : ''}>${data.loading ? confirmLoadingLabel : confirmLabel}</button>
